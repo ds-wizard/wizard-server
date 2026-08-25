@@ -121,6 +121,32 @@ packages:
     subdir: lib/services/amazonka-appconfigdata
     url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
 - completed:
+    name: amazonka-cloudwatch-events
+    pantry-tree:
+      sha256: fe70fa0bb1f51c1420b5ecd36a0479b1f0578057c9aa69dcb0260f4d3234fe35
+      size: 22152
+    sha256: 06f5e8430080e5a46e4489e12978725f4b01cfb896450a12a01bcde88168c7f2
+    size: 34855734
+    subdir: lib/services/amazonka-cloudwatch-events
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+    version: '2.0'
+  original:
+    subdir: lib/services/amazonka-cloudwatch-events
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+- completed:
+    name: amazonka-cloudwatch-logs
+    pantry-tree:
+      sha256: 3b5244198931f7d91d868b6f4ae1313c2e8a8bc47e1d07b8c0ceb4c835ee484f
+      size: 14436
+    sha256: 06f5e8430080e5a46e4489e12978725f4b01cfb896450a12a01bcde88168c7f2
+    size: 34855734
+    subdir: lib/services/amazonka-cloudwatch-logs
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+    version: '2.0'
+  original:
+    subdir: lib/services/amazonka-cloudwatch-logs
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+- completed:
     name: amazonka-lambda
     pantry-tree:
       sha256: 249b7557046e64a2fae70acd3e7d7e20422ef7b3db49bf01d56c619e1d0a4470
@@ -250,6 +276,13 @@ packages:
       size: 631
   original:
     hackage: x509-validation-1.6.12@sha256:4f4af20ec77f02c042ecd4726c195bb0e0b694b336de81e7bd4515b2917bd9bc,2169
+- completed:
+    hackage: zxcvbn-hs-0.3.8@sha256:bca8eb3b5c122a46c3771b47d9e039d42c5d0c4afb04c333fc618aeae27466bd,4890
+    pantry-tree:
+      sha256: 1791461726e59a7582f8fb1b1498f7b94be263ad70b3fa22078fd48b4de868a3
+      size: 2727
+  original:
+    hackage: zxcvbn-hs-0.3.8@sha256:bca8eb3b5c122a46c3771b47d9e039d42c5d0c4afb04c333fc618aeae27466bd,4890
 snapshots:
 - completed:
     sha256: 655e468f774beee1badf07dc4c45fb50288d5c66ce7bef6f487b7f92891a90b0

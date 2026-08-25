@@ -1,90 +1,53 @@
-# Data Stewardship Wizard Engine Backend
+# Wizard Server
 
 [![User Guide](https://img.shields.io/badge/docs-User%20Guide-informational)](https://guide.ds-wizard.org)
-[![Engine Backend CI](https://github.com/ds-wizard/engine-backend/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ds-wizard/engine-backend/actions/workflows/build.yml)
-[![License](https://img.shields.io/github/license/ds-wizard/engine-backend)](LICENSE)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4975/badge)](https://bestpractices.coreinfrastructure.org/projects/4975)
+[![License](https://img.shields.io/github/license/ds-wizard/wizard-server)](LICENSE.md)
 
-*Backend application for Data Stewardship Wizard*
+*Wizard Server is the core application of the Data Stewardship Wizard: knowledge models,
+projects, document generation, user and tenant management and real-time collaboration.*
 
-## Applications
+This repository is a read-only distribution: the sources are generated from the development
+repository and pushed here, so pull requests cannot be merged directly. Discuss changes in an
+issue first, see [CONTRIBUTING](CONTRIBUTING.md).
 
-- Wizard (`<application>` = wizard-server)
-- Registry (`<application>` = registry-server)
+## Repository layout
 
-## Contribute
-
-For contributing guidelines, please read [CONTRIBUTING](CONTRIBUTING.md) and [relevant section in our guide](https://guide.ds-wizard.org/en/latest/more/development/contributing.html).
-
-### Requirements
-
- - **Stack** (recommended 2.15.3 or higher)
- - **Postgres & libpq** (recommended 15.5)
- - **Fourmolu** (recommended 0.19.0.1, optional)
- - **HLint** (recommended 3.10, optional)
- - **Docker** (recommended 19.03.0-ce) - *for build of production image*
- - [**document-worker**](https://github.com/ds-wizard/engine-tools) (corresponding version)
- - [**mailer**](https://github.com/ds-wizard/engine-tools) (corresponding version)
- - [**engine-jinja**](https://github.com/ds-wizard/engine-jinja) (1.0.0, see below)
-
-### Build & Run
-
-To build and run the Wizard application, you need to have [**engine-jinja**](https://github.com/ds-wizard/engine-jinja) libraries 
-compiled and available in the `lib/` folder of the project. Either download it from the [releases](https://github.com/ds-wizard/engine-jinja/releases) 
-or compile it yourself. For development, make sure create a symlink to the `lib/` folder from `wizard-server/dist`. Additionally,
-set relevant environment variables for the application to work properly:
-
-```bash
-export PYTHONPATH=$(pwd)/lib:$PYTHONPATH
-export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
-# For macOS users:
-export DYLD_LIBRARY_PATH=$(pwd)/lib:$DYLD_LIBRARY_PATH
+```
+app/wizard-server   entry point
+src/               Shared, WizardLib, RegistryLib, Wizard
+test/              hspec suites: shared wizard-lib wizard
+config/            configuration, committed templates as *.example
+scripts/           build info, config expansion, strict build
 ```
 
-For running application it's need to run Postgres database and set up connection in configuration file.
+## Requirements
 
-To set up feedback with GitHub, generate an API Key on GitHub and assign it to the environment variable named `FEEDBACK_TOKEN`.
+ - [Stack](https://docs.haskellstack.org) (GHC 9.10.3, snapshot lts-24.37) and `hpack`
+ - PostgreSQL 15 and MinIO/S3
+ - [**engine-jinja**](https://github.com/ds-wizard/engine-jinja) libraries in `lib/` (document templating)
+ - Optional: `fourmolu`, `hlint`, `cspell`
 
-Run these comands from the root of the project
+## Build and run
 
 ```bash
-$ stack build <application>
-$ stack exec <application>
+./scripts/expand-example-files.sh   # creates the gitignored configs from *.example
+make build
+make run
 ```
 
-### Run tests
+The document templating needs the [engine-jinja](https://github.com/ds-wizard/engine-jinja) libraries in `lib/`.
+Download them from the releases or compile them yourself; the `Makefile` exports `PYTHONPATH`,
+`LD_LIBRARY_PATH` and `DYLD_LIBRARY_PATH` to that folder.
 
-Run these comands from the root of the project
-
-```bash
-$ stack test <application>
-```
-
-### Format code
-
-Create a bash script which will do the work for you. Run the script from the root of the project
+## Tests and code style
 
 ```bash
-$ fourmolu -i $(find . -name '*.hs')
-```
-
-### Code coverage
-
-Run these comands from the root of the project
-
-```bash
-$ stack build <application>
-$ stack test <application> --jobs=1 --fast --coverage --ghc-options "-fforce-recomp"
-```
-
-### Build an app version and built date
-
-Run the following command from the project root, for the given application:
-
-```bash
-$ ./scripts/generate-build-info.sh <application>
+make test                                    # all suites (needs a running database)
+make test-wizard
+make check                                   # hlint + fourmolu + cspell
+make format
 ```
 
 ## License
 
-This project is licensed under the Apache License v2.0 - see the [LICENSE](LICENSE.md) file for more details.
+This project is licensed under the Apache License v2.0 - see the [LICENSE](LICENSE.md) file.

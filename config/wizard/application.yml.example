@@ -1,0 +1,23 @@
+general:
+  clientUrl: http://localhost:3001/wizard
+  secret:
+
+database:
+  connectionString: postgresql://postgres:postgres@postgres:5432/wizard
+
+registry:
+  token:
+
+feedback:
+  token:
+  owner:
+  repo:
+
+httpClient:
+  restricted:
+    allowedHosts: []
+
+sentry:
+  enabled: false
+  dsn:
+  environment: development

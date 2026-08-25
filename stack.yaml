@@ -3,11 +3,7 @@ snapshot: lts-24.37
 compiler: ghc-9.10.3
 
 packages:
-- shared-common
-- registry-public
-- registry-server
-- wizard-public
-- wizard-server
+- .
 
 extra-deps:
   - github: haskellify/postgresql-migration
@@ -30,6 +26,8 @@ extra-deps:
       - lib/amazonka
       - lib/amazonka-core
       - lib/services/amazonka-appconfigdata
+      - lib/services/amazonka-cloudwatch-events
+      - lib/services/amazonka-cloudwatch-logs
       - lib/services/amazonka-lambda
       - lib/services/amazonka-sso
       - lib/services/amazonka-sts
@@ -46,8 +44,9 @@ extra-deps:
   - x509-1.7.7@sha256:90eef2d745a654146fc1c325e035eaddac531e4d2145d4bc1dcf4b8fad439d34,2276
   - x509-store-1.6.9@sha256:1f1abeab5bacf1407b920d0f34f4c35a5ad450ff0d8121cd3dc76460f81e711d,1716
   - x509-validation-1.6.12@sha256:4f4af20ec77f02c042ecd4726c195bb0e0b694b336de81e7bd4515b2917bd9bc,2169
+  - zxcvbn-hs-0.3.8@sha256:bca8eb3b5c122a46c3771b47d9e039d42c5d0c4afb04c333fc618aeae27466bd,4890
+
+allow-newer: true
 
 extra-lib-dirs:
   - ./lib
-
-allow-newer: true

@@ -1,12 +1,18 @@
-.stack-work
-lib/
+# Haskell / Stack build artifacts
+.stack-work/
 dist/
-dist
 *.cabal
+wizard-server-bin
 
-application.yml
-application-test.yml
-integration.yml
-integration-test.yml
-build-info.yml
-config/build-info-test.yml
+# Native libraries (libjinja, downloaded per platform, see .github/actions/haskell-setup)
+lib/
+
+# Local config with secrets - committed templates live next to them as *.example
+config/wizard/application.yml
+config/wizard/application-test.yml
+config/wizard/build-info.yml
+config/wizard/integration.yml
+config/wizard/integration-test.yml
+
+# macOS
+.DS_Store
