@@ -89,7 +89,7 @@ jobs:
 # (1) -> Setup cache
     - name: Cache ~/.stack
       id: cache-stack
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.stack
         key: stack-home-ubuntu24-${{ hashFiles('**/package.yaml')}}-${{ hashFiles('**/stack.yaml*') }}
@@ -98,7 +98,7 @@ jobs:
     
     - name: Cache shared-common
       id: cache-shared-common
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: shared-common/.stack-work
         key: shared-common-ubuntu24-${{ hashFiles('shared-common/package.yaml')}}-${{ hashFiles('shared-common/**/*.hs') }}
@@ -114,7 +114,7 @@ jobs:
     
     - name: Cache wizard-public
       id: cache-wizard-public
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: wizard-public/.stack-work
         key: wizard-public-ubuntu24-${{ hashFiles('wizard-public/package.yaml')}}-${{ hashFiles('wizard-public/**/*.hs') }}
@@ -130,7 +130,7 @@ jobs:
     
     - name: Cache registry-public
       id: cache-registry-public
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: registry-public/.stack-work
         key: registry-public-ubuntu24-${{ hashFiles('registry-public/package.yaml')}}-${{ hashFiles('registry-public/**/*.hs') }}
@@ -146,7 +146,7 @@ jobs:
 
     - name: Cache registry-server
       id: cache-registry-server
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: registry-server/.stack-work
         key: registry-server-${{ matrix.component }}-ubuntu24-${{ hashFiles('registry-server/package.yaml')}}-${{ hashFiles('registry-server/**/*.hs') }}
@@ -162,7 +162,7 @@ jobs:
     
     - name: Cache wizard-server
       id: cache-wizard-server
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       if: matrix.component == 'wizard'
       with:
         path: wizard-server/.stack-work
@@ -179,7 +179,7 @@ jobs:
     
     - name: Cache Stack in ~/.local/bin
       id: cache-stack-local-bin
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.local/bin
         key: stack-local-bin-ubuntu24-${{ matrix.stack }}

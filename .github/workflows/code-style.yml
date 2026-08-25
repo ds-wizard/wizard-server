@@ -23,7 +23,7 @@ jobs:
 # (2) -> Setup cache
     - name: Cache ~/.local/bin
       id: cache-local-bin
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.local/bin
         key: local-bin-${{ env.HLINT_VERSION }}
@@ -66,7 +66,7 @@ jobs:
 # (2) -> Setup cache
     - name: Cache ~/.local/bin
       id: cache-local-bin
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.local/bin
         key: local-bin-${{ env.FOURMOLU_VERSION }}-${{ env.HPACK_VERSION }}
