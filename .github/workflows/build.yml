@@ -55,7 +55,7 @@ jobs:
       run: echo "Force push detected. Cache may be invalidated..."
 
     - name: Checkout git repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Fetch all git history
       run: |
