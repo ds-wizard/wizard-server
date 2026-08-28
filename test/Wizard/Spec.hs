@@ -1,9 +1,9 @@
 module Main where
 
-import Data.IORef (newIORef)
 import Control.Concurrent.MVar
 import Control.Monad ((>=>))
 import qualified Data.ByteString as BS
+import Data.IORef (newIORef)
 import Data.Maybe (fromJust)
 import Data.Pool
 import qualified Data.UUID as U
