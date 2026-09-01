@@ -1,0 +1,38 @@
+module Wizard.Database.Migration.Development.Feedback.FeedbackSchemaMigration where
+
+import Database.PostgreSQL.Simple
+import GHC.Int
+
+import Shared.Common.Util.Logger
+import Wizard.Database.DAO.Common
+import Wizard.Model.Context.AppContext
+import Wizard.Model.Context.ContextLenses ()
+
+dropTables :: AppContextM Int64
+dropTables = do
+  logInfo _CMP_MIGRATION "(Table/Feedback) drop tables"
+  let sql = "DROP TABLE IF EXISTS w_feedback CASCADE;"
+  let action conn = execute_ conn sql
+  runDB action
+
+createTables :: AppContextM Int64
+createTables = do
+  logInfo _CMP_MIGRATION "(Table/Feedback) create table"
+  let sql =
+        "CREATE TABLE w_feedback \
+        \( \
+        \    uuid                         uuid        NOT NULL, \
+        \    issue_id                     int         NOT NULL, \
+        \    question_uuid                uuid        NOT NULL, \
+        \    knowledge_model_package_uuid uuid        NOT NULL, \
+        \    title                        varchar     NOT NULL, \
+        \    content                      varchar     NOT NULL, \
+        \    created_at                   timestamptz NOT NULL, \
+        \    updated_at                   timestamptz NOT NULL, \
+        \    tenant_uuid                  uuid        NOT NULL, \
+        \    CONSTRAINT w_feedback_pk PRIMARY KEY (uuid), \
+        \    CONSTRAINT w_feedback_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT w_feedback_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \);"
+  let action conn = execute_ conn sql
+  runDB action

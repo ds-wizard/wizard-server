@@ -1,0 +1,229 @@
+name: wizard-server
+version: '1.0.0'
+synopsis: Wizard Server
+description: Wizard Server
+category: Web
+author: Vojtech Knaisl <vknaisl@gmail.com>
+maintainer: Vojtech Knaisl <vknaisl@gmail.com>
+copyright: 2023 Vojtech Knaisl <vknaisl@gmail.com>
+license: Apache
+license-file: LICENSE.md
+homepage: https://github.com/ds-wizard/wizard-server
+git: git@github.com:ds-wizard/wizard-server.git
+bug-reports: https://github.com/ds-wizard/wizard-server/issues
+tested-with: GHC==9.10.3
+
+# Top-level keys starting with an underscore are ignored by hpack and serve as YAML anchor definitions.
+_default-ghc-options: &default-ghc-options
+- condition: os(darwin)
+  then:
+    # -optl-Wl,-needed-ljinja: macOS ld strips the libjinja reference as unused
+    # (the FFI symbols resolve via -undefined dynamic_lookup), which would crash
+    # at the first render_jinja call; -needed-l forces the dylib to be recorded.
+    ghc-options: -threaded -O0 -fwarn-unused-imports -fno-warn-warnings-deprecations -fno-warn-ambiguous-fields -Wno-x-partial -Werror=missing-fields -Werror=incomplete-patterns -optl-Wl,-needed-ljinja
+  else:
+    ghc-options: -threaded -O2 -fwarn-unused-imports -fno-warn-warnings-deprecations -fno-warn-ambiguous-fields -Wno-x-partial -Werror=missing-fields -Werror=incomplete-patterns
+
+library:
+  source-dirs: src
+  extra-libraries: jinja
+  when: *default-ghc-options
+  dependencies:
+  - base
+  - aeson
+  - amazonka
+  - amazonka-appconfigdata
+  - amazonka-cloudwatch-events
+  - amazonka-cloudwatch-logs
+  - amazonka-core
+  - amazonka-lambda
+  - async
+  - attoparsec
+  - base16-bytestring
+  - base64
+  - blaze-html
+  - bytestring
+  - c14n
+  - cache
+  - case-insensitive
+  - clock
+  - conduit
+  - containers
+  - cron
+  - crypton
+  - crypton-x509
+  - crypton-x509-store
+  - cryptostore
+  - data-default
+  - data-default-class
+  - directory
+  - exceptions
+  - fsutils
+  - hashable
+  - hspec
+  - hspec-expectations-json
+  - hspec-expectations-pretty-diff
+  - hspec-wai
+  - http-api-data
+  - http-client
+  - http-client-restricted
+  - http-client-tls
+  - http-types
+  - insert-ordered-containers
+  - jose-jwt
+  - jwt
+  - markdown
+  - memory
+  - minio-hs
+  - monad-control
+  - monad-logger
+  - mtl
+  - network
+  - network-uri
+  - oidc-client
+  - pem
+  - postgresql-libpq
+  - postgresql-migration
+  - postgresql-simple
+  - pretty-simple
+  - pretty-terminal
+  - pwstore-fast
+  - random # OK
+  - raven-haskell
+  - raw-strings-qq
+  - rdf4h
+  - regex-compat
+  - regex-tdfa
+  - resource-pool
+  - resourcet
+  - retry
+  - scientific
+  - servant
+  - servant-client
+  - servant-client-core
+  - servant-errors
+  - servant-multipart
+  - servant-server
+  - servant-swagger
+  - servant-swagger-tags
+  - servant-swagger-ui
+  - servant-websockets
+  - swagger2
+  - text
+  - text-replace
+  - time
+  - time-manager
+  - time-parsers
+  - transformers
+  - unix
+  - unordered-containers
+  - uri-encode
+  - uuid
+  - vault
+  - vector
+  - wai
+  - wai-extra
+  # - wai-saml2
+  - wai-websockets
+  - warp # OK
+  - websockets
+  - wreq # OK
+  - xml-conduit
+  - yaml # OK
+  - zip-archive
+  - zlib
+  - zxcvbn-hs
+
+executables:
+  wizard-server:
+    main: Main.hs
+    source-dirs: app/wizard-server
+    when: *default-ghc-options
+    dependencies:
+    - base
+    - wizard-server
+_test-dependencies: &test-dependencies
+    - wizard-server
+    - base
+    - aeson
+    - aeson-qq
+    - async
+    - bytestring
+    - cache
+    - case-insensitive
+    - containers
+    - http-client
+    - http-types
+    - mtl
+    - monad-control
+    - monad-logger
+    - network
+    - postgresql-simple
+    - pretty-simple
+    - pwstore-fast
+    - random
+    - regex-compat
+    - resource-pool
+    - servant
+    - servant-server
+    - servant-errors
+    - text
+    - time
+    - unordered-containers
+    - uuid
+    - vector
+    - wai
+    - wai-extra
+    - warp
+    - websockets
+    - wreq
+    - yaml
+    - hspec
+    - hspec-expectations-json
+    - hspec-expectations-pretty-diff
+    - hspec-wai
+
+tests:
+  shared-test:
+    main: Spec.hs
+    source-dirs: test/Shared
+    when: *default-ghc-options
+    dependencies: *test-dependencies
+  wizard-lib-test:
+    main: Spec.hs
+    source-dirs: test/WizardLib
+    when: *default-ghc-options
+    dependencies: *test-dependencies
+  wizard-test:
+    main: Spec.hs
+    source-dirs:
+    - test/Wizard
+    - test/SharedTest
+    when: *default-ghc-options
+    dependencies: *test-dependencies
+
+default-extensions:
+  - DataKinds
+  - DeriveGeneric
+  - DisambiguateRecordFields
+  - DuplicateRecordFields
+  - ExistentialQuantification
+  - ExtendedDefaultRules
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - GeneralizedNewtypeDeriving
+  - LambdaCase
+  - MultiParamTypeClasses
+  - OverloadedStrings
+  - OverloadedRecordDot
+  - QuasiQuotes
+  - RankNTypes
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TemplateHaskell
+  - TypeApplications
+  - TypeFamilies
+  - TypeOperators
+  - TypeSynonymInstances
+  - UnicodeSyntax

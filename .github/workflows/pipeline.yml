@@ -1,0 +1,263 @@
+name: Pipeline
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+
+# A newer push supersedes the running pipeline for the same branch; release (tag) runs are never cancelled
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+
+# ----------------------------------------------------------------------------------------------------
+# Phase 1a: static checks (parallel with build)
+# ----------------------------------------------------------------------------------------------------
+  hlint:
+    name: Check / hlint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      HLINT_VERSION: '3.10'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache hlint
+        id: cache-hlint
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/bin/hlint
+          key: hlint-${{ env.HLINT_VERSION }}
+
+      - name: Install hlint
+        if: steps.cache-hlint.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          curl -L "https://github.com/ndmitchell/hlint/releases/download/v${HLINT_VERSION}/hlint-${HLINT_VERSION}-x86_64-linux.tar.gz" | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/hlint'
+
+      - name: Run hlint
+        run: hlint src app test
+
+  fourmolu:
+    name: Check / fourmolu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      FOURMOLU_VERSION: '0.19.0.1'
+      HPACK_VERSION: '0.38.3'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache fourmolu and hpack
+        id: cache-fourmolu
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.local/bin/fourmolu
+            ~/.local/bin/hpack
+          key: fourmolu-${{ env.FOURMOLU_VERSION }}-hpack-${{ env.HPACK_VERSION }}
+
+      - name: Install fourmolu and hpack
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          curl -L "https://github.com/fourmolu/fourmolu/releases/download/v${FOURMOLU_VERSION}/fourmolu-${FOURMOLU_VERSION}-linux-x86_64" --output ~/.local/bin/fourmolu
+          chmod +x ~/.local/bin/fourmolu
+          curl -L "https://github.com/sol/hpack/releases/download/${HPACK_VERSION}/hpack_linux.gz" | gzip -d > ~/.local/bin/hpack
+          chmod +x ~/.local/bin/hpack
+
+      # fourmolu reads default-extensions (OverloadedRecordDot, ...) from the generated cabal file
+      - name: Generate cabal file
+        run: hpack --force
+
+      - name: Run fourmolu
+        run: fourmolu --mode check src app test
+
+  cspell:
+    name: Check / cspell
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install CSpell
+        run: npm install -g cspell-cli
+
+      - name: Run CSpell
+        run: ./.cspell/run.sh --no-progress --no-summary
+
+
+# ----------------------------------------------------------------------------------------------------
+# Phase 1b: Haskell build (compiles the library, executable and test suites, produces dist/)
+# ----------------------------------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Haskell setup
+        id: setup
+        uses: ./.github/actions/haskell-setup
+
+      - name: Generate build info
+        run: ./scripts/generate-build-info.sh config/wizard
+
+      - name: Install GHC and dependencies
+        run: stack test --no-terminal --install-ghc --only-dependencies
+
+      - name: Save ~/.stack cache
+        if: steps.setup.outputs.stack-cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.stack
+          key: ${{ steps.setup.outputs.stack-cache-key }}
+
+      - name: Build application
+        run: ./scripts/build-strict.sh --no-terminal --skip-ghc-check
+
+      - name: Save stack-work cache
+        if: steps.setup.outputs.stack-work-cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .stack-work
+          key: ${{ steps.setup.outputs.stack-work-cache-key }}
+
+      - name: Prepare dist directory
+        run: |
+          cp "$(stack path --local-install-root)/bin/wizard-server" wizard-server-bin
+          make dist
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 3
+
+# ----------------------------------------------------------------------------------------------------
+# Phase 2: test suites in parallel (each against its own PostgreSQL + MinIO)
+# ----------------------------------------------------------------------------------------------------
+  test:
+    name: Test / ${{ matrix.suite }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [shared, wizard-lib, wizard]
+    services:
+      postgres:
+        # Pinned to the version used for local development
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+      minio:
+        image: fclairamb/minio-github-actions
+        ports:
+          - 9000:9000
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Haskell setup
+        uses: ./.github/actions/haskell-setup
+
+      - name: Run tests
+        run: stack test wizard-server:${{ matrix.suite }}-test --no-terminal --skip-ghc-check --jobs=1
+        env:
+          FEEDBACK_TOKEN: ${{ secrets.FEEDBACK_TOKEN }}
+
+# ----------------------------------------------------------------------------------------------------
+# Phase 3: Docker image build + push (main and tags only)
+# ----------------------------------------------------------------------------------------------------
+  image:
+    name: Image
+    needs: [hlint, fourmolu, cspell, test]
+    if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      - name: Restore executable permissions
+        run: chmod +x dist/wizard-server-bin
+
+      # latest and the major tag move only when the pushed tag is the highest version,
+      # so a hotfix of an older line never hijacks them
+      - name: Is highest tag
+        id: highest
+        if: github.ref_type == 'tag'
+        run: |
+          HIGHEST=$(git tag --sort=-v:refname | head -1)
+          echo "value=$([ "$HIGHEST" = "$GITHUB_REF_NAME" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Docker login [ghcr.io]
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker login [docker.io]
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ghcr.io/ds-wizard/wizard-server
+            datastewardshipwizard/wizard-server
+          tags: |
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ steps.highest.outputs.value == 'true' }}
+            type=raw,value=latest,enable=${{ steps.highest.outputs.value == 'true' }}
+
+      - name: Docker build + push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

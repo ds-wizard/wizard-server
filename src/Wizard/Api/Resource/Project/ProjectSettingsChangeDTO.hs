@@ -1,0 +1,15 @@
+module Wizard.Api.Resource.Project.ProjectSettingsChangeDTO where
+
+import qualified Data.UUID as U
+import GHC.Generics
+
+data ProjectSettingsChangeDTO = ProjectSettingsChangeDTO
+  { name :: String
+  , description :: Maybe String
+  , projectTags :: [String]
+  , documentTemplateUuid :: Maybe U.UUID
+  , formatUuid :: Maybe U.UUID
+  , isTemplate :: Bool
+  , language :: Maybe String
+  }
+  deriving (Show, Eq, Generic)

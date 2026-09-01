@@ -1,0 +1,98 @@
+name: Haskell setup
+description: System dependencies, jinja library, Stack binary, build caches and config preparation
+
+inputs:
+  stack-version:
+    description: Stack version to install
+    default: '3.9.3'
+  engine-jinja-version:
+    description: engine-jinja release providing libjinja
+    default: 'v1.0.0'
+
+outputs:
+  stack-cache-key:
+    value: ${{ steps.keys.outputs.stack }}
+  stack-cache-hit:
+    value: ${{ steps.cache-stack.outputs.cache-hit }}
+  stack-work-cache-key:
+    value: ${{ steps.keys.outputs.stack-work }}
+  stack-work-cache-hit:
+    value: ${{ steps.cache-stack-work.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y liblzma-dev
+
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: Prepare lib directory
+      shell: bash
+      run: |
+        mkdir -p lib
+        curl -L -o libjinja.tar.gz https://github.com/ds-wizard/engine-jinja/releases/download/${{ inputs.engine-jinja-version }}/libjinja-python3.12-ubuntu-24.04-X64.tar.gz
+        tar --strip-components=1 -xzf libjinja.tar.gz -C lib
+        rm libjinja.tar.gz
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
+        echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
+
+    - name: Compute cache keys
+      id: keys
+      shell: bash
+      run: |
+        echo "stack=stack-home-ubuntu24-${{ hashFiles('package.yaml') }}-${{ hashFiles('stack.yaml*') }}" >> "$GITHUB_OUTPUT"
+        echo "stack-work=stack-work-ubuntu24-${{ hashFiles('package.yaml') }}-${{ hashFiles('src/**/*.hs', 'app/**/*.hs', 'test/**/*.hs') }}" >> "$GITHUB_OUTPUT"
+
+    - name: Cache stack binary
+      id: cache-stack-binary
+      uses: actions/cache@v5
+      with:
+        path: ~/.local/bin/stack
+        key: stack-binary-${{ inputs.stack-version }}
+
+    - name: Install stack
+      if: steps.cache-stack-binary.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/.local/bin
+        curl -L https://github.com/commercialhaskell/stack/releases/download/v${{ inputs.stack-version }}/stack-${{ inputs.stack-version }}-linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+    - name: Restore ~/.stack cache
+      id: cache-stack
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.stack
+        key: ${{ steps.keys.outputs.stack }}
+        restore-keys: |
+          stack-home-ubuntu24-
+
+    - name: Restore stack-work cache
+      id: cache-stack-work
+      uses: actions/cache/restore@v5
+      with:
+        path: |
+          .stack-work
+        key: ${{ steps.keys.outputs.stack-work }}
+        restore-keys: |
+          stack-work-ubuntu24-${{ hashFiles('package.yaml') }}-
+          stack-work-ubuntu24-
+
+    - name: Invalidate stack-work cache (force push)
+      if: github.event_name == 'push' && github.event.forced && steps.cache-stack-work.outputs.cache-hit != 'true'
+      shell: bash
+      run: rm -rf .stack-work
+
+    - name: Update file timestamps
+      shell: bash
+      run: ./scripts/update-file-timestamps.sh
+
+    - name: Expand example config files
+      shell: bash
+      run: ./scripts/expand-example-files.sh

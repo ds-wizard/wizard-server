@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-cspell-cli \
+cspell-cli "$@" \
     --config .cspell/cspell.json \
     **/*.hs \
     **/*.md \
