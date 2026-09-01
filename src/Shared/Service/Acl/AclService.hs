@@ -1,0 +1,7 @@
+module Shared.Service.Acl.AclService where
+
+class AclContext m where
+  hasPermission :: String -> m Bool
+  checkPermission :: String -> m ()
+  checkPermissionsAny :: [String] -> m ()
+  checkPermissionsAll :: [String] -> m ()

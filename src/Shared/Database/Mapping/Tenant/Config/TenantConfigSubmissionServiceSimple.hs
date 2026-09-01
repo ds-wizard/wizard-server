@@ -1,0 +1,7 @@
+module Shared.Database.Mapping.Tenant.Config.TenantConfigSubmissionServiceSimple where
+
+import Database.PostgreSQL.Simple
+
+import Shared.Model.Tenant.Config.TenantConfigSubmissionServiceSimple
+
+instance FromRow TenantConfigSubmissionServiceSimple

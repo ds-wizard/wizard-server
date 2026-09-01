@@ -1,0 +1,18 @@
+module Shared.Database.Mapping.Tenant.Config.TenantConfigDashboardAndLoginScreen where
+
+import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple.FromField
+import Database.PostgreSQL.Simple.ToField
+
+import Shared.Database.Mapping.Common
+import Shared.Model.Tenant.Config.TenantConfig
+
+instance FromRow TenantConfigDashboardAndLoginScreenAnnouncement
+
+instance ToRow TenantConfigDashboardAndLoginScreenAnnouncement
+
+instance ToField TenantConfigDashboardAndLoginScreenAnnouncementLevelType where
+  toField = toFieldGenericEnum
+
+instance FromField TenantConfigDashboardAndLoginScreenAnnouncementLevelType where
+  fromField = fromFieldGenericEnum

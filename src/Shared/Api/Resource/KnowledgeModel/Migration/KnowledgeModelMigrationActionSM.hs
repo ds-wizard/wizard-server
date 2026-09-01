@@ -1,0 +1,7 @@
+module Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationActionSM where
+
+import Data.Swagger
+
+import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
+
+instance ToSchema KnowledgeModelMigrationAction

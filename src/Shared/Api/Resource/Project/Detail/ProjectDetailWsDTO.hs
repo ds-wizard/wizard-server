@@ -1,0 +1,29 @@
+module Shared.Api.Resource.Project.Detail.ProjectDetailWsDTO where
+
+import qualified Data.Map.Strict as M
+import qualified Data.UUID as U
+import GHC.Generics
+
+import Shared.Api.Resource.DocumentTemplate.DocumentTemplateDTO
+import Shared.Api.Resource.Project.Acl.ProjectPermDTO
+import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
+import Shared.Model.Project.Project
+
+data ProjectDetailWsDTO = ProjectDetailWsDTO
+  { name :: String
+  , description :: Maybe String
+  , visibility :: ProjectVisibility
+  , sharing :: ProjectSharing
+  , projectTags :: [String]
+  , permissions :: [ProjectPermDTO]
+  , documentTemplateUuid :: Maybe U.UUID
+  , documentTemplate :: Maybe DocumentTemplateDTO
+  , formatUuid :: Maybe U.UUID
+  , format :: Maybe DocumentTemplateFormatSimple
+  , documentTemplateLanguage :: Maybe String
+  , isTemplate :: Bool
+  , labels :: M.Map String [U.UUID]
+  , unresolvedCommentCounts :: M.Map String (M.Map U.UUID Int)
+  , resolvedCommentCounts :: M.Map String (M.Map U.UUID Int)
+  }
+  deriving (Show, Eq, Generic)

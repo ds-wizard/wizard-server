@@ -1,0 +1,17 @@
+module Shared.Service.Plugin.PluginMapper where
+
+import Data.Time
+import qualified Data.UUID as U
+
+import Shared.Model.Plugin.Plugin
+
+toPlugin :: U.UUID -> String -> Bool -> U.UUID -> UTCTime -> Plugin
+toPlugin uuid url enabled tenantUuid now =
+  Plugin
+    { uuid = uuid
+    , url = url
+    , enabled = enabled
+    , tenantUuid = tenantUuid
+    , createdAt = now
+    , updatedAt = now
+    }

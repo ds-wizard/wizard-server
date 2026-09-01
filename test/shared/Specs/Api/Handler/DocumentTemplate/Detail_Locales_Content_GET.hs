@@ -1,0 +1,81 @@
+module Specs.Api.Handler.DocumentTemplate.Detail_Locales_Content_GET (
+  detail_locales_content_GET,
+) where
+
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import Network.HTTP.Types
+import Network.Wai (Application)
+import Test.Hspec
+import Test.Hspec.Wai hiding (shouldRespondWith)
+import Test.Hspec.Wai.Matcher
+
+import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateLocales
+import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
+import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as DT_Migration
+import Shared.Model.DocumentTemplate.DocumentTemplate
+import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocale
+import WizardServer.Model.Context.RequestContext
+
+import SharedTest.Specs.Api.Common
+import Specs.Api.Handler.Common
+import Specs.Common
+
+-- ------------------------------------------------------------------------
+-- GET /wizard-api/document-templates/{uuid}/locales/{localeUuid}/content
+-- ------------------------------------------------------------------------
+detail_locales_content_GET :: RequestContext -> SpecWith ((), Application)
+detail_locales_content_GET requestContext =
+  describe "GET /wizard-api/document-templates/{uuid}/locales/{localeUuid}/content" $ do
+    test_200 requestContext
+    test_401 requestContext
+    test_404 requestContext
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+reqMethod = methodGet
+
+reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/" ++ show czechWizardDocumentTemplateLocale.uuid ++ "/content"
+
+reqHeaders = [reqAuthHeader]
+
+reqBody = ""
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200 requestContext =
+  it "HTTP 200 OK" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 200
+      let expHeaders = resCorsHeaders
+      let expBody = BSL.fromStrict czechPoContent
+      -- AND: Run migrations
+      runInContextIO DT_Migration.runMigration requestContext
+      runInContextIO DT_Migration.runS3Migration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_404 requestContext =
+  createNotFoundTest'
+    reqMethod
+    (BS.pack $ "/wizard-api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/content")
+    reqHeaders
+    reqBody
+    "document_template_locale"
+    [("document_template_uuid", show wizardDocumentTemplate.uuid), ("uuid", "78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")]

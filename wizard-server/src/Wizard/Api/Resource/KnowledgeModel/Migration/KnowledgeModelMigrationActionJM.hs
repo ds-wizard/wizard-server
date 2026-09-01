@@ -1,9 +1,0 @@
-module Wizard.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationActionJM where
-
-import Data.Aeson
-
-import Wizard.Model.KnowledgeModel.Migration.KnowledgeModelMigration
-
-instance FromJSON KnowledgeModelMigrationAction
-
-instance ToJSON KnowledgeModelMigrationAction

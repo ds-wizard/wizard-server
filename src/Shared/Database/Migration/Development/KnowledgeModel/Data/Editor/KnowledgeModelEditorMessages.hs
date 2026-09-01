@@ -1,0 +1,11 @@
+module Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditorMessages where
+
+import Shared.Api.Resource.Websocket.KnowledgeModelEditorMessageDTO
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditorEvents
+import Shared.Database.Migration.Development.User.Data.WizardUsers
+
+ensureOnlineUserAction :: ClientKnowledgeModelEditorMessageDTO
+ensureOnlineUserAction = SetContent_ClientKnowledgeModelEditorMessageDTO knowledgeModelEditorWebsocketEvent1'
+
+setUserListAction :: ServerKnowledgeModelEditorMessageDTO
+setUserListAction = SetUserList_ServerKnowledgeModelEditorMessageDTO [userAlbertOnlineInfo]

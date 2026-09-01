@@ -1,0 +1,27 @@
+general:
+  clientUrl: http://localhost:3001/wizard
+  secret:
+
+database:
+  connectionString: postgresql://postgres:postgres@postgres:5432/wizard
+  # The vacuum cleaner runs raw VACUUM statements, so the table names are not checked at
+  # startup.
+  # vacuumCleaner:
+  #   enabled: true
+  #   cron: "0 3 * * *"
+  #   tables:
+  #     - project
+  #     - knowledge_model_package
+  #     - registry_knowledge_model_package
+
+registry:
+  token:
+
+httpClient:
+  restricted:
+    allowedHosts: []
+
+sentry:
+  enabled: false
+  dsn:
+  environment: development

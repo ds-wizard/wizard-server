@@ -1,0 +1,153 @@
+module Shared.Model.Config.WizardServerConfigJM where
+
+import Control.Monad
+import Data.Aeson
+import qualified Data.ByteString.Char8 as BS
+
+import Shared.Constant.DummyRsaPrivateKey
+import Shared.Localization.Messages.Internal
+import Shared.Model.Config.PublicServerConfigDM
+import Shared.Model.Config.PublicServerConfigJM ()
+import Shared.Model.Config.ServerConfigDM
+import Shared.Model.Config.ServerConfigJM ()
+import Shared.Model.Config.WizardServerConfig
+import Shared.Model.Config.WizardServerConfigDM
+import Shared.Util.Crypto
+
+instance FromJSON ServerConfig where
+  parseJSON (Object o) = do
+    general <- o .:? "general" .!= defaultGeneral
+    database <- o .:? "database" .!= defaultDatabase
+    s3 <- o .:? "s3" .!= defaultS3
+    aws <- o .:? "aws" .!= defaultAws
+    sentry <- o .:? "sentry" .!= defaultSentry
+    userEmailLink <- o .:? "userEmailLink" .!= defaultUserEmailLink
+    knowledgeModelEditor <- o .:? "knowledgeModelEditor" .!= defaultKnowledgeModelEditor
+    cache <- o .:? "cache" .!= defaultCache
+    document <- o .:? "document" .!= defaultDocument
+    externalLink <- o .:? "externalLink" .!= defaultExternalLink
+    project <- o .:? "project" .!= defaultProject
+    temporaryFile <- o .:? "temporaryFile" .!= defaultTemporaryFile
+    userToken <- o .:? "userToken" .!= defaultUserToken
+    userRegistration <- o .:? "userRegistration" .!= defaultUserRegistration
+    analyticalMails <- o .:? "analyticalMails" .!= defaultAnalyticalMails
+    logging <- o .:? "logging" .!= defaultLogging
+    cloud <- o .:? "cloud" .!= defaultCloud
+    persistentCommand <- o .:? "persistentCommand" .!= defaultPersistentCommand
+    signalBridge <- o .:? "signalBridge" .!= defaultSignalBridge
+    admin <- o .:? "admin" .!= defaultAdmin
+    registry <- o .:? "registry" .!= defaultRegistry
+    httpClient <- o .:? "httpClient" .!= defaultHttpClient
+    return ServerConfig {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigHttpClient where
+  parseJSON (Object o) = do
+    restricted <- o .:? "restricted" .!= defaultHttpClient.restricted
+    return ServerConfigHttpClient {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigHttpClientRestricted where
+  parseJSON (Object o) = do
+    allowedHosts <- o .:? "allowedHosts" .!= defaultHttpClient.restricted.allowedHosts
+    return ServerConfigHttpClientRestricted {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigGeneral where
+  parseJSON (Object o) = do
+    environment <- o .:? "environment" .!= defaultGeneral.environment
+    clientUrl <- o .:? "clientUrl" .!= defaultGeneral.clientUrl
+    serverPort <- o .:? "serverPort" .!= defaultGeneral.serverPort
+    secret <- o .:? "secret" .!= defaultGeneral.secret
+    mRsaPrivateKeyString <- o .:? "rsaPrivateKey"
+    rsaPrivateKey <-
+      case mRsaPrivateKeyString of
+        Just rsaPrivateKeyString ->
+          case readRSAPrivateKey . BS.pack $ rsaPrivateKeyString of
+            Just privateKey -> return privateKey
+            Nothing -> fail _ERROR_SERVICE_CONFIG__VALIDATION_CFG_RSA_PRIVATE_KEY_FORMAT
+        Nothing -> return dummyRsaPrivateKey
+    integrationConfig <- o .:? "integrationConfig" .!= defaultGeneral.integrationConfig
+    return ServerConfigGeneral {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigUserEmailLink where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultUserEmailLink.clean
+    return ServerConfigUserEmailLink {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigUserRegistration where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultUserRegistration.clean
+    return ServerConfigUserRegistration {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigKnowledgeModelEditor where
+  parseJSON (Object o) = do
+    squash <- o .:? "squash" .!= defaultKnowledgeModelEditor.squash
+    return ServerConfigKnowledgeModelEditor {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigCache where
+  parseJSON (Object o) = do
+    dataExpiration <- o .:? "dataExpiration" .!= defaultCache.dataExpiration
+    websocketExpiration <- o .:? "websocketExpiration" .!= defaultCache.websocketExpiration
+    purgeExpired <- o .:? "purgeExpired" .!= defaultCache.purgeExpired
+    dataEnabled <- o .:? "dataEnabled" .!= defaultCache.dataEnabled
+    return ServerConfigCache {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigDocument where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultDocument.clean
+    return ServerConfigDocument {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigProject where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultProject.clean
+    squash <- o .:? "squash" .!= defaultProject.squash
+    assigneeNotification <- o .:? "assigneeNotification" .!= defaultProject.assigneeNotification
+    return ServerConfigProject {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigTemporaryFile where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultTemporaryFile.clean
+    return ServerConfigTemporaryFile {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigUserToken where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultUserToken.clean
+    expire <- o .:? "expire" .!= defaultUserToken.expire
+    return ServerConfigUserToken {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigSignalBridge where
+  parseJSON (Object o) = do
+    enabled <- o .:? "enabled" .!= defaultSignalBridge.enabled
+    updatePermsArn <- o .:? "updatePermsArn" .!= defaultSignalBridge.updatePermsArn
+    updateUserGroupArn <- o .:? "updateUserGroupArn" .!= defaultSignalBridge.updateUserGroupArn
+    setProjectArn <- o .:? "setProjectArn" .!= defaultSignalBridge.setProjectArn
+    addEventArn <- o .:? "addEventArn" .!= defaultSignalBridge.addEventArn
+    addFileArn <- o .:? "addFileArn" .!= defaultSignalBridge.addFileArn
+    logOutAllArn <- o .:? "logOutAllArn" .!= defaultSignalBridge.logOutAllArn
+    return ServerConfigSignalBridge {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigAdmin where
+  parseJSON (Object o) = do
+    enabled <- o .:? "enabled" .!= defaultAdmin.enabled
+    serverUrl <- o .:? "serverUrl" .!= defaultAdmin.serverUrl
+    return ServerConfigAdmin {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigRegistry where
+  parseJSON (Object o) = do
+    url <- o .:? "url" .!= defaultRegistry.url
+    clientUrl <- o .:? "clientUrl" .!= defaultRegistry.clientUrl
+    sync <- o .:? "sync" .!= defaultRegistry.sync
+    return ServerConfigRegistry {..}
+  parseJSON _ = mzero

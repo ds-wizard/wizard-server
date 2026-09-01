@@ -1,0 +1,129 @@
+module Specs.Service.DocumentTemplate.DocumentTemplateUtilSpec where
+
+import Data.Maybe (fromJust)
+import Data.Time
+import qualified Data.UUID as U
+import Test.Hspec
+
+import Shared.Constant.DocumentTemplate
+import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
+import Shared.Model.Coordinate.Coordinate
+import Shared.Model.DocumentTemplate.DocumentTemplate
+import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
+import Shared.Model.Tenant.Tenant
+import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
+
+documentTemplateUtilSpec =
+  describe "Document DocumentTemplate Utils" $ do
+    let pkgCoordinate = Coordinate "org.nl" "core-nl" "2.0.0"
+    describe "filterDocumentTemplates" $ do
+      it "No KM Specifications given => Deny" $
+        -- GIVEN:
+        do
+          let templates =
+                [ DocumentTemplate
+                    { uuid = U.nil
+                    , name = ""
+                    , organizationId = ""
+                    , templateId = ""
+                    , version = ""
+                    , phase = ReleasedDocumentTemplatePhase
+                    , metamodelVersion = documentTemplateMetamodelVersion
+                    , description = ""
+                    , readme = ""
+                    , license = ""
+                    , allowedPackages = []
+                    , nonEditable = False
+                    , language = "en"
+                    , potFileReady = False
+                    , tenantUuid = defaultTenant.uuid
+                    , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+                    , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+                    }
+                ]
+          -- AND:
+          let expectation = 0
+          -- GIVEN:
+          let result = filterDocumentTemplates (Just pkgCoordinate) templates
+          -- THEN:
+          length result `shouldBe` expectation
+      it "One relevant KM Specifications given => Allow" $
+        -- GIVEN:
+        do
+          let templates =
+                [ DocumentTemplate
+                    { uuid = U.nil
+                    , name = ""
+                    , organizationId = ""
+                    , templateId = ""
+                    , version = ""
+                    , phase = ReleasedDocumentTemplatePhase
+                    , metamodelVersion = documentTemplateMetamodelVersion
+                    , description = ""
+                    , readme = ""
+                    , license = ""
+                    , allowedPackages =
+                        [ KnowledgeModelPackagePattern
+                            { orgId = Nothing
+                            , kmId = Nothing
+                            , minVersion = Nothing
+                            , maxVersion = Nothing
+                            }
+                        ]
+                    , nonEditable = False
+                    , language = "en"
+                    , potFileReady = False
+                    , tenantUuid = defaultTenant.uuid
+                    , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+                    , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+                    }
+                ]
+          -- AND:
+          let expectation = 1
+          -- GIVEN:
+          let result = filterDocumentTemplates (Just pkgCoordinate) templates
+          -- THEN:
+          length result `shouldBe` expectation
+      it "One relevant and one non-relevant KM Specifications given => Allow" $
+        -- GIVEN:
+        do
+          let templates =
+                [ DocumentTemplate
+                    { uuid = U.nil
+                    , name = ""
+                    , organizationId = ""
+                    , templateId = ""
+                    , version = ""
+                    , phase = ReleasedDocumentTemplatePhase
+                    , metamodelVersion = documentTemplateMetamodelVersion
+                    , description = ""
+                    , readme = ""
+                    , license = ""
+                    , allowedPackages =
+                        [ KnowledgeModelPackagePattern
+                            { orgId = Nothing
+                            , kmId = Nothing
+                            , minVersion = Nothing
+                            , maxVersion = Nothing
+                            }
+                        , KnowledgeModelPackagePattern
+                            { orgId = Nothing
+                            , kmId = Just "core-de"
+                            , minVersion = Nothing
+                            , maxVersion = Nothing
+                            }
+                        ]
+                    , nonEditable = False
+                    , language = "en"
+                    , potFileReady = False
+                    , tenantUuid = defaultTenant.uuid
+                    , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+                    , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+                    }
+                ]
+          -- AND:
+          let expectation = 1
+          -- GIVEN:
+          let result = filterDocumentTemplates (Just pkgCoordinate) templates
+          -- THEN:
+          length result `shouldBe` expectation

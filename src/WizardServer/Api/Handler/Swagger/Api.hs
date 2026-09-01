@@ -1,0 +1,172 @@
+module WizardServer.Api.Handler.Swagger.Api where
+
+import Data.Swagger
+import qualified Data.Text as T
+import Servant
+import Servant.Swagger
+import Servant.Swagger.UI
+
+import RegistryPublic.Api.Resource.Organization.OrganizationSM ()
+import RegistryPublic.Api.Resource.Organization.OrganizationSimpleSM ()
+import Shared.Api.Handler.Api
+import Shared.Api.Resource.Auth.AuthConsentSM ()
+import Shared.Api.Resource.Common.AesonSM ()
+import Shared.Api.Resource.Common.FileSM ()
+import Shared.Api.Resource.Common.PageMetadataSM ()
+import Shared.Api.Resource.Component.ComponentSM ()
+import Shared.Api.Resource.Coordinate.CoordinateSM ()
+import Shared.Api.Resource.Dev.DevExecutionResultSM ()
+import Shared.Api.Resource.Dev.DevExecutionSM ()
+import Shared.Api.Resource.Dev.DevSectionSM ()
+import Shared.Api.Resource.Document.DocumentCreateSM ()
+import Shared.Api.Resource.Document.DocumentSM ()
+import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetChangeSM ()
+import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetCreateSM ()
+import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetSM ()
+import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeSM ()
+import Shared.Api.Resource.DocumentTemplate.DocumentTemplateDetailSM ()
+import Shared.Api.Resource.DocumentTemplate.DocumentTemplatePhaseSM ()
+import Shared.Api.Resource.DocumentTemplate.DocumentTemplateSM ()
+import Shared.Api.Resource.DocumentTemplate.DocumentTemplateSimpleSM ()
+import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftChangeSM ()
+import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftCreateSM ()
+import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftDataChangeSM ()
+import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftDataSM ()
+import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftDetailSM ()
+import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftListSM ()
+import Shared.Api.Resource.DocumentTemplate.File.DocumentTemplateFileChangeSM ()
+import Shared.Api.Resource.DocumentTemplate.File.DocumentTemplateFileListSM ()
+import Shared.Api.Resource.DocumentTemplate.Folder.DocumentTemplateFolderDeleteSM ()
+import Shared.Api.Resource.DocumentTemplate.Folder.DocumentTemplateFolderMoveSM ()
+import Shared.Api.Resource.DocumentTemplate.Locale.DocumentTemplateLocaleCreateSM ()
+import Shared.Api.Resource.DocumentTemplate.Locale.DocumentTemplateLocaleListSM ()
+import Shared.Api.Resource.DocumentTemplate.WizardDocumentTemplateSimpleSM ()
+import Shared.Api.Resource.DocumentTemplateBundle.DocumentTemplateBundleSM ()
+import Shared.Api.Resource.File.FileCreateSM ()
+import Shared.Api.Resource.Info.InfoSM ()
+import Shared.Api.Resource.KnowledgeModel.Bundle.KnowledgeModelBundleFileSM ()
+import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorChangeSM ()
+import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorCreateSM ()
+import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorDetailSM ()
+import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorStateSM ()
+import Shared.Api.Resource.KnowledgeModel.KnowledgeModelChangeSM ()
+import Shared.Api.Resource.KnowledgeModel.Locale.KnowledgeModelLocaleCreateSM ()
+import Shared.Api.Resource.KnowledgeModel.Locale.KnowledgeModelLocaleListSM ()
+import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationCreateSM ()
+import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationResolutionSM ()
+import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationSM ()
+import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationStateSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageChangeSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDeletionImpactSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDetailSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePhaseSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSuggestionSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishEditorSM ()
+import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishMigrationSM ()
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeSM ()
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretSM ()
+import Shared.Api.Resource.Locale.LocaleSimpleSM ()
+import Shared.Api.Resource.Locale.LocaleSuggestionSM ()
+import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientChangeSM ()
+import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientDetailSM ()
+import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientSimpleSM ()
+import Shared.Api.Resource.OpenId.Client.Flow.OpenIdClientAuthenticationUrlSM ()
+import Shared.Api.Resource.PersistentCommand.PersistentCommandChangeSM ()
+import Shared.Api.Resource.PersistentCommand.PersistentCommandDetailSM ()
+import Shared.Api.Resource.PersistentCommand.PersistentCommandListSM ()
+import Shared.Api.Resource.PersistentCommand.PersistentCommandSM ()
+import Shared.Api.Resource.PersistentCommand.WizardPersistentCommandSM ()
+import Shared.Api.Resource.Prefab.PrefabSM ()
+import Shared.Api.Resource.Project.Comment.ProjectCommentThreadAssignedSM ()
+import Shared.Api.Resource.Project.Detail.ProjectDetailPreviewSM ()
+import Shared.Api.Resource.Project.Detail.ProjectDetailQuestionnaireSM ()
+import Shared.Api.Resource.Project.Detail.ProjectDetailReportSM ()
+import Shared.Api.Resource.Project.Detail.ProjectDetailSM ()
+import Shared.Api.Resource.Project.Detail.ProjectDetailSettingsSM ()
+import Shared.Api.Resource.Project.Detail.ProjectDetailWsSM ()
+import Shared.Api.Resource.Project.Event.ProjectEventListSM ()
+import Shared.Api.Resource.Project.Migration.ProjectMigrationCreateSM ()
+import Shared.Api.Resource.Project.ProjectContentChangeSM ()
+import Shared.Api.Resource.Project.ProjectContentSM ()
+import Shared.Api.Resource.Project.ProjectCreateFromTemplateSM ()
+import Shared.Api.Resource.Project.ProjectCreateSM ()
+import Shared.Api.Resource.Project.ProjectReportSM ()
+import Shared.Api.Resource.Project.ProjectSM ()
+import Shared.Api.Resource.Project.ProjectSettingsChangeSM ()
+import Shared.Api.Resource.Project.ProjectShareChangeSM ()
+import Shared.Api.Resource.Project.ProjectSimpleSM ()
+import Shared.Api.Resource.Project.ProjectSuggestionSM ()
+import Shared.Api.Resource.Project.Version.ProjectVersionChangeSM ()
+import Shared.Api.Resource.Project.Version.ProjectVersionRevertSM ()
+import Shared.Api.Resource.Registry.RegistryConfirmationSM ()
+import Shared.Api.Resource.Registry.RegistryCreateSM ()
+import Shared.Api.Resource.Registry.RegistryOrganizationSM ()
+import Shared.Api.Resource.Report.ReportSM ()
+import Shared.Api.Resource.Submission.SubmissionCreateSM ()
+import Shared.Api.Resource.Submission.SubmissionSM ()
+import Shared.Api.Resource.TemporaryFile.TemporaryFileSM ()
+import Shared.Api.Resource.Tenant.Limit.TenantLimitBundleChangeSM ()
+import Shared.Api.Resource.Tenant.Usage.WizardUsageSM ()
+import Shared.Api.Resource.Tenant.WizardTenantSM ()
+import Shared.Api.Resource.TypeHint.TypeHintISM ()
+import Shared.Api.Resource.TypeHint.TypeHintRequestSM ()
+import Shared.Api.Resource.TypeHint.TypeHintTestRequestSM ()
+import Shared.Api.Resource.User.Group.UserGroupDetailSM ()
+import Shared.Api.Resource.User.UserFromExternalSM ()
+import Shared.Api.Resource.User.UserLocaleSM ()
+import Shared.Api.Resource.User.UserOpenIdIdentitySM ()
+import Shared.Api.Resource.User.UserSM ()
+import Shared.Api.Resource.User.UserSubmissionPropSM ()
+import Shared.Api.Resource.UserEmailLink.UserEmailLinkTypeSM ()
+import Shared.Api.Resource.UserToken.ApiKeyCreateSM ()
+import Shared.Api.Resource.UserToken.LoginSM ()
+import Shared.Api.Resource.UserToken.UserTokenListSM ()
+import Shared.Api.Resource.UserToken.UserTokenSM ()
+import Shared.Api.Resource.Websocket.ProjectMessageSM ()
+import Shared.Api.Resource.Websocket.WebsocketSM ()
+import WizardServer.Api.Handler.Api
+import WizardServer.Api.Resource.Common.PageSM ()
+import WizardServer.Api.Resource.Config.ClientConfigSM ()
+import WizardServer.Api.Resource.Locale.LocaleChangeSM ()
+import WizardServer.Api.Resource.Locale.LocaleCreateSM ()
+import WizardServer.Api.Resource.Locale.LocaleDetailSM ()
+import WizardServer.Api.Resource.Locale.LocaleSM ()
+import WizardServer.Api.Resource.Tenant.Config.TenantConfigChangeSM ()
+import WizardServer.Api.Resource.Tenant.Config.TenantConfigSM ()
+import WizardServer.Api.Resource.Tenant.Config.TenantConfigSubmissionServiceSimpleSM ()
+import WizardServer.Api.Resource.Tenant.TenantChangeSM ()
+import WizardServer.Api.Resource.Tenant.TenantCreateSM ()
+import WizardServer.Api.Resource.Tenant.TenantDetailSM ()
+import WizardServer.Api.Resource.User.RoleChangeSM ()
+import WizardServer.Api.Resource.User.RoleListSM ()
+import WizardServer.Api.Resource.User.UserChangeSM ()
+import WizardServer.Api.Resource.User.UserCreateSM ()
+import WizardServer.Api.Resource.User.UserPasswordSM ()
+import WizardServer.Api.Resource.User.UserProfileChangeSM ()
+import WizardServer.Api.Resource.User.UserProfileSM ()
+import WizardServer.Api.Resource.User.UserStateSM ()
+import WizardServer.Api.Resource.User.UserSubmissionPropListSM ()
+
+type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
+
+swagger :: String -> Swagger
+swagger version =
+  let s = toSwagger (Proxy :: Proxy (ApplicationAPI :<|> ManagementAPI))
+   in s
+        { _swaggerInfo =
+            s._swaggerInfo
+              { _infoTitle = "Wizard API"
+              , _infoDescription = Just "API specification for Wizard"
+              , _infoVersion = T.pack version
+              , _infoLicense =
+                  Just $
+                    License
+                      { _licenseName = "Apache-2.0"
+                      , _licenseUrl = Just . URL $ "https://raw.githubusercontent.com/ds-wizard/engine-backend/main/LICENSE.md"
+                      }
+              }
+        , _swaggerBasePath = Just "/wizard-api"
+        }
+
+swaggerServer :: String -> Server SwaggerAPI
+swaggerServer = swaggerSchemaUIServer . swagger

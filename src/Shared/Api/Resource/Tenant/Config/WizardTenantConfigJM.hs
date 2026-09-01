@@ -1,0 +1,127 @@
+module Shared.Api.Resource.Tenant.Config.WizardTenantConfigJM where
+
+import Data.Aeson
+
+import Shared.Api.Resource.Config.SimpleFeatureJM ()
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePatternJM ()
+import Shared.Api.Resource.Project.ProjectSharingJM ()
+import Shared.Api.Resource.Project.ProjectVisibilityJM ()
+import Shared.Api.Resource.Tenant.Config.TenantConfigJM ()
+import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Util.Aeson
+
+instance FromJSON TenantConfig where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfig where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigOrganization where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigOrganization where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigAuthentication where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigAuthentication where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigAuthenticationInternal where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigAuthenticationInternal where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigAuthenticationInternalTwoFactorAuth where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigAuthenticationInternalTwoFactorAuth where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigPrivacyAndSupport where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigPrivacyAndSupport where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigDashboardAndLoginScreen where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigDashboardAndLoginScreen where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigDashboardAndLoginScreenDashboardType
+
+instance ToJSON TenantConfigDashboardAndLoginScreenDashboardType
+
+instance FromJSON TenantConfigRegistry where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigRegistry where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigProject where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigProject where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigProjectVisibility where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigProjectVisibility where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigProjectSharing where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigProjectSharing where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON ProjectCreation
+
+instance ToJSON ProjectCreation
+
+instance FromJSON TenantConfigProjectProjectTagging where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigProjectProjectTagging where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigSubmission where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigSubmission where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigSubmissionService where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigSubmissionService where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigSubmissionServiceSupportedFormat where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigSubmissionServiceSupportedFormat where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigSubmissionServiceRequest where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigSubmissionServiceRequest where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigSubmissionServiceRequestMultipart where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigSubmissionServiceRequestMultipart where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON TenantConfigOwl where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON TenantConfigOwl where
+  toJSON = genericToJSON jsonOptions

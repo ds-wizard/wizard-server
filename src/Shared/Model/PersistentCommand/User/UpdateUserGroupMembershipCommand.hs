@@ -1,0 +1,36 @@
+module Shared.Model.PersistentCommand.User.UpdateUserGroupMembershipCommand where
+
+import Data.Aeson
+import qualified Data.UUID as U
+import GHC.Generics
+
+import Shared.Api.Resource.User.GroupMembership.UserGroupMembershipJM ()
+import Shared.Model.User.UserGroupMembership
+import Shared.Util.Aeson
+
+data UpdateUserGroupMembershipCommand = UpdateUserGroupMembershipCommand
+  { userGroupUuid :: U.UUID
+  , members :: [UpdateUserGroupMembershipMember]
+  }
+  deriving (Show, Eq, Generic)
+
+data UpdateUserGroupMembershipMember = UpdateUserGroupMembershipMember
+  { userUuid :: U.UUID
+  , mType :: UserGroupMembershipType
+  }
+  deriving (Show, Generic)
+
+instance Eq UpdateUserGroupMembershipMember where
+  a == b = a.userUuid == b.userUuid
+
+instance FromJSON UpdateUserGroupMembershipCommand where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON UpdateUserGroupMembershipCommand where
+  toJSON = genericToJSON jsonOptions
+
+instance FromJSON UpdateUserGroupMembershipMember where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON UpdateUserGroupMembershipMember where
+  toJSON = genericToJSON jsonOptions

@@ -1,0 +1,9 @@
+module Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationActionJM where
+
+import Data.Aeson
+
+import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
+
+instance FromJSON KnowledgeModelMigrationAction
+
+instance ToJSON KnowledgeModelMigrationAction

@@ -1,0 +1,12 @@
+module Shared.Api.Resource.Dev.DevOperationDTO where
+
+import GHC.Generics
+
+import Shared.Model.Dev.Dev
+
+data DevOperationDTO = DevOperationDTO
+  { name :: String
+  , description :: Maybe String
+  , parameters :: [DevOperationParameter]
+  }
+  deriving (Show, Eq, Generic)

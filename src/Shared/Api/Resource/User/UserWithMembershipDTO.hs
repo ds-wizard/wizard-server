@@ -1,0 +1,17 @@
+module Shared.Api.Resource.User.UserWithMembershipDTO where
+
+import qualified Data.UUID as U
+import GHC.Generics
+
+import Shared.Model.User.UserGroupMembership
+
+data UserWithMembershipDTO = UserWithMembershipDTO
+  { uuid :: U.UUID
+  , firstName :: String
+  , lastName :: String
+  , gravatarHash :: String
+  , imageUrl :: Maybe String
+  , affiliation :: Maybe String
+  , membershipType :: UserGroupMembershipType
+  }
+  deriving (Show, Eq, Generic)

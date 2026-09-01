@@ -1,0 +1,136 @@
+module Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper where
+
+import qualified Data.List as L
+import qualified Data.UUID as U
+
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageChangeDTO
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDetailDTO
+import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
+import Shared.Model.KnowledgeModel.Locale.KnowledgeModelLocaleList
+import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageList
+import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
+import Shared.Model.Registry.RegistryOrganization
+import Shared.Model.Registry.RegistryPackage
+import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageUtil
+import Shared.Service.Version.VersionMapper
+import Shared.Util.Coordinate
+
+toSimpleDTO :: KnowledgeModelPackage -> KnowledgeModelPackageSimpleDTO
+toSimpleDTO = toSimpleDTO' [] []
+
+toSimpleDTO' :: [RegistryPackage] -> [RegistryOrganization] -> KnowledgeModelPackage -> KnowledgeModelPackageSimpleDTO
+toSimpleDTO' pkgRs orgRs pkg =
+  KnowledgeModelPackageSimpleDTO
+    { uuid = pkg.uuid
+    , name = pkg.name
+    , organizationId = pkg.organizationId
+    , kmId = pkg.kmId
+    , version = pkg.version
+    , phase = pkg.phase
+    , remoteLatestVersion =
+        case selectPackageByOrgIdAndKmId pkg pkgRs of
+          Just pkgR -> Just pkgR.remoteVersion
+          Nothing -> Nothing
+    , description = pkg.description
+    , nonEditable = pkg.nonEditable
+    , public = pkg.public
+    , organization = selectOrganizationByOrgId pkg orgRs
+    , language = pkg.language
+    , createdAt = pkg.createdAt
+    }
+
+toSimpleDTO'' :: Bool -> KnowledgeModelPackageList -> KnowledgeModelPackageSimpleDTO
+toSimpleDTO'' registryEnabled pkg =
+  KnowledgeModelPackageSimpleDTO
+    { uuid = pkg.uuid
+    , name = pkg.name
+    , organizationId = pkg.organizationId
+    , kmId = pkg.kmId
+    , version = pkg.version
+    , phase = pkg.phase
+    , remoteLatestVersion =
+        if registryEnabled
+          then pkg.remoteVersion
+          else Nothing
+    , description = pkg.description
+    , nonEditable = pkg.nonEditable
+    , public = pkg.public
+    , organization =
+        case (registryEnabled, pkg.remoteOrganizationName) of
+          (True, Just orgName) ->
+            Just $
+              RegistryOrganization
+                { organizationId = pkg.organizationId
+                , name = orgName
+                , logo = pkg.remoteOrganizationLogo
+                , createdAt = pkg.createdAt
+                }
+          _ -> Nothing
+    , language = pkg.language
+    , createdAt = pkg.createdAt
+    }
+
+toDetailDTO :: KnowledgeModelPackage -> Bool -> [RegistryPackage] -> [RegistryOrganization] -> [(U.UUID, String)] -> Maybe String -> [KnowledgeModelLocaleList] -> KnowledgeModelPackageDetailDTO
+toDetailDTO pkg registryEnabled pkgRs orgRs versionLs registryLink locales =
+  KnowledgeModelPackageDetailDTO
+    { uuid = pkg.uuid
+    , name = pkg.name
+    , organizationId = pkg.organizationId
+    , kmId = pkg.kmId
+    , version = pkg.version
+    , phase = pkg.phase
+    , description = pkg.description
+    , readme = pkg.readme
+    , license = pkg.license
+    , language = pkg.language
+    , metamodelVersion = pkg.metamodelVersion
+    , previousPackageUuid = pkg.previousPackageUuid
+    , forkOfPackageId = pkg.forkOfPackageId
+    , mergeCheckpointPackageId = pkg.mergeCheckpointPackageId
+    , nonEditable = pkg.nonEditable
+    , public = pkg.public
+    , versions = map toVersionDTO . L.sortBy (\(_, v1) (_, v2) -> compare v2 v1) $ versionLs
+    , locales = locales
+    , remoteLatestVersion =
+        case (registryEnabled, selectPackageByOrgIdAndKmId pkg pkgRs) of
+          (True, Just pkgR) -> Just pkgR.remoteVersion
+          _ -> Nothing
+    , registryLink =
+        if registryEnabled
+          then registryLink
+          else Nothing
+    , organization =
+        if registryEnabled
+          then selectOrganizationByOrgId pkg orgRs
+          else Nothing
+    , createdAt = pkg.createdAt
+    }
+
+toSuggestion :: KnowledgeModelPackage -> KnowledgeModelPackageSuggestion
+toSuggestion pkg =
+  KnowledgeModelPackageSuggestion
+    { uuid = pkg.uuid
+    , name = pkg.name
+    , organizationId = pkg.organizationId
+    , kmId = pkg.kmId
+    , version = pkg.version
+    , description = pkg.description
+    }
+
+toChangeDTO :: KnowledgeModelPackage -> KnowledgeModelPackageChangeDTO
+toChangeDTO pkg =
+  KnowledgeModelPackageChangeDTO
+    { phase = pkg.phase
+    , public = pkg.public
+    }
+
+buildPackageUrl :: String -> KnowledgeModelPackage -> [RegistryPackage] -> Maybe String
+buildPackageUrl clientRegistryUrl pkg pkgRs =
+  case selectPackageByOrgIdAndKmId pkg pkgRs of
+    Just pkgR ->
+      Just $
+        clientRegistryUrl
+          ++ "/knowledge-models/"
+          ++ buildCoordinate pkgR.organizationId pkgR.kmId pkgR.remoteVersion
+    Nothing -> Nothing

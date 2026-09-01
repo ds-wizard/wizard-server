@@ -7,14 +7,14 @@ packages:
 - completed:
     name: postgresql-migration
     pantry-tree:
-      sha256: d85a152a91a3b2b9b04addf00ce43bbc93746a60d891178149be548d87b4dbbe
+      sha256: b54ffcddabf2bdb73404934ac7edf70625e5c900d90f55acb29925f6c4a9bef9
       size: 986
-    sha256: 02106a3bd1434a6786535e3b057c981606756b8849cb3c3c9fa53dbc778b1b29
-    size: 9987
-    url: https://github.com/haskellify/postgresql-migration/archive/v1.0.0.tar.gz
-    version: 1.0.0
+    sha256: 276be3ea63f861448196fbbc6bfd6a8e4a4e546d92cc00acc0b1f174e55e1c68
+    size: 9992
+    url: https://github.com/haskellify/postgresql-migration/archive/v1.2.0.tar.gz
+    version: 1.2.0
   original:
-    url: https://github.com/haskellify/postgresql-migration/archive/v1.0.0.tar.gz
+    url: https://github.com/haskellify/postgresql-migration/archive/v1.2.0.tar.gz
 - completed:
     name: rdf4h
     pantry-tree:
@@ -119,6 +119,32 @@ packages:
     version: '2.0'
   original:
     subdir: lib/services/amazonka-appconfigdata
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+- completed:
+    name: amazonka-cloudwatch-events
+    pantry-tree:
+      sha256: fe70fa0bb1f51c1420b5ecd36a0479b1f0578057c9aa69dcb0260f4d3234fe35
+      size: 22152
+    sha256: 06f5e8430080e5a46e4489e12978725f4b01cfb896450a12a01bcde88168c7f2
+    size: 34855734
+    subdir: lib/services/amazonka-cloudwatch-events
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+    version: '2.0'
+  original:
+    subdir: lib/services/amazonka-cloudwatch-events
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+- completed:
+    name: amazonka-cloudwatch-logs
+    pantry-tree:
+      sha256: 3b5244198931f7d91d868b6f4ae1313c2e8a8bc47e1d07b8c0ceb4c835ee484f
+      size: 14436
+    sha256: 06f5e8430080e5a46e4489e12978725f4b01cfb896450a12a01bcde88168c7f2
+    size: 34855734
+    subdir: lib/services/amazonka-cloudwatch-logs
+    url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
+    version: '2.0'
+  original:
+    subdir: lib/services/amazonka-cloudwatch-logs
     url: https://github.com/brendanhay/amazonka/archive/f3a7fca02fdbb832cc348e991983b1465225d50c.tar.gz
 - completed:
     name: amazonka-lambda
@@ -250,6 +276,13 @@ packages:
       size: 631
   original:
     hackage: x509-validation-1.6.12@sha256:4f4af20ec77f02c042ecd4726c195bb0e0b694b336de81e7bd4515b2917bd9bc,2169
+- completed:
+    hackage: zxcvbn-hs-0.3.8@sha256:bca8eb3b5c122a46c3771b47d9e039d42c5d0c4afb04c333fc618aeae27466bd,4890
+    pantry-tree:
+      sha256: 1791461726e59a7582f8fb1b1498f7b94be263ad70b3fa22078fd48b4de868a3
+      size: 2727
+  original:
+    hackage: zxcvbn-hs-0.3.8@sha256:bca8eb3b5c122a46c3771b47d9e039d42c5d0c4afb04c333fc618aeae27466bd,4890
 snapshots:
 - completed:
     sha256: 655e468f774beee1badf07dc4c45fb50288d5c66ce7bef6f487b7f92891a90b0

@@ -1,0 +1,26 @@
+module Shared.Service.KnowledgeModel.Migration.Migrator.CorrectorMethod (
+  runCorrectorMethod,
+) where
+
+import qualified Data.UUID as U
+
+import Shared.Model.Context.WizardRequestContext
+import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
+import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
+import Shared.Service.KnowledgeModel.Migration.Migrator.Sanitizer
+import Shared.Util.Logger
+
+runCorrectorMethod :: WizardRequestContextC s m => KnowledgeModelMigration -> KnowledgeModelEvent -> m KnowledgeModelMigration
+runCorrectorMethod state event = do
+  logInfoI _CMP_SERVICE . f' "Running corrector method for event '%s'" $ [U.toString event.uuid]
+  sanitizedEvent <- sanitizeEvent state event
+  let sanitizedTargetPackageEvents = sanitizeTargetPackageEvents state.targetPackageEvents sanitizedEvent
+  return
+    state
+      { state = ConflictKnowledgeModelMigrationState {targetEvent = Just sanitizedEvent}
+      , targetPackageEvents = sanitizedTargetPackageEvents
+      }
+
+sanitizeTargetPackageEvents :: [KnowledgeModelEvent] -> KnowledgeModelEvent -> [KnowledgeModelEvent]
+sanitizeTargetPackageEvents [] _ = []
+sanitizeTargetPackageEvents (firstEvent : restEvent) sanitizedFirstEvent = sanitizedFirstEvent : restEvent

@@ -1,0 +1,31 @@
+module Shared.Database.Migration.Development.OpenId.OpenIdClientSessionSchemaMigration where
+
+import Database.PostgreSQL.Simple
+import GHC.Int
+
+import Shared.Database.DAO.Common
+import Shared.Model.Context.RequestContext
+import Shared.Util.Logger
+
+dropTables :: RequestContextC s sc m => m Int64
+dropTables = do
+  logInfo _CMP_MIGRATION "(Table/OpenIdClientSession) drop tables"
+  let sql = "DROP TABLE IF EXISTS openid_client_session CASCADE;"
+  let action conn = execute_ conn sql
+  runDB action
+
+createTables :: RequestContextC s sc m => m Int64
+createTables = do
+  logInfo _CMP_MIGRATION "(Table/OpenIdClientSession) create table"
+  let sql =
+        "CREATE TABLE openid_client_session \
+        \( \
+        \    state       varchar     NOT NULL, \
+        \    nonce       varchar     NOT NULL, \
+        \    tenant_uuid uuid        NOT NULL, \
+        \    created_at  timestamptz NOT NULL, \
+        \    CONSTRAINT openid_client_session_pk PRIMARY KEY (state), \
+        \    CONSTRAINT openid_client_session_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+        \);"
+  let action conn = execute_ conn sql
+  runDB action

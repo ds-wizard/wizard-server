@@ -1,0 +1,65 @@
+module Specs.Api.Handler.User.News.Detail_PUT (
+  detail_PUT,
+) where
+
+import Data.Aeson (encode)
+import Network.HTTP.Types
+import Network.Wai (Application)
+import Test.Hspec
+import Test.Hspec.Wai hiding (shouldRespondWith)
+import Test.Hspec.Wai.Matcher
+
+import Shared.Database.DAO.User.UserDAO
+import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.User.User
+import WizardServer.Model.Context.RequestContext
+
+import SharedTest.Specs.Api.Common
+import Specs.Api.Handler.Common
+
+-- ------------------------------------------------------------------------
+-- PUT /wizard-api/users/current/news/{news-id}
+-- ------------------------------------------------------------------------
+detail_PUT :: RequestContext -> SpecWith ((), Application)
+detail_PUT requestContext =
+  describe "PUT /wizard-api/users/current/news/{news-id}" $ do
+    test_200 requestContext
+    test_401 requestContext
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+reqMethod = methodPut
+
+reqUrl = "/wizard-api/users/current/news/my-news-id"
+
+reqHeaders = [reqAuthHeader, reqCtHeader]
+
+reqDto = userIsaacEditedChange
+
+reqBody = encode reqDto
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200 requestContext =
+  it "HTTP 200 OK" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 200
+      let expHeaders = resCorsHeaders
+      let expBody = ""
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals ""}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      expectedUser <- getOneFromDB (findUserByUuid userAlbertWithNewsId.uuid) requestContext
+      liftIO $ expectedUser `shouldBe` userAlbertWithNewsId
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody

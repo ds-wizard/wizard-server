@@ -1,0 +1,7 @@
+module Shared.Database.Mapping.DocumentTemplate.DocumentTemplateDraftList where
+
+import Database.PostgreSQL.Simple
+
+import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
+
+instance FromRow DocumentTemplateDraftList

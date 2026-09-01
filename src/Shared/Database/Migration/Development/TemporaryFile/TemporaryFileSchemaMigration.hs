@@ -1,0 +1,35 @@
+module Shared.Database.Migration.Development.TemporaryFile.TemporaryFileSchemaMigration where
+
+import Database.PostgreSQL.Simple
+import GHC.Int
+
+import Shared.Database.DAO.WizardCommon
+import Shared.Model.Context.WizardRequestContext
+import Shared.Util.Logger
+
+dropTables :: WizardRequestContextC s m => m Int64
+dropTables = do
+  logInfo _CMP_MIGRATION "(Table/TemporaryFile) drop tables"
+  let sql = "DROP TABLE IF EXISTS temporary_file CASCADE;"
+  let action conn = execute_ conn sql
+  runDB action
+
+createTables :: WizardRequestContextC s m => m Int64
+createTables = do
+  logInfo _CMP_MIGRATION "(Table/TemporaryFile) create table"
+  let sql =
+        "CREATE TABLE temporary_file \
+        \( \
+        \    uuid         uuid        NOT NULL, \
+        \    file_name    varchar     NOT NULL, \
+        \    content_type varchar     NOT NULL, \
+        \    expires_at   timestamptz NOT NULL, \
+        \    tenant_uuid  uuid        NOT NULL, \
+        \    created_by   uuid, \
+        \    created_at   timestamptz NOT NULL, \
+        \    CONSTRAINT temporary_file_pk PRIMARY KEY (uuid), \
+        \    CONSTRAINT temporary_file_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT temporary_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+        \);"
+  let action conn = execute_ conn sql
+  runDB action
