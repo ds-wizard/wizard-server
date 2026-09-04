@@ -13,6 +13,7 @@ import qualified Data.UUID as U
 import Network.WebSockets (Connection)
 
 import Shared.Common.Integration.Aws.Lambda
+import Shared.Common.Model.Config.ServerConfig
 import Shared.Common.Model.Error.Error
 import Shared.Common.Util.Uuid
 import Wizard.Api.Resource.Project.Detail.ProjectDetailWsDTO
@@ -25,14 +26,12 @@ import Wizard.Database.DAO.Project.ProjectCommentDAO
 import Wizard.Database.DAO.Project.ProjectCommentThreadDAO
 import Wizard.Database.DAO.Project.ProjectDAO
 import Wizard.Database.DAO.Project.ProjectEventDAO
-import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Localization.Messages.Public
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AppContext
 import Wizard.Model.Project.Acl.ProjectPerm
 import Wizard.Model.Project.File.ProjectFileSimple
 import Wizard.Model.Project.Project
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.OnlineUserInfo
 import Wizard.Model.Websocket.WebsocketMessage
 import Wizard.Model.Websocket.WebsocketRecord
@@ -69,10 +68,9 @@ setUserList projectUuid connectionUuid = do
 updatePermsForOnlineUsers :: U.UUID -> ProjectVisibility -> ProjectSharing -> [ProjectPerm] -> AppContextM ()
 updatePermsForOnlineUsers projectUuid visibility sharing permissions = do
   currentTenantUuid <- asks currentTenantUuid
-  tenant <- findTenantByUuid currentTenantUuid
-  if isJust tenant.signalBridgeUrl
+  serverConfig <- asks serverConfig
+  if isJust serverConfig.cloud.signalBridgeUrl
     then do
-      serverConfig <- asks serverConfig
       let dto = AKM.fromList [("projectUuid", U.toString projectUuid), ("tenantUuid", U.toString currentTenantUuid)]
       invokeLambda serverConfig.signalBridge.updatePermsArn (BSL.toStrict . A.encode $ dto)
       return ()
@@ -99,10 +97,9 @@ updatePermsForOnlineUsers projectUuid visibility sharing permissions = do
 removeUserGroupFromUsers :: U.UUID -> [U.UUID] -> AppContextM ()
 removeUserGroupFromUsers userGroupUuid userUuids = do
   currentTenantUuid <- asks currentTenantUuid
-  tenant <- findTenantByUuid currentTenantUuid
-  if isJust tenant.signalBridgeUrl
+  serverConfig <- asks serverConfig
+  if isJust serverConfig.cloud.signalBridgeUrl
     then do
-      serverConfig <- asks serverConfig
       let dto = AKM.fromList [("userGroupUuid", U.toString userGroupUuid), ("tenantUuid", U.toString currentTenantUuid)]
       invokeLambda serverConfig.signalBridge.updateUserGroupArn (BSL.toStrict . A.encode $ dto)
       return ()
@@ -125,10 +122,9 @@ removeUserGroupFromUsers userGroupUuid userUuids = do
 setProject :: U.UUID -> ProjectDetailWsDTO -> AppContextM ()
 setProject projectUuid reqDto = do
   currentTenantUuid <- asks currentTenantUuid
-  tenant <- findTenantByUuid currentTenantUuid
-  if isJust tenant.signalBridgeUrl
+  serverConfig <- asks serverConfig
+  if isJust serverConfig.cloud.signalBridgeUrl
     then do
-      serverConfig <- asks serverConfig
       let dto =
             AKM.fromList
               [ ("projectUuid", A.String . U.toText $ projectUuid)
@@ -146,10 +142,9 @@ setProject projectUuid reqDto = do
 addEvent :: U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> AppContextM ()
 addEvent projectUuid entityPerm mCreatedBy reqDto = do
   currentTenantUuid <- asks currentTenantUuid
-  tenant <- findTenantByUuid currentTenantUuid
-  if isJust tenant.signalBridgeUrl
+  serverConfig <- asks serverConfig
+  if isJust serverConfig.cloud.signalBridgeUrl
     then do
-      serverConfig <- asks serverConfig
       now <- liftIO getCurrentTime
       let resDto = toEventDTO' reqDto mCreatedBy now
       let dto =
@@ -168,10 +163,9 @@ addEvent projectUuid entityPerm mCreatedBy reqDto = do
 addFile :: U.UUID -> ProjectFileSimple -> AppContextM ()
 addFile projectUuid reqDto = do
   currentTenantUuid <- asks currentTenantUuid
-  tenant <- findTenantByUuid currentTenantUuid
-  if isJust tenant.signalBridgeUrl
+  serverConfig <- asks serverConfig
+  if isJust serverConfig.cloud.signalBridgeUrl
     then do
-      serverConfig <- asks serverConfig
       let dto =
             AKM.fromList
               [ ("projectUuid", A.String . U.toText $ projectUuid)
@@ -189,10 +183,9 @@ addFile projectUuid reqDto = do
 logOutOnlineUsersWhenProjectDramaticallyChanged :: U.UUID -> AppContextM ()
 logOutOnlineUsersWhenProjectDramaticallyChanged projectUuid = do
   currentTenantUuid <- asks currentTenantUuid
-  tenant <- findTenantByUuid currentTenantUuid
-  if isJust tenant.signalBridgeUrl
+  serverConfig <- asks serverConfig
+  if isJust serverConfig.cloud.signalBridgeUrl
     then do
-      serverConfig <- asks serverConfig
       let dto = AKM.fromList [("projectUuid", U.toString projectUuid), ("tenantUuid", U.toString currentTenantUuid)]
       invokeLambda serverConfig.signalBridge.logOutAllArn (BSL.toStrict . A.encode $ dto)
       return ()

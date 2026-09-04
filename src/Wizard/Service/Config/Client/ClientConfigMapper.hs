@@ -10,11 +10,12 @@ import Wizard.Api.Resource.Config.ClientConfigDTO
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Plugin.PluginList
 import Wizard.Model.Tenant.Config.TenantConfig
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.UserProfile
+import Wizard.Service.Tenant.TenantMapper (tenantServerUrl)
 import WizardLib.Public.Model.OpenId.OpenIdClientSimple
 import WizardLib.Public.Model.Tenant.Config.TenantConfig
 import WizardLib.Public.Model.Tenant.Module.TenantModule
+import WizardLib.Public.Model.Tenant.Tenant
 
 toClientConfigDTO :: ServerConfig -> TenantConfigOrganization -> TenantConfigAuthentication -> [OpenIdClientSimple] -> TenantConfigPrivacyAndSupport -> TenantConfigDashboardAndLoginScreen -> TenantConfigLookAndFeel -> TenantConfigRegistry -> TenantConfigProject -> TenantConfigSubmission -> TenantConfigFeatures -> TenantConfigOwl -> Maybe UserProfile -> [String] -> [PluginList] -> M.Map U.UUID A.Value -> [TenantModule] -> Tenant -> ClientConfigDTO
 toClientConfigDTO serverConfig tcOrganization tcAuthentication openIdClients tcPrivacyAndSupport tcDashboardAndLoginScreen tcLookAndFeel tcRegistry tcProject tcSubmission tcFeatures tcOwl mUserProfile tours plugins pluginSettings tenantModules tenant =
@@ -35,7 +36,7 @@ toClientConfigDTO serverConfig tcOrganization tcAuthentication openIdClients tcP
     , features = toClientConfigFeaturesDTO serverConfig.admin tcFeatures
     , plugins = plugins
     , pluginSettings = pluginSettings
-    , signalBridge = toClientConfigSignalBridgeDTO tenant
+    , signalBridge = toClientConfigSignalBridgeDTO serverConfig.cloud
     , modules =
         if serverConfig.admin.enabled
           then case mUserProfile of
@@ -82,7 +83,7 @@ toClientConfigCloudDTO :: ServerConfigCloud -> Tenant -> ClientConfigCloudDTO
 toClientConfigCloudDTO serverConfig tenant =
   ClientConfigCloudDTO
     { enabled = serverConfig.enabled
-    , serverUrl = tenant.serverUrl
+    , serverUrl = tenantServerUrl tenant
     }
 
 toClientConfigAdminDTO :: ServerConfigAdmin -> ClientConfigAdminDTO
@@ -96,9 +97,9 @@ toClientConfigFeaturesDTO serverConfig tenantConfig =
     , toursEnabled = tenantConfig.toursEnabled
     }
 
-toClientConfigSignalBridgeDTO :: Tenant -> ClientConfigSignalBridgeDTO
-toClientConfigSignalBridgeDTO tenant =
-  ClientConfigSignalBridgeDTO {webSocketUrl = tenant.signalBridgeUrl}
+toClientConfigSignalBridgeDTO :: ServerConfigCloud -> ClientConfigSignalBridgeDTO
+toClientConfigSignalBridgeDTO serverConfig =
+  ClientConfigSignalBridgeDTO {webSocketUrl = serverConfig.signalBridgeUrl}
 
 toModuleDTO :: TenantModule -> ClientConfigModuleDTO
 toModuleDTO tenantModule =

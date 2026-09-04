@@ -23,17 +23,18 @@ import Wizard.Database.DAO.User.UserGroupMembershipDAO
 import Wizard.Database.DAO.User.UserPluginSettingsDAO
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Config.Client.ClientConfigMapper
 import Wizard.Service.KnowledgeModel.Metamodel.MigrationService
 import Wizard.Service.Tenant.Config.ConfigService
 import Wizard.Service.Tenant.TenantHelper
+import Wizard.Service.Tenant.TenantMapper (toClientUrlBase)
 import Wizard.Service.User.UserMapper
 import WizardLib.Public.Database.DAO.OpenId.OpenIdClientDefinitionDAO
 import WizardLib.Public.Database.DAO.Tenant.Config.TenantConfigFeaturesDAO
 import WizardLib.Public.Database.DAO.Tenant.Config.TenantConfigLookAndFeelDAO
 import WizardLib.Public.Database.DAO.Tenant.Module.TenantModuleDAO
 import WizardLib.Public.Database.DAO.User.UserTourDAO
+import WizardLib.Public.Model.Tenant.Tenant
 
 getClientConfig :: Maybe String -> Maybe String -> AppContextM ClientConfigDTO
 getClientConfig mServerUrl mClientUrl = do
@@ -41,7 +42,7 @@ getClientConfig mServerUrl mClientUrl = do
   mCurrentUser <- asks currentUser
   tenant <-
     if serverConfig.cloud.enabled
-      then maybe getCurrentTenant findTenantByClientUrl mClientUrl
+      then maybe getCurrentTenant (findTenantByClientUrl . toClientUrlBase) mClientUrl
       else getCurrentTenant
   case tenant.state of
     NotSeededTenantState -> do

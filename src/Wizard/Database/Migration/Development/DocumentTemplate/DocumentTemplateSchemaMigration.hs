@@ -73,7 +73,7 @@ createTemplateTable = do
         \    phase             varchar          NOT NULL, \
         \    non_editable      boolean          NOT NULL, \
         \    CONSTRAINT w_document_template_pk PRIMARY KEY (uuid), \
-        \    CONSTRAINT w_document_template_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_template_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
         \ \
         \CREATE INDEX w_document_template_organization_id_template_id_index ON w_document_template (organization_id, template_id, tenant_uuid);"
@@ -94,7 +94,7 @@ createTemplateFormatTable = do
         \    updated_at             timestamptz NOT NULL, \
         \    CONSTRAINT w_document_template_format_pk PRIMARY KEY (uuid, document_template_uuid), \
         \    CONSTRAINT w_document_template_format_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_document_template_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_template_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
         \ \
         \CREATE TABLE w_document_template_format_step \
@@ -110,7 +110,7 @@ createTemplateFormatTable = do
         \    CONSTRAINT w_document_template_format_step_pk PRIMARY KEY (document_template_uuid, format_uuid, position), \
         \    CONSTRAINT w_document_template_format_step_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_document_template_format_step_format_uuid_fk FOREIGN KEY (document_template_uuid, format_uuid) REFERENCES w_document_template_format (document_template_uuid, uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_document_template_format_step_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_template_format_step_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -129,7 +129,7 @@ createTemplateFileTable = do
         \    updated_at             timestamptz NOT NULL, \
         \    CONSTRAINT w_document_template_file_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_document_template_file_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_document_template_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_template_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -149,7 +149,7 @@ createTemplateAssetTable = do
         \    updated_at             timestamptz NOT NULL, \
         \    CONSTRAINT w_document_template_asset_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_document_template_asset_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_document_template_asset_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_template_asset_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -171,7 +171,7 @@ createDraftDataTable = do
         \    CONSTRAINT w_document_template_draft_data_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_document_template_draft_data_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project (uuid) ON DELETE SET NULL, \
         \    CONSTRAINT w_document_template_draft_data_knowledge_model_editor_uuid_fk FOREIGN KEY (knowledge_model_editor_uuid) REFERENCES w_knowledge_model_editor (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_document_template_draft_data_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_template_draft_data_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

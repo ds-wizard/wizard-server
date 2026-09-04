@@ -17,47 +17,40 @@ import Shared.Common.Model.Sentry.SentryEvent
 import Shared.Common.Model.User.RolePermission
 import Shared.Common.Service.Acl.AclService
 import Shared.Common.Service.Sentry.SentryService
-import Shared.Common.Util.Error (tryError)
 import Shared.Common.Util.Logger
 import Shared.Common.Util.Sentry
 import Shared.PersistentCommand.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.PersistentCommand.Model.PersistentCommand.PersistentCommand
 import Shared.PersistentCommand.Model.PersistentCommand.PersistentCommandSimple
-import Shared.PersistentCommand.Service.PersistentCommand.PersistentCommandMapper
 
 runPersistentCommands
   :: (Show identity, FromField identity, ToField identity, AppContextC s sc m)
   => (function -> appContext -> IO (Either String (PersistentCommandState, Maybe String)))
   -> (PersistentCommandSimple identity -> s -> m appContext)
-  -> (String -> PersistentCommand identity -> m a)
   -> (PersistentCommand identity -> function)
   -> m ()
-runPersistentCommands runAppContextWithAppContext' updateContext createPersistentCommand execute = do
+runPersistentCommands runAppContextWithAppContext' updateContext execute = do
   checkPermission _DEV_USE_ROLE_PERMISSION
   commands <- findPersistentCommandsForRetryByStates
   unless
     (null commands)
     ( do
-        traverse_ (runPersistentCommand runAppContextWithAppContext' updateContext createPersistentCommand execute False) commands
-        runPersistentCommands runAppContextWithAppContext' updateContext createPersistentCommand execute
+        traverse_ (runPersistentCommand runAppContextWithAppContext' updateContext execute False) commands
+        runPersistentCommands runAppContextWithAppContext' updateContext execute
     )
 
 runPersistentCommand
   :: (Show identity, FromField identity, ToField identity, AppContextC s sc m)
   => (function -> appContext -> IO (Either String (PersistentCommandState, Maybe String)))
   -> (PersistentCommandSimple identity -> s -> m appContext)
-  -> (String -> PersistentCommand identity -> m a)
   -> (PersistentCommand identity -> function)
   -> Bool
   -> PersistentCommandSimple identity
   -> m ()
-runPersistentCommand runAppContextWithAppContext' updateContext createPersistentCommand execute force commandSimple = do
-  case commandSimple.destination of
-    Just destination -> transferPersistentCommandByUuid destination createPersistentCommand commandSimple.uuid
-    Nothing -> do
-      context <- ask
-      updatedContext <- updateContext commandSimple context
-      executePersistentCommandByUuid runAppContextWithAppContext' execute force commandSimple.uuid updatedContext
+runPersistentCommand runAppContextWithAppContext' updateContext execute force commandSimple = do
+  context <- ask
+  updatedContext <- updateContext commandSimple context
+  executePersistentCommandByUuid runAppContextWithAppContext' execute force commandSimple.uuid updatedContext
 
 executePersistentCommandByUuid
   :: (Show identity, FromField identity, ToField identity, AppContextC s sc m)
@@ -94,52 +87,17 @@ executePersistentCommandByUuid runAppContextWithAppContext' execute force uuid c
         logInfoI _CMP_SERVICE (f' "Command finished with following state: '%s'" [show resultState])
     )
 
-transferPersistentCommandByUuid
-  :: (Show identity, FromField identity, ToField identity, AppContextC s sc m)
-  => String
-  -> (String -> PersistentCommand identity -> m a)
-  -> U.UUID
-  -> m ()
-transferPersistentCommandByUuid destination createPersistentCommand uuid = do
-  logInfoI _CMP_SERVICE (f' "Transferring command '%s'" [U.toString uuid])
-  command <- findPersistentCommandByUuid uuid
-  when
-    (command.attempts < command.maxAttempts)
-    ( do
-        let sanitizedCommand = sanitizePersistentCommand command
-        eResult <- tryError (createPersistentCommand destination sanitizedCommand)
-        let (resultState, mErrorMessage) =
-              case eResult of
-                Right _ -> (DonePersistentCommandState, Nothing)
-                Left exception -> (ErrorPersistentCommandState, Just . show $ exception)
-        context <- ask
-        now <- liftIO getCurrentTime
-        let updatedCommand =
-              command
-                { state = resultState
-                , lastTraceUuid = Just context.traceUuid'
-                , lastErrorMessage = mErrorMessage
-                , attempts = command.attempts + 1
-                , updatedAt = now
-                }
-        -- :: PersistentCommand identity
-        when (resultState == ErrorPersistentCommandState) (sendToSentry updatedCommand)
-        updatePersistentCommandByUuid updatedCommand
-        logInfoI _CMP_SERVICE (f' "Command transferred with following state: '%s'" [show resultState])
-    )
-
 runPersistentCommandChannelListener
   :: (Show identity, FromField identity, ToField identity, AppContextC s sc m)
   => (function -> appContext -> IO (Either String (PersistentCommandState, Maybe String)))
   -> (PersistentCommandSimple identity -> s -> m appContext)
-  -> (String -> PersistentCommand identity -> m a)
   -> (PersistentCommand identity -> function)
   -> m ()
-runPersistentCommandChannelListener runAppContextWithAppContext updateContext createPersistentCommand execute = do
+runPersistentCommandChannelListener runAppContextWithAppContext updateContext execute = do
   listenPersistentCommandChannel
   forever $ do
     _ <- getChannelNotification
-    runPersistentCommands runAppContextWithAppContext updateContext createPersistentCommand execute
+    runPersistentCommands runAppContextWithAppContext updateContext execute
 
 -- --------------------------------
 -- PRIVATE

@@ -13,8 +13,8 @@ import Wizard.Database.DAO.Project.ProjectEventDAO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Project.Project
 import Wizard.Model.Tenant.Config.TenantConfig
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Tenant.Config.ConfigService
+import WizardLib.Public.Model.Tenant.Tenant
 
 import Wizard.Specs.Common
 

@@ -49,7 +49,7 @@ instance ToSchema ClientConfigFeaturesDTO where
   declareNamedSchema = toSwagger (toClientConfigFeaturesDTO S.defaultAdmin STC.defaultFeatures)
 
 instance ToSchema ClientConfigSignalBridgeDTO where
-  declareNamedSchema = toSwagger (toClientConfigSignalBridgeDTO defaultTenant)
+  declareNamedSchema = toSwagger (toClientConfigSignalBridgeDTO S_S.defaultCloud)
 
 instance ToSchema ClientConfigModuleDTO where
   declareNamedSchema = toSwagger (toModuleDTO defaultTenantModule)

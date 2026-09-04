@@ -6,7 +6,9 @@ import Data.Aeson (Array, FromJSON, Object, ToJSON, Value (..), eitherDecode, en
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import Data.Foldable
+import qualified Data.List as L
 import Data.String (fromString)
+import qualified Data.Text as T
 import qualified Data.UUID as U
 import qualified Data.Vector as Vector
 import Network.HTTP.Types
@@ -51,6 +53,16 @@ resCorsHeaders =
   ]
 
 shouldRespondWith r matcher = forM_ (match r matcher) (liftIO . expectationFailure)
+
+bodyContainsInvalidJsonMessage :: MatchBody
+bodyContainsInvalidJsonMessage =
+  MatchBody $ \_ body ->
+    case eitherDecode body :: Either String Object of
+      Right object
+        | Just (String message) <- KM.lookup "message" object
+        , "Problem in deserialization of JSON (" `L.isPrefixOf` T.unpack message ->
+            Nothing
+      _ -> Just . BSL.unpack $ body
 
 -- ------------------------------------------------------------------------
 -- TEST

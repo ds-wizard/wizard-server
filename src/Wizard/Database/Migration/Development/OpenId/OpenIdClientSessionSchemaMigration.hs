@@ -25,7 +25,7 @@ createTables = do
         \    tenant_uuid uuid        NOT NULL, \
         \    created_at  timestamptz NOT NULL, \
         \    CONSTRAINT w_openid_client_session_pk PRIMARY KEY (state), \
-        \    CONSTRAINT w_openid_client_session_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_openid_client_session_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

@@ -25,11 +25,11 @@ import Wizard.Model.Document.Document
 import Wizard.Model.Document.DocumentContext
 import Wizard.Model.Project.Project
 import Wizard.Model.Project.ProjectContent
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Service.Document.Context.DocumentContextMapper
 import Wizard.Service.Document.DocumentMapper
 import Wizard.Service.Project.Version.ProjectVersionMapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 doc1 :: Document
 doc1 =

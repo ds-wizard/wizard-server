@@ -13,7 +13,7 @@ dropTables = do
   logInfo _CMP_MIGRATION "(Table/Tenant) drop table"
   let sql =
         "DROP TABLE IF EXISTS w_tenant_limit_bundle; \
-        \DROP TABLE IF EXISTS w_tenant;"
+        \DROP TABLE IF EXISTS tenant CASCADE;"
   let action conn = execute_ conn sql
   runDB action
 
@@ -51,20 +51,19 @@ createTables = do
 createTenantTable = do
   logInfo _CMP_MIGRATION "(Table/Tenant) create table"
   let sql =
-        "CREATE TABLE w_tenant \
+        "CREATE TABLE tenant \
         \( \
-        \    uuid             uuid        NOT NULL, \
-        \    tenant_id        varchar     NOT NULL, \
-        \    name             varchar     NOT NULL, \
-        \    server_domain    varchar     NOT NULL, \
-        \    client_url       varchar     NOT NULL, \
-        \    enabled          bool        NOT NULL, \
-        \    created_at       timestamptz NOT NULL, \
-        \    updated_at       timestamptz NOT NULL, \
-        \    server_url       varchar     NOT NULL, \
-        \    signal_bridge_url varchar, \
-        \    state varchar NOT NULL DEFAULT 'ReadyForUseTenantState', \
-        \    CONSTRAINT w_tenant_pk PRIMARY KEY (uuid) \
+        \    uuid          uuid        NOT NULL, \
+        \    tenant_id     varchar     NOT NULL, \
+        \    name          varchar     NOT NULL, \
+        \    server_domain varchar     NOT NULL, \
+        \    client_url    varchar     NOT NULL, \
+        \    enabled       bool        NOT NULL, \
+        \    created_at    timestamptz NOT NULL, \
+        \    updated_at    timestamptz NOT NULL, \
+        \    server_url    varchar     NOT NULL, \
+        \    state         varchar     NOT NULL DEFAULT 'ReadyForUseTenantState', \
+        \    CONSTRAINT tenant_pk PRIMARY KEY (uuid) \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -100,7 +99,7 @@ createTcOrganizationTable = do
         \    created_at      timestamptz NOT NULL, \
         \    updated_at      timestamptz NOT NULL, \
         \    CONSTRAINT w_config_organization_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_organization_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_organization_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -122,7 +121,7 @@ createTcAuthenticationTable = do
         \    internal_session_expiration              bigint      NOT NULL, \
         \    internal_user_email_link_expiration      bigint      NOT NULL, \
         \    CONSTRAINT w_config_authentication_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_authentication_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_authentication_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -142,7 +141,7 @@ createTcPrivacyAndSupportTable = do
         \    created_at           timestamptz NOT NULL, \
         \    updated_at           timestamptz NOT NULL, \
         \    CONSTRAINT w_config_privacy_and_support_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_privacy_and_support_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_privacy_and_support_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -159,7 +158,7 @@ createTcDashboardAndLoginScreenTable = do
         \    created_at         timestamptz NOT NULL, \
         \    updated_at         timestamptz NOT NULL, \
         \    CONSTRAINT w_config_dashboard_and_login_screen_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_dashboard_and_login_screen_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_dashboard_and_login_screen_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -179,7 +178,7 @@ createTcDashboardAndLoginScreenAnnouncementTable = do
         \    created_at   timestamptz                                         NOT NULL, \
         \    updated_at   timestamptz                                         NOT NULL, \
         \    CONSTRAINT w_config_dashboard_and_login_screen_announcement_pk PRIMARY KEY (tenant_uuid, position), \
-        \    CONSTRAINT w_config_dashboard_and_login_screen_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_dashboard_and_login_screen_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -198,7 +197,7 @@ createTcLookAndFeelTable = do
         \    created_at          timestamptz NOT NULL, \
         \    updated_at          timestamptz NOT NULL, \
         \    CONSTRAINT w_config_look_and_feel_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_look_and_feel_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_look_and_feel_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -217,7 +216,7 @@ createTcLookAndFeelCustomMenuLinkTable = do
         \    created_at  timestamptz NOT NULL, \
         \    updated_at  timestamptz NOT NULL, \
         \    CONSTRAINT w_config_look_and_feel_custom_menu_link_pk PRIMARY KEY (tenant_uuid, position), \
-        \    CONSTRAINT w_config_look_and_feel_custom_menu_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_look_and_feel_custom_menu_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -233,7 +232,7 @@ createTcRegistryTable = do
         \    created_at   timestamptz NOT NULL, \
         \    updated_at   timestamptz NOT NULL, \
         \    CONSTRAINT w_config_registry_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_registry_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_registry_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -260,7 +259,7 @@ createTcProjectTable = do
         \    created_at                timestamptz NOT NULL, \
         \    updated_at                timestamptz NOT NULL, \
         \    CONSTRAINT w_config_project_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -275,7 +274,7 @@ createTcSubmissionTable = do
         \    created_at  timestamptz NOT NULL, \
         \    updated_at  timestamptz NOT NULL, \
         \    CONSTRAINT w_config_submission_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
         \CREATE TABLE w_config_submission_service \
         \( \
@@ -291,7 +290,7 @@ createTcSubmissionTable = do
         \    created_at                  timestamptz NOT NULL, \
         \    updated_at                  timestamptz NOT NULL, \
         \    CONSTRAINT w_config_submission_service_pk PRIMARY KEY (tenant_uuid, id), \
-        \    CONSTRAINT w_config_submission_service_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_submission_service_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
         \CREATE TABLE w_config_submission_service_request_header \
         \( \
@@ -301,7 +300,7 @@ createTcSubmissionTable = do
         \    value       varchar NOT NULL, \
         \    CONSTRAINT w_config_submission_service_request_header_pk PRIMARY KEY (tenant_uuid, service_id, name), \
         \    CONSTRAINT w_config_submission_service_request_header_service_id_fk FOREIGN KEY (service_id, tenant_uuid) REFERENCES w_config_submission_service (id, tenant_uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_config_submission_service_request_header_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_submission_service_request_header_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
         \CREATE TABLE w_config_submission_service_supported_format \
         \( \
@@ -313,7 +312,7 @@ createTcSubmissionTable = do
         \    CONSTRAINT w_config_submission_service_supported_format_service_id_fk FOREIGN KEY (service_id, tenant_uuid) REFERENCES w_config_submission_service (id, tenant_uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_config_submission_service_supported_format_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_config_submission_service_supported_format_format_uuid_fk FOREIGN KEY (document_template_uuid, format_uuid) REFERENCES w_document_template_format (document_template_uuid, uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_config_submission_service_supported_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_submission_service_supported_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -334,7 +333,7 @@ createTcOwlTable = do
         \    created_at            timestamptz NOT NULL, \
         \    updated_at            timestamptz NOT NULL, \
         \    CONSTRAINT w_config_owl_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_owl_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_owl_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -350,7 +349,7 @@ createTcFeaturesTable = do
         \    created_at           timestamptz NOT NULL, \
         \    updated_at           timestamptz NOT NULL, \
         \    CONSTRAINT w_config_features_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT w_config_features_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_features_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -367,7 +366,7 @@ createTcMailTable = do
         \    custom_templates bool        NOT NULL, \
         \    CONSTRAINT w_config_mail_pk PRIMARY KEY (tenant_uuid), \
         \    CONSTRAINT w_config_mail_config_uuid_fk FOREIGN KEY (config_uuid) REFERENCES w_instance_config_mail (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT w_config_mail_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_config_mail_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -413,7 +412,7 @@ createTenantModuleTable = do
         \    created_at          timestamptz NOT NULL, \
         \    updated_at          timestamptz NOT NULL, \
         \    CONSTRAINT w_tenant_module_pk PRIMARY KEY (tenant_uuid, position), \
-        \    CONSTRAINT w_tenant_module_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_tenant_module_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -430,7 +429,7 @@ createTenantPluginSettingsTable = do
         \    updated_at   timestamptz NOT NULL, \
         \    CONSTRAINT w_tenant_plugin_settings_pk PRIMARY KEY (tenant_uuid, plugin_uuid), \
         \    CONSTRAINT w_tenant_plugin_settings_plugin_uuid_fk FOREIGN KEY (plugin_uuid, tenant_uuid) REFERENCES w_plugin (uuid, tenant_uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_tenant_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_tenant_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

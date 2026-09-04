@@ -30,7 +30,7 @@ createTables = do
           \    tenant_uuid uuid        NOT NULL, \
           \    created_at  timestamptz NOT NULL, \
           \    CONSTRAINT ${p}external_link_usage_pk PRIMARY KEY (uuid), \
-          \    CONSTRAINT ${p}external_link_usage_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES ${p}tenant (uuid) ON DELETE CASCADE \
+          \    CONSTRAINT ${p}external_link_usage_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
           \);"
           [("p", prefix)]
   let action conn = execute_ conn (fromString sql)

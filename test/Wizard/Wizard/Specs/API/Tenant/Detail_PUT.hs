@@ -14,8 +14,8 @@ import Shared.Common.Model.Error.Error
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Localization.Messages.Public
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Tenant.TenantMapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 import SharedTest.Specs.API.Common
 import Wizard.Specs.API.Common

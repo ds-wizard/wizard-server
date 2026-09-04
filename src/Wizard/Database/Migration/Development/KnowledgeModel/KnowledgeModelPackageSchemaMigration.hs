@@ -59,7 +59,7 @@ createKnowledgeModelPackageTable = do
         \    language                    varchar     NOT NULL DEFAULT 'en', \
         \    CONSTRAINT w_knowledge_model_package_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_knowledge_model_package_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_package_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT w_knowledge_model_package_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_knowledge_model_package_coordinate_unique UNIQUE (organization_id, km_id, version, tenant_uuid) \
         \); \
         \ \
@@ -84,7 +84,7 @@ createKnowledgeModelPackageEventTable = do
         \    created_at   timestamptz NOT NULL, \
         \    CONSTRAINT w_knowledge_model_package_event_pk PRIMARY KEY (uuid, package_uuid), \
         \    CONSTRAINT w_knowledge_model_package_event_package_id_fk FOREIGN KEY (package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_package_event_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_knowledge_model_package_event_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

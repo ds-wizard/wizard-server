@@ -20,7 +20,6 @@ import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Database.Migration.Development.User.Data.Roles
 import Wizard.Model.Plugin.Plugin
 import Wizard.Model.Tenant.Config.TenantConfig
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.OnlineUserInfo
 import Wizard.Model.User.User
 import Wizard.Model.User.UserPluginSettings
@@ -30,6 +29,7 @@ import Wizard.Model.User.UserSubmissionPropEM ()
 import Wizard.Model.User.UserSubmissionPropList
 import Wizard.Service.User.UserMapper
 import WizardLib.Public.Database.Migration.Development.User.Data.UserGroups
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.RolePermission
 import WizardLib.Public.Model.User.UserGroup
 import WizardLib.Public.Model.User.UserGroupMembership

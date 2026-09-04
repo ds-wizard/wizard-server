@@ -10,8 +10,8 @@ import Shared.DocumentTemplate.Constant.DocumentTemplate
 import Shared.DocumentTemplate.Model.DocumentTemplate.DocumentTemplate
 import Shared.KnowledgeModel.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.DocumentTemplate.DocumentTemplateUtil
+import WizardLib.Public.Model.Tenant.Tenant
 
 documentTemplateUtilSpec =
   describe "Document DocumentTemplate Utils" $ do

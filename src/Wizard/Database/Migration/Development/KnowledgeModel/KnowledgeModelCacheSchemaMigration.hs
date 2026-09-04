@@ -28,7 +28,7 @@ createTables = do
         \    created_at                 timestamptz NOT NULL, \
         \    CONSTRAINT w_knowledge_model_cache_pk PRIMARY KEY (package_uuid, tag_uuids), \
         \    CONSTRAINT w_knowledge_model_cache_package_uuid_fk FOREIGN KEY (package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_cache_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_knowledge_model_cache_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

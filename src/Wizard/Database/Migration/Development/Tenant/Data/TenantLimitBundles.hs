@@ -4,7 +4,7 @@ import Shared.Common.Constant.Tenant
 import Shared.Common.Util.Date
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Tenant.Limit.TenantLimitBundle
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 defaultTenantLimitBundle :: TenantLimitBundle
 defaultTenantLimitBundle =

@@ -15,12 +15,12 @@ import Shared.Common.Model.Common.Pageable
 import Shared.Common.Model.Common.Sort
 import Shared.Common.Util.String
 import Wizard.Database.DAO.Common
-import Wizard.Database.Mapping.Tenant.Tenant ()
 import Wizard.Model.Context.AppContext
 import Wizard.Model.Context.ContextLenses ()
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Database.Mapping.Tenant.Tenant ()
+import WizardLib.Public.Model.Tenant.Tenant
 
-entityName = "w_tenant"
+entityName = "tenant"
 
 pageLabel = "tenants"
 
@@ -65,7 +65,7 @@ updateTenantByUuid tenant = do
   let updatedTenant = tenant {updatedAt = now}
   let sql =
         fromString
-          "UPDATE w_tenant SET uuid = ?, tenant_id = ?, name = ?, server_domain = ?, client_url = ?, enabled = ?, created_at = ?, updated_at = ?, server_url = ?, signal_bridge_url = ?, state = ? WHERE uuid = ?"
+          "UPDATE tenant SET uuid = ?, tenant_id = ?, name = ?, server_domain = ?, client_url = ?, enabled = ?, created_at = ?, updated_at = ?, server_url = ?, state = ? WHERE uuid = ?"
   let params = toRow tenant ++ [toField updatedTenant.uuid]
   logQuery sql params
   let action conn = execute conn sql params

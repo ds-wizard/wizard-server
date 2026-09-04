@@ -10,8 +10,8 @@ import Wizard.Api.Resource.Tenant.TenantChangeDTO
 import Wizard.Api.Resource.Tenant.TenantChangeJM ()
 import Wizard.Api.Resource.Tenant.TenantJM ()
 import Wizard.Model.Context.BaseContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Tenant.TenantService
+import WizardLib.Public.Model.Tenant.Tenant
 
 type Detail_PUT =
   Header "Authorization" String

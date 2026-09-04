@@ -45,7 +45,7 @@ createTables = do
         \    created_at              timestamptz NOT NULL,\
         \    updated_at              timestamptz NOT NULL,\
         \    CONSTRAINT w_locale_pk PRIMARY KEY (uuid),\
-        \    CONSTRAINT w_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

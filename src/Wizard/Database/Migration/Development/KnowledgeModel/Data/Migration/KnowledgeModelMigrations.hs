@@ -17,8 +17,8 @@ import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Wizard.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Wizard.Model.KnowledgeModel.Migration.KnowledgeModelMigration
-import Wizard.Model.Tenant.Tenant
 import qualified Wizard.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper as PM
+import WizardLib.Public.Model.Tenant.Tenant
 
 knowledgeModelMigrationDTO :: KnowledgeModelMigrationDTO
 knowledgeModelMigrationDTO =

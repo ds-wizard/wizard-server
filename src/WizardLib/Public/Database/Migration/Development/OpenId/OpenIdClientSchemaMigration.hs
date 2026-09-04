@@ -39,7 +39,7 @@ createTables = do
           \    scope_profile        bool        NOT NULL, \
           \    scope_email          bool        NOT NULL, \
           \    CONSTRAINT ${p}openid_client_pk PRIMARY KEY (uuid), \
-          \    CONSTRAINT ${p}openid_client_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES ${p}tenant (uuid) ON DELETE CASCADE \
+          \    CONSTRAINT ${p}openid_client_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
           \);"
           [("p", prefix)]
   let action conn = execute_ conn (fromString sql)

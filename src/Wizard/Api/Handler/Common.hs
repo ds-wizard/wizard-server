@@ -26,13 +26,13 @@ import Wizard.Model.Context.AppContext
 import Wizard.Model.Context.BaseContext
 import Wizard.Model.Context.ContextLenses ()
 import Wizard.Model.Context.ContextMappers
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.User.UserMapper
 import Wizard.Service.User.UserService
 import WizardLib.Public.Api.Resource.UserToken.UserTokenClaimsDTO
 import WizardLib.Public.Constant.UserToken
 import WizardLib.Public.Database.DAO.User.UserTokenDAO
 import WizardLib.Public.Localization.Messages.Public
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.UserToken
 import WizardLib.Public.Service.UserToken.UserTokenValidation
 

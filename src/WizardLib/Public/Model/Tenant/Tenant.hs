@@ -1,23 +1,26 @@
-module Wizard.Api.Resource.Tenant.TenantDTO where
+module WizardLib.Public.Model.Tenant.Tenant where
 
 import Data.Time
 import qualified Data.UUID as U
 import GHC.Generics
 
-import WizardLib.Public.Model.Tenant.Tenant
-
-data TenantDTO = TenantDTO
+data Tenant = Tenant
   { uuid :: U.UUID
   , tenantId :: String
   , name :: String
   , serverDomain :: String
   , serverUrl :: String
   , clientUrl :: String
-  , state :: TenantState
   , enabled :: Bool
-  , logoUrl :: Maybe String
-  , primaryColor :: Maybe String
+  , state :: TenantState
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
   }
   deriving (Show, Eq, Generic)
+
+data TenantState
+  = NotSeededTenantState
+  | PendingHousekeepingTenantState
+  | HousekeepingInProgressTenantState
+  | ReadyForUseTenantState
+  deriving (Show, Eq, Generic, Read)

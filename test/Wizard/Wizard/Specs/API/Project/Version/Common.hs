@@ -10,7 +10,7 @@ import Shared.Common.Model.Error.Error
 import Wizard.Database.DAO.Project.ProjectVersionDAO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Project.Version.ProjectVersion
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 import Wizard.Specs.Common
 

@@ -29,7 +29,7 @@ createTables = do
         \    tenant_uuid uuid        NOT NULL, \
         \    CONSTRAINT w_user_email_link_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_user_email_link_identity_fk FOREIGN KEY (identity) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_user_email_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_email_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
         \ \
         \CREATE UNIQUE INDEX w_user_email_link_hash_uindex ON w_user_email_link (hash);"

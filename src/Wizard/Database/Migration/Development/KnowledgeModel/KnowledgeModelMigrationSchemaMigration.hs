@@ -36,7 +36,7 @@ createTables = do
         \    CONSTRAINT w_knowledge_model_migration_editor_uuid_fk FOREIGN KEY (editor_uuid) REFERENCES w_knowledge_model_editor (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_knowledge_model_migration_editor_previous_package_uuid_fk FOREIGN KEY (editor_previous_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_knowledge_model_migration_target_package_uuid_fk FOREIGN KEY (target_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_migration_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_knowledge_model_migration_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

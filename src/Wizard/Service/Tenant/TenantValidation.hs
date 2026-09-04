@@ -17,8 +17,8 @@ import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Localization.Messages.Public
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Common
+import WizardLib.Public.Model.Tenant.Tenant
 
 validateTenantCreateDTO :: TenantCreateDTO -> Bool -> AppContextM ()
 validateTenantCreateDTO reqDto isAdmin = do

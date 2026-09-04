@@ -27,11 +27,11 @@ import Wizard.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Wizard.Model.KnowledgeModel.Editor.KnowledgeModelEditorState
 import Wizard.Model.KnowledgeModel.Editor.KnowledgeModelEditorSuggestion
 import Wizard.Model.Project.ProjectReply
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Service.KnowledgeModel.Compiler.Compiler
 import Wizard.Service.KnowledgeModel.Editor.EditorMapper
 import qualified Wizard.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper as PM
+import WizardLib.Public.Model.Tenant.Tenant
 
 amsterdamKnowledgeModelEditorList :: KnowledgeModelEditorList
 amsterdamKnowledgeModelEditorList =

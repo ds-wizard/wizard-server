@@ -74,6 +74,7 @@ import qualified Wizard.Specs.Service.KnowledgeModel.Migration.Migrator.Sanitize
 import Wizard.Specs.Service.KnowledgeModel.Package.PackageUtilSpec
 import Wizard.Specs.Service.KnowledgeModel.Package.PackageValidationSpec
 import Wizard.Specs.Service.KnowledgeModel.Squash.SquasherSpec
+import Wizard.Specs.Service.PersistentCommand.PersistentCommandServiceSpec
 import Wizard.Specs.Service.Project.Collaboration.ProjectCollaborationAclSpec
 import Wizard.Specs.Service.Project.Compiler.ProjectCompilerServiceSpec
 import Wizard.Specs.Service.Project.Event.ProjectEventServiceSpec
@@ -237,6 +238,7 @@ main =
                     KM_SanitizerSpec.sanitizerSpec appContext
                   knowledgeModelEditorServiceSpec appContext
                 describe "Package" $ packageValidationSpec appContext
+              persistentCommandServiceSpec appContext
               describe "Project" $ do
                 describe "Migration" $
                   PRJ_SanitizerSpec.sanitizerIntegrationSpec appContext

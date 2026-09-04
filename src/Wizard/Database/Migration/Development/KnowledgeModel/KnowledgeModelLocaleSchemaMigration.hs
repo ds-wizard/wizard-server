@@ -37,7 +37,7 @@ createTables = do
         \    updated_at                   timestamptz NOT NULL, \
         \    CONSTRAINT w_knowledge_model_locale_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_knowledge_model_locale_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT w_knowledge_model_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_knowledge_model_locale_code_unique UNIQUE (knowledge_model_package_uuid, code, tenant_uuid) \
         \);"
   let action conn = execute_ conn sql

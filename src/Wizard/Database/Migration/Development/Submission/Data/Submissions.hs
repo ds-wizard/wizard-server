@@ -13,9 +13,9 @@ import Wizard.Model.Document.Document
 import Wizard.Model.Submission.Submission
 import Wizard.Model.Submission.SubmissionList
 import Wizard.Model.Tenant.Config.TenantConfig
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Service.Submission.SubmissionMapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 submissionCreate :: SubmissionCreateDTO
 submissionCreate = SubmissionCreateDTO {serviceId = defaultSubmissionService.sId}

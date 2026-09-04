@@ -15,7 +15,6 @@ pageLabel = "tenants"
 
 findTenantSuggestions :: AppContextC s sc m => Maybe String -> m [TenantSuggestion]
 findTenantSuggestions mQuery = do
-  table <- tableName entityName
   lookAndFeelTable <- tableName "config_look_and_feel"
   let sql =
         fromString $
@@ -28,7 +27,7 @@ findTenantSuggestions mQuery = do
             \FROM ${tenant} \
             \JOIN ${lookAndFeel} ON ${tenant}.uuid = ${lookAndFeel}.tenant_uuid \
             \WHERE ${tenant}.name ~* ? OR ${tenant}.tenant_id ~* ? OR ${tenant}.client_url ~* ? OR (${tenant}.uuid)::text ~* ?"
-            [("tenant", table), ("lookAndFeel", lookAndFeelTable)]
+            [("tenant", entityName), ("lookAndFeel", lookAndFeelTable)]
   let params = [regexM mQuery, regexM mQuery, regexM mQuery, regexM mQuery]
   logQuery sql params
   let action conn = query conn sql params

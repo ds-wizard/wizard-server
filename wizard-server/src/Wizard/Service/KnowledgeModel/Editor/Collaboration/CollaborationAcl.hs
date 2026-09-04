@@ -1,7 +1,0 @@
-module Wizard.Service.KnowledgeModel.Editor.Collaboration.CollaborationAcl where
-
-import Wizard.Model.Context.AclContext
-
-checkViewPermission _ = checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
-
-checkEditPermission _ = checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION

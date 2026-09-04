@@ -26,6 +26,12 @@ migrate dbPool = do
   createIndexes dbPool
   createTriggers dbPool
   createForeignKeys dbPool
+  insertTenant dbPool
+  insertRoles dbPool
+  insertUsers dbPool
+  insertTenantLimitBundle dbPool
+  insertLocale dbPool
+  insertConfig dbPool
   return Nothing
 
 assertEmptySchema :: Pool Connection -> LoggingT IO ()
@@ -771,7 +777,7 @@ createTables3 dbPool = do
         \    created_by uuid, \
         \    created_at timestamp with time zone NOT NULL \
         \); \
-        \CREATE TABLE w_tenant ( \
+        \CREATE TABLE tenant ( \
         \    uuid uuid NOT NULL, \
         \    tenant_id character varying NOT NULL, \
         \    name character varying NOT NULL, \
@@ -781,7 +787,6 @@ createTables3 dbPool = do
         \    created_at timestamp with time zone NOT NULL, \
         \    updated_at timestamp with time zone NOT NULL, \
         \    server_url character varying NOT NULL, \
-        \    signal_bridge_url character varying, \
         \    state character varying DEFAULT 'ReadyForUseTenantState'::character varying NOT NULL \
         \); \
         \CREATE TABLE w_tenant_limit_bundle ( \
@@ -1057,8 +1062,8 @@ createConstraints dbPool = do
         \    ADD CONSTRAINT w_tenant_limit_bundle_pk PRIMARY KEY (uuid); \
         \ALTER TABLE ONLY w_tenant_module \
         \    ADD CONSTRAINT w_tenant_module_pk PRIMARY KEY (tenant_uuid, \"position\"); \
-        \ALTER TABLE ONLY w_tenant \
-        \    ADD CONSTRAINT w_tenant_pk PRIMARY KEY (uuid); \
+        \ALTER TABLE ONLY tenant \
+        \    ADD CONSTRAINT tenant_pk PRIMARY KEY (uuid); \
         \ALTER TABLE ONLY w_tenant_plugin_settings \
         \    ADD CONSTRAINT w_tenant_plugin_settings_pk PRIMARY KEY (tenant_uuid, plugin_uuid); \
         \ALTER TABLE ONLY w_user_email_link \
@@ -1118,37 +1123,37 @@ createForeignKeys dbPool = do
         "ALTER TABLE ONLY w_audit \
         \    ADD CONSTRAINT w_audit_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_audit \
-        \    ADD CONSTRAINT w_audit_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_audit_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_authentication \
-        \    ADD CONSTRAINT w_config_authentication_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_authentication_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_dashboard_and_login_screen_announcement \
-        \    ADD CONSTRAINT w_config_dashboard_and_login_screen_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_dashboard_and_login_screen_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_dashboard_and_login_screen \
-        \    ADD CONSTRAINT w_config_dashboard_and_login_screen_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_dashboard_and_login_screen_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_features \
-        \    ADD CONSTRAINT w_config_features_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_features_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_look_and_feel_custom_menu_link \
-        \    ADD CONSTRAINT w_config_look_and_feel_custom_menu_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_look_and_feel_custom_menu_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_look_and_feel \
-        \    ADD CONSTRAINT w_config_look_and_feel_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_look_and_feel_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_mail \
         \    ADD CONSTRAINT w_config_mail_config_uuid_fk FOREIGN KEY (config_uuid) REFERENCES w_instance_config_mail(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_config_mail \
-        \    ADD CONSTRAINT w_config_mail_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_mail_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_organization \
-        \    ADD CONSTRAINT w_config_organization_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_organization_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_owl \
-        \    ADD CONSTRAINT w_config_owl_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_owl_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_privacy_and_support \
-        \    ADD CONSTRAINT w_config_privacy_and_support_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_privacy_and_support_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_project \
-        \    ADD CONSTRAINT w_config_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_registry \
-        \    ADD CONSTRAINT w_config_registry_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_registry_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission_service_request_header \
         \    ADD CONSTRAINT w_config_submission_service_request_header_service_id_fk FOREIGN KEY (service_id, tenant_uuid) REFERENCES w_config_submission_service(id, tenant_uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission_service_request_header \
-        \    ADD CONSTRAINT w_config_submission_service_request_header_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_submission_service_request_header_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission_service_supported_format \
         \    ADD CONSTRAINT w_config_submission_service_supported_format_document_template_ FOREIGN KEY (document_template_uuid) REFERENCES w_document_template(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission_service_supported_format \
@@ -1156,11 +1161,11 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_config_submission_service_supported_format \
         \    ADD CONSTRAINT w_config_submission_service_supported_format_service_id_fk FOREIGN KEY (service_id, tenant_uuid) REFERENCES w_config_submission_service(id, tenant_uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission_service_supported_format \
-        \    ADD CONSTRAINT w_config_submission_service_supported_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_submission_service_supported_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission_service \
-        \    ADD CONSTRAINT w_config_submission_service_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_submission_service_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_config_submission \
-        \    ADD CONSTRAINT w_config_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_config_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document \
         \    ADD CONSTRAINT w_document_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_document \
@@ -1172,7 +1177,7 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_document_template_asset \
         \    ADD CONSTRAINT w_document_template_asset_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_asset \
-        \    ADD CONSTRAINT w_document_template_asset_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_template_asset_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_draft_data \
         \    ADD CONSTRAINT w_document_template_draft_data_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_draft_data \
@@ -1180,11 +1185,11 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_document_template_draft_data \
         \    ADD CONSTRAINT w_document_template_draft_data_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_document_template_draft_data \
-        \    ADD CONSTRAINT w_document_template_draft_data_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_template_draft_data_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_file \
         \    ADD CONSTRAINT w_document_template_file_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_file \
-        \    ADD CONSTRAINT w_document_template_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_template_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_format \
         \    ADD CONSTRAINT w_document_template_format_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_format_step \
@@ -1192,41 +1197,41 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_document_template_format_step \
         \    ADD CONSTRAINT w_document_template_format_step_format_uuid_fk FOREIGN KEY (document_template_uuid, format_uuid) REFERENCES w_document_template_format(document_template_uuid, uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_format_step \
-        \    ADD CONSTRAINT w_document_template_format_step_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_template_format_step_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template_format \
-        \    ADD CONSTRAINT w_document_template_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_template_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document_template \
-        \    ADD CONSTRAINT w_document_template_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_template_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_document \
-        \    ADD CONSTRAINT w_document_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_document_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_external_link_usage \
-        \    ADD CONSTRAINT w_external_link_usage_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_external_link_usage_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_feedback \
         \    ADD CONSTRAINT w_feedback_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_feedback \
-        \    ADD CONSTRAINT w_feedback_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_feedback_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_cache \
         \    ADD CONSTRAINT w_knowledge_model_cache_package_uuid_fk FOREIGN KEY (package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_cache \
-        \    ADD CONSTRAINT w_knowledge_model_cache_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_cache_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_editor \
         \    ADD CONSTRAINT w_knowledge_model_editor_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_knowledge_model_editor_event \
         \    ADD CONSTRAINT w_knowledge_model_editor_event_editor_uuid_fk FOREIGN KEY (editor_uuid) REFERENCES w_knowledge_model_editor(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_editor_event \
-        \    ADD CONSTRAINT w_knowledge_model_editor_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_editor_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_editor \
         \    ADD CONSTRAINT w_knowledge_model_editor_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_editor_reply \
         \    ADD CONSTRAINT w_knowledge_model_editor_reply_editor_uuid FOREIGN KEY (editor_uuid) REFERENCES w_knowledge_model_editor(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_editor_reply \
-        \    ADD CONSTRAINT w_knowledge_model_editor_reply_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_editor_reply_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_editor \
-        \    ADD CONSTRAINT w_knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_locale \
         \    ADD CONSTRAINT w_knowledge_model_locale_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_locale \
-        \    ADD CONSTRAINT w_knowledge_model_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_migration \
         \    ADD CONSTRAINT w_knowledge_model_migration_editor_previous_package_uuid_fk FOREIGN KEY (editor_previous_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_migration \
@@ -1234,33 +1239,33 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_knowledge_model_migration \
         \    ADD CONSTRAINT w_knowledge_model_migration_target_package_uuid_fk FOREIGN KEY (target_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_migration \
-        \    ADD CONSTRAINT w_knowledge_model_migration_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_migration_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_package_event \
         \    ADD CONSTRAINT w_knowledge_model_package_event_package_id_fk FOREIGN KEY (package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_package_event \
-        \    ADD CONSTRAINT w_knowledge_model_package_event_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_package_event_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_package \
         \    ADD CONSTRAINT w_knowledge_model_package_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_package \
-        \    ADD CONSTRAINT w_knowledge_model_package_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_package_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_knowledge_model_secret \
-        \    ADD CONSTRAINT w_knowledge_model_secret_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_knowledge_model_secret_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_locale \
-        \    ADD CONSTRAINT w_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_openid_client_session \
-        \    ADD CONSTRAINT w_openid_client_session_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_openid_client_session_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_openid_client \
-        \    ADD CONSTRAINT w_openid_client_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_openid_client_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_persistent_command \
         \    ADD CONSTRAINT w_persistent_command_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_persistent_command \
-        \    ADD CONSTRAINT w_persistent_command_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_persistent_command_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_prefab \
-        \    ADD CONSTRAINT w_prefab_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_prefab_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_comment \
         \    ADD CONSTRAINT w_project_comment_comment_thread_uuid FOREIGN KEY (comment_thread_uuid) REFERENCES w_project_comment_thread(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_comment \
-        \    ADD CONSTRAINT w_project_comment_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_comment_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_comment_thread \
         \    ADD CONSTRAINT w_project_comment_thread_assigned_by FOREIGN KEY (assigned_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_project_comment_thread \
@@ -1268,7 +1273,7 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_project_comment_thread \
         \    ADD CONSTRAINT w_project_comment_thread_project_uuid FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_comment_thread \
-        \    ADD CONSTRAINT w_project_comment_thread_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_comment_thread_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project \
         \    ADD CONSTRAINT w_project_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_project \
@@ -1278,29 +1283,29 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_project_event \
         \    ADD CONSTRAINT w_project_event_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_event \
-        \    ADD CONSTRAINT w_project_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_file \
         \    ADD CONSTRAINT w_project_file_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_project_file \
         \    ADD CONSTRAINT w_project_file_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_file \
-        \    ADD CONSTRAINT w_project_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project \
         \    ADD CONSTRAINT w_project_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_perm_group \
         \    ADD CONSTRAINT w_project_perm_group_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_perm_group \
-        \    ADD CONSTRAINT w_project_perm_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_perm_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_perm_group \
         \    ADD CONSTRAINT w_project_perm_group_user_group_uuid_fk FOREIGN KEY (user_group_uuid) REFERENCES w_user_group(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_perm_user \
         \    ADD CONSTRAINT w_project_perm_user_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_perm_user \
-        \    ADD CONSTRAINT w_project_perm_user_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_perm_user_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_perm_user \
         \    ADD CONSTRAINT w_project_perm_user_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project \
-        \    ADD CONSTRAINT w_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_version \
         \    ADD CONSTRAINT w_project_version_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_project_version \
@@ -1308,9 +1313,9 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_project_version \
         \    ADD CONSTRAINT w_project_version_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_project_version \
-        \    ADD CONSTRAINT w_project_version_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_project_version_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_role \
-        \    ADD CONSTRAINT w_role_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_role_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_submission \
         \    ADD CONSTRAINT w_submission_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_submission \
@@ -1318,21 +1323,21 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_submission \
         \    ADD CONSTRAINT w_submission_service_id_fk FOREIGN KEY (tenant_uuid, service_id) REFERENCES w_config_submission_service(tenant_uuid, id) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_submission \
-        \    ADD CONSTRAINT w_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_temporary_file \
         \    ADD CONSTRAINT w_temporary_file_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_temporary_file \
-        \    ADD CONSTRAINT w_temporary_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_temporary_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_tenant_module \
-        \    ADD CONSTRAINT w_tenant_module_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_tenant_module_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_tenant_plugin_settings \
         \    ADD CONSTRAINT w_tenant_plugin_settings_plugin_uuid_fk FOREIGN KEY (plugin_uuid, tenant_uuid) REFERENCES w_plugin(uuid, tenant_uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_tenant_plugin_settings \
-        \    ADD CONSTRAINT w_tenant_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_tenant_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_email_link \
         \    ADD CONSTRAINT w_user_email_link_identity_fk FOREIGN KEY (identity) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_email_link \
-        \    ADD CONSTRAINT w_user_email_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_email_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_entity \
         \    ADD CONSTRAINT w_user_entity_locale_fk FOREIGN KEY (locale) REFERENCES w_locale(uuid) ON DELETE SET NULL; \
         \ALTER TABLE ONLY w_user_entity \
@@ -1340,41 +1345,180 @@ createForeignKeys dbPool = do
         \ALTER TABLE ONLY w_user_entity_submission_prop \
         \    ADD CONSTRAINT w_user_entity_submission_prop_service_id_fk FOREIGN KEY (tenant_uuid, service_id) REFERENCES w_config_submission_service(tenant_uuid, id) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_entity_submission_prop \
-        \    ADD CONSTRAINT w_user_entity_submission_prop_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_entity_submission_prop_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_entity_submission_prop \
         \    ADD CONSTRAINT w_user_entity_submission_prop_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_entity \
-        \    ADD CONSTRAINT w_user_entity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_entity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_group_membership \
-        \    ADD CONSTRAINT w_user_group_membership_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_group_membership_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_group_membership \
         \    ADD CONSTRAINT w_user_group_membership_user_group_uuid_fk FOREIGN KEY (user_group_uuid) REFERENCES w_user_group(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_group_membership \
         \    ADD CONSTRAINT w_user_group_membership_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_group \
-        \    ADD CONSTRAINT w_user_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_openid_identity \
         \    ADD CONSTRAINT w_user_openid_identity_provider_uuid_fk FOREIGN KEY (provider_uuid) REFERENCES w_openid_client(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_openid_identity \
-        \    ADD CONSTRAINT w_user_openid_identity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_openid_identity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_openid_identity \
         \    ADD CONSTRAINT w_user_openid_identity_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_plugin_settings \
         \    ADD CONSTRAINT w_user_plugin_settings_plugin_uuid_fk FOREIGN KEY (plugin_uuid, tenant_uuid) REFERENCES w_plugin(uuid, tenant_uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_plugin_settings \
-        \    ADD CONSTRAINT w_user_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_plugin_settings \
         \    ADD CONSTRAINT w_user_plugin_settings_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_registration_pending \
-        \    ADD CONSTRAINT w_user_registration_pending_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_registration_pending_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_token \
-        \    ADD CONSTRAINT w_user_token_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_token_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_token \
         \    ADD CONSTRAINT w_user_token_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_tour \
-        \    ADD CONSTRAINT w_user_tour_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE; \
+        \    ADD CONSTRAINT w_user_tour_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE; \
         \ALTER TABLE ONLY w_user_tour \
         \    ADD CONSTRAINT w_user_tour_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity(uuid) ON DELETE CASCADE;"
+  let action conn = execute_ conn sql
+  liftIO $ withResource dbPool action
+  return ()
+
+insertTenant :: Pool Connection -> LoggingT IO ()
+insertTenant dbPool = do
+  let sql =
+        "INSERT INTO tenant (uuid, tenant_id, name, server_domain, server_url, client_url, enabled, state, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', \
+        \        'default', \
+        \        'Default Tenant', \
+        \        'server.example.com', \
+        \        'https://server.example.com', \
+        \        'client.example.com', \
+        \        true, \
+        \        'ReadyForUseTenantState', \
+        \        '2021-10-18 08:25:17.016000 +00:00', \
+        \        '2021-10-18 08:25:18.326000 +00:00');"
+  let action conn = execute_ conn sql
+  liftIO $ withResource dbPool action
+  return ()
+
+insertRoles :: Pool Connection -> LoggingT IO ()
+insertRoles dbPool = do
+  let sql =
+        "INSERT INTO w_role (uuid, name, permissions, is_admin, tenant_uuid, created_at, updated_at) \
+        \VALUES ('a0000000-0000-0000-0000-000000000001', 'Admin', '{UsersManageRolePermission,SettingsManageRolePermission,ProjectTemplatesManageRolePermission,ProjectsViewRolePermission,ProjectsCommentRolePermission,ProjectsEditRolePermission,ProjectsManageRolePermission,KnowledgeModelEditorsUseRolePermission,KnowledgeModelsManageRolePermission,DocumentTemplateEditorsUseRolePermission,DocumentTemplatesManageRolePermission}', true, '00000000-0000-0000-0000-000000000000', now(), now()), \
+        \       ('a0000000-0000-0000-0000-000000000002', 'Data Steward', '{ProjectTemplatesManageRolePermission,KnowledgeModelEditorsUseRolePermission,KnowledgeModelsManageRolePermission,DocumentTemplateEditorsUseRolePermission,DocumentTemplatesManageRolePermission}', false, '00000000-0000-0000-0000-000000000000', now(), now()), \
+        \       ('a0000000-0000-0000-0000-000000000003', 'Researcher', '{}', false, '00000000-0000-0000-0000-000000000000', now(), now());"
+  let action conn = execute_ conn sql
+  liftIO $ withResource dbPool action
+  return ()
+
+-- cspell: disable
+insertUsers :: Pool Connection -> LoggingT IO ()
+insertUsers dbPool = do
+  let sql =
+        "INSERT INTO w_user_entity (uuid, first_name, last_name, email, password_hash, affiliation, role_uuid, \
+        \                          role_name, role_permissions, active, image_url, machine, tenant_uuid, locale, \
+        \                          last_seen_news_id, email_verified_at, email_pending, last_visited_at, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', 'System', 'User', 'system@example.com', 'no-hash', null, 'a0000000-0000-0000-0000-000000000001', 'Admin', '{UsersManageRolePermission,SettingsManageRolePermission,ProjectTemplatesManageRolePermission,ProjectsViewRolePermission,ProjectsCommentRolePermission,ProjectsEditRolePermission,ProjectsManageRolePermission,KnowledgeModelEditorsUseRolePermission,KnowledgeModelsManageRolePermission,DocumentTemplateEditorsUseRolePermission,DocumentTemplatesManageRolePermission,TenantsManageRolePermission,DevUseRolePermission}', \
+        \        true, null, true, '00000000-0000-0000-0000-000000000000', null, null, '2018-01-20 00:00:00.000000 +00:00', null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00', '2018-01-25 00:00:00.000000 +00:00'), \
+        \       ('ec6f8e90-2a91-49ec-aa3f-9eab2267fc66', 'Albert', 'Einstein', 'albert.einstein@example.com', 'pbkdf1:sha256|17|awVwfF3h27PrxINtavVgFQ==|iUFbQnZFv+rBXBu1R2OkX+vEjPtohYk5lsyIeOBdEy4=', \
+        \        'My University', 'a0000000-0000-0000-0000-000000000001', 'Admin', '{UsersManageRolePermission,SettingsManageRolePermission,ProjectTemplatesManageRolePermission,ProjectsViewRolePermission,ProjectsCommentRolePermission,ProjectsEditRolePermission,ProjectsManageRolePermission,KnowledgeModelEditorsUseRolePermission,KnowledgeModelsManageRolePermission,DocumentTemplateEditorsUseRolePermission,DocumentTemplatesManageRolePermission}', \
+        \        true, null, false, '00000000-0000-0000-0000-000000000000', null, null, '2018-01-20 00:00:00.000000 +00:00', null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00', '2018-01-25 00:00:00.000000 +00:00'), \
+        \       ('30d48cf4-8c8a-496f-bafe-585bd238f798', 'Nikola', 'Tesla', 'nikola.tesla@example.com', 'pbkdf1:sha256|17|awVwfF3h27PrxINtavVgFQ==|iUFbQnZFv+rBXBu1R2OkX+vEjPtohYk5lsyIeOBdEy4=', null, 'a0000000-0000-0000-0000-000000000002', \
+        \        'Data Steward', '{ProjectTemplatesManageRolePermission,KnowledgeModelEditorsUseRolePermission,KnowledgeModelsManageRolePermission,DocumentTemplateEditorsUseRolePermission,DocumentTemplatesManageRolePermission}', \
+        \        true, null, false, '00000000-0000-0000-0000-000000000000', null, null, '2018-01-20 00:00:00.000000 +00:00', null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00', '2018-01-25 00:00:00.000000 +00:00'), \
+        \       ('e1c58e52-0824-4526-8ebe-ec38eec67030', 'Isaac', 'Newton', 'isaac.newton@example.com', 'pbkdf1:sha256|17|awVwfF3h27PrxINtavVgFQ==|iUFbQnZFv+rBXBu1R2OkX+vEjPtohYk5lsyIeOBdEy4=', null, 'a0000000-0000-0000-0000-000000000003', \
+        \        'Researcher', '{}', \
+        \        true, null, false, '00000000-0000-0000-0000-000000000000', null, null, '2018-01-20 00:00:00.000000 +00:00', null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00', '2018-01-25 00:00:00.000000 +00:00');"
+  let action conn = execute_ conn sql
+  liftIO $ withResource dbPool action
+  return ()
+
+-- cspell: enable
+
+insertTenantLimitBundle :: Pool Connection -> LoggingT IO ()
+insertTenantLimitBundle dbPool = do
+  let sql =
+        "INSERT INTO w_tenant_limit_bundle (uuid, users, active_users, knowledge_models, knowledge_model_editors, \
+        \                                    document_templates, document_template_drafts, projects, documents, locales, \
+        \                                    storage, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', -30000, -30000, -60000, -60000, -60000, -60000, -60000, -180000, -60000, -1500000000, \
+        \        '2021-10-18 08:25:17.016000 +00:00', \
+        \        '2021-10-18 08:25:18.326000 +00:00');"
+  let action conn = execute_ conn sql
+  liftIO $ withResource dbPool action
+  return ()
+
+insertLocale :: Pool Connection -> LoggingT IO ()
+insertLocale dbPool = do
+  let sql =
+        "INSERT INTO w_locale (uuid, name, description, code, organization_id, locale_id, version, default_locale, \
+        \                     license, readme, recommended_app_version, enabled, tenant_uuid, created_at, updated_at) \
+        \VALUES ('7fb838c5-9279-4a78-8c2b-86ee9762a95f', \
+        \        'English', \
+        \        'Default English locale for Wizard UI', \
+        \        'en', \
+        \        '~', \
+        \        'default', \
+        \        '1.0.0', \
+        \        true, \
+        \        'Apache-2.0', \
+        \        concat('# Default English Locale for Wizard Client', \
+        \              CHR(13), CHR(10), CHR(13), CHR(10), \
+        \              '[![Language](https://img.shields.io/badge/ISO%20639--1-en-blue)](https://en.wikipedia.org/wiki/English_language)', \
+        \              CHR(13), CHR(10), CHR(13), CHR(10), \
+        \              'This is the default English locale embedded in the Wizard Client. Therefore, it is always complete and compatible with the version that it is shipped with.', \
+        \              CHR(13), CHR(10), CHR(13), CHR(10), \
+        \              'The locale also cannot be exported or deleted. However, you can *Disable* it anytime as well as mark other locale to be used as *Default* if necessary.', \
+        \              CHR(13), CHR(10), CHR(13), CHR(10), \
+        \              'In case you encounter any issues with this issue, please contact your service provider.', \
+        \              CHR(13), CHR(10)), \
+        \        '3.18.0', \
+        \        true, \
+        \        '00000000-0000-0000-0000-000000000000', \
+        \        '2022-01-21 00:00:00.000000 +00:00', \
+        \        '2022-01-21 00:00:00.000000 +00:00');"
+  let action conn = execute_ conn sql
+  liftIO $ withResource dbPool action
+  return ()
+
+insertConfig :: Pool Connection -> LoggingT IO ()
+insertConfig dbPool = do
+  let sql =
+        "INSERT INTO w_config_organization (tenant_uuid, name, description, organization_id, affiliations, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', 'My Organization', 'My Organization Description', 'myorg', '{}', '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_authentication (tenant_uuid, default_role_uuid, internal_registration_enabled, \
+        \                                     internal_two_factor_auth_enabled, internal_two_factor_auth_code_length, \
+        \                                     internal_two_factor_auth_code_expiration, internal_non_admin_login_enabled, \
+        \                                     internal_session_expiration, internal_user_email_link_expiration, \
+        \                                     created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-000000000003', true, false, 6, 600, true, 336, 336, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_privacy_and_support (tenant_uuid, privacy_url, terms_of_service_url, support_email, \
+        \                                          support_site_name, support_site_url, support_site_icon, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', null, null, null, null, null, null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_dashboard_and_login_screen (tenant_uuid, dashboard_type, login_info, login_info_sidebar, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', 'RoleBasedDashboardType', null, null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_look_and_feel (tenant_uuid, app_title, app_title_short, logo_url, primary_color, \
+        \                                    illustrations_color, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', null, null, null, null, null, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_registry (tenant_uuid, enabled, token, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', false, '', '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_project (tenant_uuid, visibility_enabled, visibility_default_value, sharing_enabled, \
+        \                              sharing_default_value, sharing_anonymous_enabled, creation, project_tagging_enabled, \
+        \                              project_tagging_tags, summary_report, feedback_enabled, feedback_token, feedback_owner, \
+        \                              feedback_repo, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', true, 'PrivateProjectVisibility', true, 'RestrictedProjectSharing', false, \
+        \        'TemplateAndCustomProjectCreation', true, '{}', true, false, '', '', '', '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_submission (tenant_uuid, enabled, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', true, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_owl (tenant_uuid, enabled, name, organization_id, km_id, version, previous_package_uuid, \
+        \                          root_element, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', false, '', '', '', '', null, '', '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_features (tenant_uuid, ai_assistant_enabled, tours_enabled, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', true, true, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00'); \
+        \INSERT INTO w_config_mail (tenant_uuid, config_uuid, custom_templates, created_at, updated_at) \
+        \VALUES ('00000000-0000-0000-0000-000000000000', null, false, '2018-01-20 00:00:00.000000 +00:00', '2018-01-20 00:00:00.000000 +00:00');"
   let action conn = execute_ conn sql
   liftIO $ withResource dbPool action
   return ()

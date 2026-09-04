@@ -67,12 +67,3 @@ fromChangeDTO command reqDto now =
     , createdAt = command.createdAt
     , updatedAt = now
     }
-
-sanitizePersistentCommand :: PersistentCommand identity -> PersistentCommand identity
-sanitizePersistentCommand command =
-  command
-    { state = NewPersistentCommandState
-    , lastErrorMessage = Nothing
-    , destination = Nothing
-    , attempts = 0
-    }

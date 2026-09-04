@@ -13,7 +13,6 @@ import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Model.Cache.ServerCache
 import Wizard.Model.Context.AppContext hiding (cache)
 import Wizard.Model.Context.ContextMappers
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Document.DocumentCleanService
 import Wizard.Service.Feedback.FeedbackService
 import Wizard.Service.KnowledgeModel.Editor.Event.EditorEventService
@@ -28,6 +27,7 @@ import Wizard.Service.Registry.Push.RegistryPushService
 import Wizard.Service.Registry.Synchronization.RegistrySynchronizationService
 import Wizard.Service.UserEmailLink.UserEmailLinkService
 import Wizard.Service.UserToken.ApiKey.ApiKeyService
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Service.TemporaryFile.TemporaryFileService
 import WizardLib.Public.Service.UserToken.UserTokenService
 

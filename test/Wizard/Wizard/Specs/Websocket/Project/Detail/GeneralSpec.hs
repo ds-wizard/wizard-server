@@ -12,9 +12,9 @@ import Wizard.Localization.Messages.Public
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AppContext
 import Wizard.Model.Project.Project
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Project.ProjectMapper
 import Wizard.Service.Project.ProjectService
+import WizardLib.Public.Model.Tenant.Tenant
 
 import Wizard.Specs.API.Common
 import Wizard.Specs.Common

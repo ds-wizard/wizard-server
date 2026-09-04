@@ -10,9 +10,9 @@ import Wizard.Database.Migration.Development.Plugin.Data.Plugins
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Database.Migration.Development.User.Data.Roles
 import Wizard.Model.Plugin.Plugin
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Model.User.UserPluginSettings
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.Role
 import WizardLib.Public.Service.User.RoleMapper (toRoleSimple)
 

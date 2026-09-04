@@ -5,7 +5,7 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Common.Api.Resource.Error.ErrorJM ()
 import Wizard.Database.DAO.Tenant.TenantDAO
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 import Wizard.Specs.API.Common
 

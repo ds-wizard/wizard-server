@@ -128,7 +128,7 @@ jobs:
           key: ${{ steps.setup.outputs.stack-cache-key }}
 
       - name: Build application
-        run: ./scripts/build-strict.sh --no-terminal --skip-ghc-check
+        run: ./scripts/build-strict.sh --no-terminal --skip-ghc-check --ghc-options -optl-fuse-ld=mold
 
       - name: Save stack-work cache
         if: steps.setup.outputs.stack-work-cache-hit != 'true'
@@ -148,6 +148,20 @@ jobs:
         with:
           name: dist
           path: dist/
+          retention-days: 3
+
+      - name: Prepare test binaries
+        run: |
+          mkdir test-bin
+          cp "$(stack path --dist-dir)"/build/*-test/*-test test-bin/
+
+      - name: Upload test binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-binaries
+          path: |
+            test-bin/
+            lib/
           retention-days: 3
 
 # ----------------------------------------------------------------------------------------------------
@@ -177,14 +191,25 @@ jobs:
           - 9000:9000
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
-      - name: Haskell setup
-        uses: ./.github/actions/haskell-setup
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v8
+        with:
+          name: test-binaries
+
+      - name: Prepare test environment
+        run: |
+          chmod +x test-bin/*
+          ./scripts/expand-example-files.sh
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
 
       - name: Run tests
-        run: stack test wizard-server:${{ matrix.suite }}-test --no-terminal --skip-ghc-check --jobs=1
+        run: ./test-bin/${{ matrix.suite }}-test
         env:
           FEEDBACK_TOKEN: ${{ secrets.FEEDBACK_TOKEN }}
 

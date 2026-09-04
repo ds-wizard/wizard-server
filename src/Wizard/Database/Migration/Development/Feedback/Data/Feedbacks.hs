@@ -12,7 +12,7 @@ import Wizard.Api.Resource.Feedback.FeedbackCreateDTO
 import Wizard.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Feedback.Feedback
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 feedback1 :: Feedback
 feedback1 =

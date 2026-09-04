@@ -24,9 +24,10 @@ import Wizard.Database.DAO.User.UserDAO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Localization.Messages.Public
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Model.UserEmailLink.UserEmailLinkType
+import Wizard.Service.Tenant.TenantMapper (toClientUrlBase)
+import WizardLib.Public.Model.Tenant.Tenant
 
 import SharedTest.Specs.API.Common
 import Wizard.Specs.API.Common
@@ -77,7 +78,7 @@ create_test_201 title appContext reqDto authHeaders persistentCommandCount userA
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       -- AND: Find result in DB and compare with expectation state
-      (Right tenant) <- runInContextIO (findTenantByClientUrl resDto.clientUrl) appContext
+      (Right tenant) <- runInContextIO (findTenantByClientUrl (toClientUrlBase resDto.clientUrl)) appContext
       let updatedAppContext = appContext {currentTenantUuid = tenant.uuid}
       (Right [user]) <- runInContextIO findUsers updatedAppContext
       liftIO $ user.active `shouldBe` userActive

@@ -6,7 +6,8 @@ import Shared.Common.Model.Config.ServerConfig
 import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
+import Wizard.Service.Tenant.TenantMapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 getCurrentTenant :: AppContextM Tenant
 getCurrentTenant = do
@@ -19,5 +20,5 @@ getClientUrl = do
   if serverConfig.cloud.enabled
     then do
       tenant <- getCurrentTenant
-      return tenant.clientUrl
+      return $ tenantClientUrl tenant
     else return serverConfig.general.clientUrl

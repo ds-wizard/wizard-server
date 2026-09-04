@@ -43,11 +43,11 @@ findPersistentCommandsPage states pageable sort = do
               \       w_persistent_command.max_attempts, \
               \       w_persistent_command.created_at, \
               \       w_persistent_command.updated_at, \
-              \       concat(w_tenant.uuid, '::', \
-              \              w_tenant.name, '::', \
+              \       concat(tenant.uuid, '::', \
+              \              tenant.name, '::', \
               \              w_config_look_and_feel.logo_url, '::', \
               \              w_config_look_and_feel.primary_color, '::', \
-              \              w_tenant.client_url) AS tenant, \
+              \              tenant.client_url) AS tenant, \
               \       CASE \
               \              WHEN w_user_entity.uuid IS NOT NULL THEN concat(w_user_entity.uuid, '::', \
               \                                                            w_user_entity.first_name, '::', \
@@ -57,7 +57,7 @@ findPersistentCommandsPage states pageable sort = do
               \                                                            w_user_entity.affiliation) \
               \       END AS created_by \
               \FROM w_persistent_command \
-              \         LEFT JOIN w_tenant ON w_tenant.uuid = w_persistent_command.tenant_uuid \
+              \         LEFT JOIN tenant ON tenant.uuid = w_persistent_command.tenant_uuid \
               \         LEFT JOIN w_config_look_and_feel ON w_config_look_and_feel.tenant_uuid = w_persistent_command.tenant_uuid \
               \         LEFT JOIN w_user_entity ON w_user_entity.uuid = w_persistent_command.created_by AND w_user_entity.tenant_uuid = w_persistent_command.tenant_uuid \
               \${statesCondition} \

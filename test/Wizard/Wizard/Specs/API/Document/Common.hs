@@ -12,7 +12,7 @@ import Shared.Common.Model.Error.Error
 import Wizard.Database.DAO.Document.DocumentDAO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Document.Document
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 import Wizard.Specs.API.Common
 import Wizard.Specs.Common

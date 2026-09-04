@@ -3,7 +3,7 @@ module Wizard.Database.Migration.Development.User.Data.Roles where
 import Shared.Common.Util.Date
 import Shared.Common.Util.Uuid
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.Role
 import WizardLib.Public.Model.User.RolePermission
 

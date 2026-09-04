@@ -55,7 +55,7 @@ createDocumentTable = do
         \    CONSTRAINT w_document_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_document_format_uuid_fk FOREIGN KEY (document_template_uuid, format_uuid) REFERENCES w_document_template_format (document_template_uuid, uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_document_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT w_document_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_document_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

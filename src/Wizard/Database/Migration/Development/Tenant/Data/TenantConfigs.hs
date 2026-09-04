@@ -15,9 +15,9 @@ import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Project.Project
 import Wizard.Model.Tenant.Config.TenantConfig
 import Wizard.Model.Tenant.Config.TenantConfigEM ()
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Tenant.Config.ConfigMapper
 import WizardLib.Public.Database.Migration.Development.Tenant.Data.TenantConfigs
+import WizardLib.Public.Model.Tenant.Tenant
 
 defaultSecret = "01234567890123456789012345678901"
 

@@ -30,7 +30,7 @@ createTables = do
         \    created_at   timestamptz NOT NULL, \
         \    CONSTRAINT w_temporary_file_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_temporary_file_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_temporary_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_temporary_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

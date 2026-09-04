@@ -32,7 +32,7 @@ createTables = do
         \    tenant_uuid                  uuid        NOT NULL, \
         \    CONSTRAINT w_feedback_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_feedback_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_feedback_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_feedback_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

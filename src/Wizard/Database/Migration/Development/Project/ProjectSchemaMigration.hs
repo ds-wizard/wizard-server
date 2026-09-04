@@ -85,7 +85,7 @@ createProjectTable = do
         \    CONSTRAINT w_project_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES w_document_template (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT w_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -110,7 +110,7 @@ createProjectEventTable = do
         \    CONSTRAINT w_project_event_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_project_event_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity(uuid) ON DELETE SET NULL, \
         \    CONSTRAINT w_project_event_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project(uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_project_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant(uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant(uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -127,7 +127,7 @@ createProjectPermUserTable = do
         \    CONSTRAINT w_project_perm_user_pk PRIMARY KEY (user_uuid, project_uuid), \
         \    CONSTRAINT w_project_perm_user_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_perm_user_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_project_perm_user_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_perm_user_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -144,7 +144,7 @@ createProjectPermGroupTable = do
         \    CONSTRAINT w_project_perm_group_pk PRIMARY KEY (user_group_uuid, project_uuid), \
         \    CONSTRAINT w_project_perm_group_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_perm_group_user_group_uuid_fk FOREIGN KEY (user_group_uuid) REFERENCES w_user_group (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_project_perm_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_perm_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -170,7 +170,7 @@ createProjectCommentThreadTable = do
         \    CONSTRAINT w_project_comment_thread_project_uuid FOREIGN KEY (project_uuid) REFERENCES w_project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_comment_thread_assigned_to FOREIGN KEY (assigned_to) REFERENCES w_user_entity (uuid) ON DELETE SET NULL, \
         \    CONSTRAINT w_project_comment_thread_assigned_by FOREIGN KEY (assigned_by) REFERENCES w_user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT w_project_comment_thread_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_comment_thread_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -189,7 +189,7 @@ createProjectCommentTable = do
         \    tenant_uuid         uuid        NOT NULL, \
         \    CONSTRAINT w_project_comment_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_project_comment_comment_thread_uuid FOREIGN KEY (comment_thread_uuid) REFERENCES w_project_comment_thread (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_project_comment_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_comment_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -211,7 +211,7 @@ createProjectVersionTable = do
         \    CONSTRAINT w_project_version_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_project_version_event_uuid_fk FOREIGN KEY (event_uuid) REFERENCES w_project_event (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_version_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_project_version_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT w_project_version_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_version_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity (uuid) ON DELETE SET NULL \
         \);"
   let action conn = execute_ conn sql
@@ -233,7 +233,7 @@ createProjectFileTable = do
         \    CONSTRAINT w_project_file_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_project_file_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES w_project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_project_file_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT w_project_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_project_file_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

@@ -9,7 +9,7 @@ import Shared.KnowledgeModel.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.KnowledgeModel.Model.KnowledgeModel.KnowledgeModel
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.KnowledgeModel.Migration.KnowledgeModelMigration
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 createTestMigratorStateWithEvents :: [KnowledgeModelEvent] -> [KnowledgeModelEvent] -> Maybe KnowledgeModel -> KnowledgeModelMigration
 createTestMigratorStateWithEvents editorEvents targetPackageEvents mKm =

@@ -36,7 +36,7 @@ createTables = do
           \    created_at  timestamptz NOT NULL, \
           \    CONSTRAINT ${p}audit_pk PRIMARY KEY (uuid), \
           \    CONSTRAINT ${p}audit_created_by_fk FOREIGN KEY (created_by) REFERENCES ${p}user_entity (uuid) ON DELETE CASCADE, \
-          \    CONSTRAINT ${p}audit_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES ${p}tenant (uuid) ON DELETE CASCADE \
+          \    CONSTRAINT ${p}audit_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
           \);"
           [("p", prefix)]
   let action conn = execute_ conn (fromString sql)

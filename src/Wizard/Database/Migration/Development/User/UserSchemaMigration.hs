@@ -58,7 +58,7 @@ createUserTable = do
         \    email_pending     varchar, \
         \    role_name         varchar     NOT NULL, \
         \    CONSTRAINT w_user_entity_pk PRIMARY KEY (uuid), \
-        \    CONSTRAINT w_user_entity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT w_user_entity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_user_entity_role_uuid_fk FOREIGN KEY (role_uuid) REFERENCES w_role (uuid), \
         \    CONSTRAINT w_user_email_lowercase_check CHECK (email = lower(email)) \
         \); \
@@ -88,7 +88,7 @@ createUserSubmissionPropsTable = do
         \    CONSTRAINT w_user_entity_submission_prop_pk PRIMARY KEY (user_uuid, service_id), \
         \    CONSTRAINT w_user_entity_submission_prop_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_user_entity_submission_prop_service_id_fk FOREIGN KEY (tenant_uuid, service_id) REFERENCES w_config_submission_service (tenant_uuid, id) ON DELETE CASCADE, \
-        \    CONSTRAINT w_user_entity_submission_prop_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_entity_submission_prop_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -110,7 +110,7 @@ createUserTokenTable = do
         \    expires_at    timestamptz NOT NULL, \
         \    CONSTRAINT w_user_token_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_user_token_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_user_token_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_token_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -128,7 +128,7 @@ createUserGroupTable = do
         \    created_at  TIMESTAMPTZ NOT NULL, \
         \    updated_at  TIMESTAMPTZ NOT NULL, \
         \    CONSTRAINT w_user_group_pk PRIMARY KEY (uuid), \
-        \    CONSTRAINT w_user_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -147,7 +147,7 @@ createUserGroupMembershipTable = do
         \    CONSTRAINT w_user_group_membership_pk PRIMARY KEY (user_group_uuid, user_uuid), \
         \    CONSTRAINT w_user_group_membership_user_group_uuid_fk FOREIGN KEY (user_group_uuid) REFERENCES w_user_group (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_user_group_membership_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_user_group_membership_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_group_membership_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -163,7 +163,7 @@ createUserTourTable = do
         \    created_at              timestamptz NOT NULL, \
         \    CONSTRAINT w_user_tour_pk PRIMARY KEY (user_uuid, tour_id), \
         \    CONSTRAINT w_user_tour_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_user_tour_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_tour_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -182,7 +182,7 @@ createUserPluginSettingsTable = do
         \    CONSTRAINT w_user_plugin_settings_pk PRIMARY KEY (user_uuid, plugin_uuid), \
         \    CONSTRAINT w_user_plugin_settings_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES w_user_entity (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_user_plugin_settings_plugin_uuid_fk FOREIGN KEY (plugin_uuid, tenant_uuid) REFERENCES w_plugin (uuid, tenant_uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_user_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_user_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

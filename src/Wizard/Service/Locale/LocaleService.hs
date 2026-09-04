@@ -32,7 +32,6 @@ import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AclContext
 import Wizard.Model.Context.AppContext
 import Wizard.Model.Tenant.Config.TenantConfig
-import Wizard.Model.Tenant.Tenant
 import Wizard.S3.Locale.LocaleS3
 import Wizard.Service.Common
 import Wizard.Service.Locale.LocaleMapper
@@ -40,6 +39,8 @@ import Wizard.Service.Locale.LocaleValidation
 import Wizard.Service.Tenant.Config.ConfigService
 import Wizard.Service.Tenant.Limit.LimitService
 import Wizard.Service.Tenant.TenantHelper
+import Wizard.Service.Tenant.TenantMapper (toClientUrlBase)
+import WizardLib.Public.Model.Tenant.Tenant
 
 getLocalesPage :: Maybe String -> Maybe String -> Maybe String -> Pageable -> [Sort] -> AppContextM (Page LocaleDTO)
 getLocalesPage mOrganizationId mLocaleId mQuery pageable sort = do
@@ -88,7 +89,7 @@ getLocaleByUuid uuid = do
 getLocaleContentForCurrentUser :: Maybe String -> AppContextM BS.ByteString
 getLocaleContentForCurrentUser mClientUrl = do
   checkIfAdminIsDisabled
-  tenant <- maybe getCurrentTenant findTenantByClientUrl mClientUrl
+  tenant <- maybe getCurrentTenant (findTenantByClientUrl . toClientUrlBase) mClientUrl
   mUser <- asks currentUser
   locale <-
     case mUser of

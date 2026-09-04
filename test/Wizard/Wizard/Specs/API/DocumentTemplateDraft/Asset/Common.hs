@@ -12,7 +12,7 @@ import Shared.DocumentTemplate.Database.DAO.DocumentTemplate.DocumentTemplateAss
 import Shared.DocumentTemplate.Model.DocumentTemplate.DocumentTemplate
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Context.ContextLenses ()
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 import Wizard.Specs.Common
 

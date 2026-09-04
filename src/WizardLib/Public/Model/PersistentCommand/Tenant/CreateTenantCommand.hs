@@ -9,10 +9,6 @@ import WizardLib.Public.Model.Tenant.Limit.TenantLimitBundleChange
 
 data CreateTenantCommand = CreateTenantCommand
   { uuid :: U.UUID
-  , tenantId :: String
-  , name :: String
-  , enabled :: Bool
-  , customDomain :: Maybe String
   , adminRoleUuid :: U.UUID
   , adminRolePermissions :: [String]
   , limits :: TenantLimitBundleChange

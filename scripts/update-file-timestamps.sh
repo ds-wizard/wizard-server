@@ -1,6 +1,11 @@
-for FILE in $(git ls-files)
-do
-    TIME=$(git log --pretty=format:%cd -n 1 --date=iso $FILE)
-    TIME2=`echo $TIME | sed 's/-//g;s/ //;s/://;s/:/\./;s/ .*//'`
-    touch -m -t $TIME2 $FILE
-done
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+git log --format='commit %cd' --date=format:%Y%m%d%H%M.%S --name-only |
+  awk '/^commit / { time = $2; next } NF && !seen[$0]++ { print time "\t" $0 }' |
+  while IFS=$'\t' read -r time file; do
+    if [ -f "$file" ]; then
+      touch -m -t "$time" "$file"
+    fi
+  done

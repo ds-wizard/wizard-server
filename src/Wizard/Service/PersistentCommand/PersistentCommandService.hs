@@ -14,7 +14,6 @@ import Shared.PersistentCommand.Model.PersistentCommand.PersistentCommandSimple
 import Shared.PersistentCommand.Service.PersistentCommand.PersistentCommandMapper
 import Shared.PersistentCommand.Service.PersistentCommand.PersistentCommandService
 import Wizard.Api.Resource.PersistentCommand.PersistentCommandDetailDTO
-import Wizard.Database.DAO.Common
 import Wizard.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Database.DAO.User.UserDAO
@@ -45,17 +44,6 @@ getPersistentCommandById uuid = do
   tenantDto <- enhanceTenant tenant
   return $ toDetailDTO command mUser tenantDto
 
-createPersistentCommand :: PersistentCommand U.UUID -> AppContextM (PersistentCommand U.UUID)
-createPersistentCommand persistentCommand =
-  runInTransaction $ do
-    checkPermission _DEV_USE_ROLE_PERMISSION
-    mPersistentCommandFromDb <- findPersistentCommandByUuid' persistentCommand.uuid :: AppContextM (Maybe (PersistentCommand U.UUID))
-    case mPersistentCommandFromDb of
-      Just _ -> return persistentCommand
-      Nothing -> do
-        insertPersistentCommand persistentCommand
-        return persistentCommand
-
 modifyPersistentCommand :: U.UUID -> PersistentCommandChangeDTO -> AppContextM PersistentCommandDetailDTO
 modifyPersistentCommand uuid reqDto = do
   checkPermission _DEV_USE_ROLE_PERMISSION
@@ -76,16 +64,13 @@ runPersistentCommandById uuid = do
   getPersistentCommandById uuid
 
 runPersistentCommands' :: AppContextM ()
-runPersistentCommands' = runPersistentCommands runAppContextWithAppContext' updateContext emptyTransferFn execute
+runPersistentCommands' = runPersistentCommands runAppContextWithAppContext' updateContext execute
 
 runPersistentCommand' :: Bool -> PersistentCommandSimple U.UUID -> AppContextM ()
-runPersistentCommand' = runPersistentCommand runAppContextWithAppContext' updateContext emptyTransferFn execute
+runPersistentCommand' = runPersistentCommand runAppContextWithAppContext' updateContext execute
 
 runPersistentCommandChannelListener' :: AppContextM ()
-runPersistentCommandChannelListener' = runPersistentCommandChannelListener runAppContextWithAppContext' updateContext emptyTransferFn execute
-
-emptyTransferFn :: String -> PersistentCommand U.UUID -> AppContextM ()
-emptyTransferFn _ _ = return ()
+runPersistentCommandChannelListener' = runPersistentCommandChannelListener runAppContextWithAppContext' updateContext execute
 
 updateContext :: PersistentCommandSimple U.UUID -> AppContext -> AppContextM AppContext
 updateContext commandSimple context = do

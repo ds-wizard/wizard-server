@@ -12,11 +12,11 @@ import Wizard.Database.DAO.User.UserDAO
 import Wizard.Database.DAO.User.UserSubmissionPropDAO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Model.User.UserSubmissionProp
 import Wizard.Service.User.UserUtil
 import WizardLib.Public.Database.DAO.User.UserTokenDAO
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.UserToken
 
 import Wizard.Specs.Common

@@ -16,10 +16,10 @@ import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Model.Context.AppContext
 import Wizard.Model.Context.ContextLenses ()
 import Wizard.Model.PersistentCommand.Migration.Metamodel.MigrateToLatestMetamodelVersionCommand
-import Wizard.Model.Tenant.Tenant
 import qualified Wizard.Service.KnowledgeModel.Metamodel.Migrator.KnowledgeModelBundleMigrator as KnowledgeModelBundleMigrator
 import qualified Wizard.Service.KnowledgeModel.Metamodel.Migrator.KnowledgeModelEditorMigrator as KnowledgeModelEditorMigrator
 import qualified Wizard.Service.KnowledgeModel.Metamodel.Migrator.KnowledgeModelPackageMigrator as KnowledgeModelPackageMigrator
+import WizardLib.Public.Model.Tenant.Tenant
 
 migrateToLatestMetamodelVersionCommand :: Tenant -> Maybe U.UUID -> AppContextM ()
 migrateToLatestMetamodelVersionCommand tenant mCreatedBy = do

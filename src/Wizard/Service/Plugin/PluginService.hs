@@ -12,8 +12,8 @@ import Wizard.Database.DAO.Common
 import Wizard.Database.DAO.Plugin.PluginDAO
 import Wizard.Database.DAO.Tenant.TenantDAO
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Plugin.PluginMapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 createPluginForAllTenants :: U.UUID -> String -> Bool -> AppContextM ()
 createPluginForAllTenants uuid url enabled =

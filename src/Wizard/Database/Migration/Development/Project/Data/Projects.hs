@@ -37,11 +37,11 @@ import Wizard.Model.Project.Project
 import Wizard.Model.Project.ProjectContent
 import Wizard.Model.Project.ProjectState
 import Wizard.Model.Project.Version.ProjectVersion
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Service.Project.Event.ProjectEventMapper
 import Wizard.Service.Project.ProjectMapper
 import WizardLib.Public.Database.Migration.Development.User.Data.UserGroups
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.UserGroup
 
 _PROJECT_TAG_1 = "projectTag1"

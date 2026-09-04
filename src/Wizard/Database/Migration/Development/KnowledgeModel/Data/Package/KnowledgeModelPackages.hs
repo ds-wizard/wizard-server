@@ -19,8 +19,8 @@ import Wizard.Database.Migration.Development.Registry.Data.RegistryOrganizations
 import Wizard.Database.Migration.Development.Registry.Data.RegistryPackages
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 globalRemotePackage :: KnowledgeModelPackageSimpleDTO
 globalRemotePackage =

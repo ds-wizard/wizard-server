@@ -270,6 +270,6 @@ deleteAllEntitiesSql =
     , "w_locale"
     , "w_tenant_limit_bundle"
     , "w_plugin"
-    , "w_tenant"
+    , "tenant"
     , "w_component"
     ]

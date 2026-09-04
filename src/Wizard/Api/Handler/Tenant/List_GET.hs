@@ -10,8 +10,8 @@ import Wizard.Api.Handler.Common
 import Wizard.Api.Resource.Tenant.TenantDTO
 import Wizard.Api.Resource.Tenant.TenantJM ()
 import Wizard.Model.Context.BaseContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Tenant.TenantService
+import WizardLib.Public.Model.Tenant.Tenant
 
 type List_GET =
   Header "Authorization" String

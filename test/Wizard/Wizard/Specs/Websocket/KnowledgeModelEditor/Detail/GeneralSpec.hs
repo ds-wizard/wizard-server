@@ -14,11 +14,11 @@ import Wizard.Service.KnowledgeModel.Editor.EditorService
 
 import Wizard.Model.Config.ServerConfig
 import Wizard.Model.Context.AppContext
-import Wizard.Model.Tenant.Tenant
 import Wizard.Specs.API.Common
 import Wizard.Specs.Common
 import Wizard.Specs.Websocket.Common
 import Wizard.Specs.Websocket.KnowledgeModelEditor.Detail.Common
+import WizardLib.Public.Model.Tenant.Tenant
 
 generalSpec appContext =
   describe "general" $ do

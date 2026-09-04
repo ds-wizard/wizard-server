@@ -57,7 +57,7 @@ createKnowledgeModelEditorTable = do
         \    CONSTRAINT w_knowledge_model_editor_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_knowledge_model_editor_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES w_knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT w_knowledge_model_editor_created_by_fk FOREIGN KEY (created_by) REFERENCES w_user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT w_knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -76,7 +76,7 @@ createKnowledgeModelEditorEventTable = do
         \    created_at  TIMESTAMPTZ NOT NULL, \
         \    CONSTRAINT w_knowledge_model_editor_event_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT w_knowledge_model_editor_event_editor_uuid_fk FOREIGN KEY (editor_uuid) REFERENCES w_knowledge_model_editor (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_editor_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_knowledge_model_editor_event_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -106,7 +106,7 @@ createKnowledgeModelEditorReplyTable = do
         \    created_at  timestamptz                       NOT NULL, \
         \    CONSTRAINT w_knowledge_model_editor_reply_pk PRIMARY KEY (editor_uuid, path), \
         \    CONSTRAINT w_knowledge_model_editor_reply_editor_uuid FOREIGN KEY (editor_uuid) REFERENCES w_knowledge_model_editor (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT w_knowledge_model_editor_reply_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES w_tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT w_knowledge_model_editor_reply_tenant_uuid FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

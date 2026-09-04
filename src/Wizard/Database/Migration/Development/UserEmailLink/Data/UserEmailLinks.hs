@@ -8,9 +8,9 @@ import Shared.UserEmailLink.Api.Resource.UserEmailLink.UserEmailLinkDTO
 import Shared.UserEmailLink.Model.UserEmailLink.UserEmailLink
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Database.Migration.Development.User.Data.Users
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import Wizard.Model.UserEmailLink.UserEmailLinkType
+import WizardLib.Public.Model.Tenant.Tenant
 
 registrationUserEmailLink =
   UserEmailLink

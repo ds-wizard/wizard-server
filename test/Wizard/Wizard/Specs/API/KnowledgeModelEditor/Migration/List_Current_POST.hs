@@ -24,9 +24,9 @@ import Wizard.Database.Migration.Development.User.Data.Users
 import Wizard.Localization.Messages.Public
 import Wizard.Model.Context.AppContext
 import Wizard.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.KnowledgeModel.Editor.EditorService
 import qualified Wizard.Service.User.UserMapper as U_Mapper
+import WizardLib.Public.Model.Tenant.Tenant
 
 import SharedTest.Specs.API.Common
 import Wizard.Specs.API.Common

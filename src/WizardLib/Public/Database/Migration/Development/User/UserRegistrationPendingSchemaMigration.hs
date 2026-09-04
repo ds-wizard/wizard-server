@@ -39,7 +39,7 @@ createTables = do
           \    tenant_uuid    uuid        NOT NULL, \
           \    created_at     timestamptz NOT NULL, \
           \    CONSTRAINT ${p}user_registration_pending_pk PRIMARY KEY (uuid), \
-          \    CONSTRAINT ${p}user_registration_pending_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES ${p}tenant (uuid) ON DELETE CASCADE \
+          \    CONSTRAINT ${p}user_registration_pending_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
           \); \
           \CREATE UNIQUE INDEX ${p}user_registration_pending_hash_uindex ON ${p}user_registration_pending (hash, tenant_uuid);"
           [("p", prefix)]

@@ -5,6 +5,7 @@ import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import Data.List.NonEmpty as NE
 import Data.Swagger (NamedSchema (..), ToSchema (..), binarySchema)
+import qualified Data.Text as T
 import Data.Typeable
 import GHC.Generics
 import Servant (Accept (..), MimeRender (..), MimeUnrender (..), OctetStream (..))
@@ -57,7 +58,14 @@ instance FromJSON a => MimeUnrender SafeJSON a where
     case eitherDecode content of
       Right decoded -> Right decoded
       -- It should be retrieved from Localization Dictionary
-      Left error -> Left "Problem in deserialization of JSON"
+      Left error -> Left $ "Problem in deserialization of JSON (" ++ dropParsedTypeName error ++ ")"
+
+dropParsedTypeName :: String -> String
+dropParsedTypeName error =
+  let (before, rest) = T.breakOn " failed, " (T.pack error)
+   in case T.stripPrefix " failed, " rest of
+        Just after -> T.unpack $ fst (T.breakOn "parsing " before) <> after
+        Nothing -> error
 
 -- ------------------------------------------------------------------------
 newtype FileStream

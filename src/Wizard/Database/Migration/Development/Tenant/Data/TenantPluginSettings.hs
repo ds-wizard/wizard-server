@@ -6,7 +6,7 @@ import Wizard.Database.Migration.Development.Plugin.Data.Plugins
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.Plugin.Plugin
 import Wizard.Model.Tenant.PluginSettings.TenantPluginSettings
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 defaultTenantPluginSettings :: TenantPluginSettings
 defaultTenantPluginSettings =

@@ -3,6 +3,7 @@ module Wizard.Service.Tenant.TenantMapper where
 import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
+import GHC.Records
 
 import Shared.Common.Model.Config.ServerConfig
 import Shared.Common.Util.String
@@ -11,12 +12,11 @@ import Wizard.Api.Resource.Tenant.TenantCreateDTO
 import Wizard.Api.Resource.Tenant.TenantDTO
 import Wizard.Api.Resource.Tenant.TenantDetailDTO
 import Wizard.Model.Config.ServerConfig
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import qualified Wizard.Service.User.UserMapper as U_Mapper
 import WizardLib.Public.Api.Resource.Tenant.Usage.WizardUsageDTO
-import WizardLib.Public.Model.PersistentCommand.Tenant.CreateTenantCommand
-import WizardLib.Public.Model.PersistentCommand.Tenant.UpdateTenantCommand
+import WizardLib.Public.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.TenantSuggestion
 
 toDTO :: Tenant -> Maybe String -> Maybe String -> TenantDTO
 toDTO tenant mLogoUrl mPrimaryColor =
@@ -25,8 +25,8 @@ toDTO tenant mLogoUrl mPrimaryColor =
     , tenantId = tenant.tenantId
     , name = tenant.name
     , serverDomain = tenant.serverDomain
-    , serverUrl = tenant.serverUrl
-    , clientUrl = tenant.clientUrl
+    , serverUrl = tenantServerUrl tenant
+    , clientUrl = tenantClientUrl tenant
     , state = tenant.state
     , enabled = tenant.enabled
     , logoUrl = mLogoUrl
@@ -42,8 +42,8 @@ toDetailDTO tenant mLogoUrl mPrimaryColor usage users =
     , tenantId = tenant.tenantId
     , name = tenant.name
     , serverDomain = tenant.serverDomain
-    , serverUrl = tenant.serverUrl
-    , clientUrl = tenant.clientUrl
+    , serverUrl = tenantServerUrl tenant
+    , clientUrl = tenantClientUrl tenant
     , state = tenant.state
     , enabled = tenant.enabled
     , logoUrl = mLogoUrl
@@ -65,9 +65,8 @@ fromRegisterCreateDTO reqDto aUuid serverConfig now =
         , tenantId = reqDto.tenantId
         , name = reqDto.tenantId
         , serverDomain = createServerDomain serverConfig reqDto.tenantId
-        , serverUrl = createServerUrl url
-        , clientUrl = createClientUrl url
-        , signalBridgeUrl = serverConfig.cloud.signalBridgeUrl
+        , serverUrl = url
+        , clientUrl = url
         , enabled = True
         , state = ReadyForUseTenantState
         , createdAt = now
@@ -82,80 +81,47 @@ fromAdminCreateDTO reqDto aUuid serverConfig now =
         , tenantId = reqDto.tenantId
         , name = reqDto.tenantName
         , serverDomain = createServerDomain serverConfig reqDto.tenantId
-        , serverUrl = createServerUrl url
-        , clientUrl = createClientUrl url
-        , signalBridgeUrl = serverConfig.cloud.signalBridgeUrl
+        , serverUrl = url
+        , clientUrl = url
         , enabled = True
         , state = ReadyForUseTenantState
         , createdAt = now
         , updatedAt = now
         }
 
-fromCreateCommand :: CreateTenantCommand -> TenantState -> ServerConfig -> UTCTime -> UTCTime -> Tenant
-fromCreateCommand command state serverConfig createdAt updatedAt =
-  let (serverDomain, url) =
-        case command.customDomain of
-          Just customDomain -> (customDomain, f' "https://%s" [customDomain])
-          Nothing -> (createServerDomain serverConfig command.tenantId, createUrl serverConfig command.tenantId)
-   in Tenant
-        { uuid = command.uuid
-        , tenantId = command.tenantId
-        , name = command.name
-        , serverDomain = serverDomain
-        , serverUrl = createServerUrl url
-        , clientUrl = createClientUrl url
-        , signalBridgeUrl = serverConfig.cloud.signalBridgeUrl
-        , enabled = command.enabled
-        , state = state
-        , createdAt = createdAt
-        , updatedAt = updatedAt
-        }
-
-fromUpdateCommand :: UpdateTenantCommand -> TenantState -> ServerConfig -> UTCTime -> UTCTime -> Tenant
-fromUpdateCommand command state serverConfig createdAt updatedAt =
-  let (serverDomain, url) =
-        case command.customDomain of
-          Just customDomain -> (customDomain, f' "https://%s" [customDomain])
-          Nothing -> (createServerDomain serverConfig command.tenantId, createUrl serverConfig command.tenantId)
-   in Tenant
-        { uuid = command.uuid
-        , tenantId = command.tenantId
-        , name = command.name
-        , serverDomain = serverDomain
-        , serverUrl = createServerUrl url
-        , clientUrl = createClientUrl url
-        , signalBridgeUrl = serverConfig.cloud.signalBridgeUrl
-        , enabled = command.enabled
-        , state = state
-        , createdAt = createdAt
-        , updatedAt = updatedAt
-        }
-
 fromChangeDTO :: Tenant -> TenantChangeDTO -> ServerConfig -> Tenant
 fromChangeDTO tenant reqDto serverConfig =
-  let url = createUrl serverConfig reqDto.tenantId
+  let (serverDomain, url) =
+        if serverConfig.admin.enabled
+          then (tenant.serverDomain, tenant.serverUrl)
+          else (createServerDomain serverConfig reqDto.tenantId, createUrl serverConfig reqDto.tenantId)
    in Tenant
         { uuid = tenant.uuid
         , tenantId = reqDto.tenantId
         , name = reqDto.name
-        , serverDomain = createServerDomain serverConfig reqDto.tenantId
-        , serverUrl = createServerUrl url
-        , clientUrl = createClientUrl url
-        , signalBridgeUrl = tenant.signalBridgeUrl
+        , serverDomain = serverDomain
+        , serverUrl = url
+        , clientUrl = url
         , enabled = tenant.enabled
         , state = tenant.state
         , createdAt = tenant.createdAt
         , updatedAt = tenant.updatedAt
         }
 
+toSuggestionUrls :: TenantSuggestion -> TenantSuggestion
+toSuggestionUrls suggestion = suggestion {clientUrl = tenantClientUrl suggestion}
+
+tenantServerUrl :: HasField "serverUrl" entity String => entity -> String
+tenantServerUrl entity = f' "%s/wizard-api" [entity.serverUrl]
+
+tenantClientUrl :: HasField "clientUrl" entity String => entity -> String
+tenantClientUrl entity = f' "%s/wizard" [entity.clientUrl]
+
+toClientUrlBase :: String -> String
+toClientUrlBase = stripSuffixIfExists "/wizard"
+
 createServerDomain :: ServerConfig -> String -> String
 createServerDomain serverConfig tenantId = f' "%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]
-
-createServerUrl :: String -> String
-createServerUrl url = f' "%s/wizard-api" [url]
-
-createClientUrl :: String -> String
-createClientUrl url = f' "%s/wizard" [url]
 
 createUrl :: ServerConfig -> String -> String
 createUrl serverConfig tenantId = f' "https://%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]

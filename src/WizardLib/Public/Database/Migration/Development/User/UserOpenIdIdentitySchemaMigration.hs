@@ -35,7 +35,7 @@ createTables = do
           \    CONSTRAINT ${p}user_openid_identity_pk PRIMARY KEY (uuid), \
           \    CONSTRAINT ${p}user_openid_identity_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES ${p}user_entity (uuid) ON DELETE CASCADE, \
           \    CONSTRAINT ${p}user_openid_identity_provider_uuid_fk FOREIGN KEY (provider_uuid) REFERENCES ${p}openid_client (uuid) ON DELETE CASCADE, \
-          \    CONSTRAINT ${p}user_openid_identity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES ${p}tenant (uuid) ON DELETE CASCADE \
+          \    CONSTRAINT ${p}user_openid_identity_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
           \); \
           \CREATE UNIQUE INDEX ${p}user_openid_identity_uindex ON ${p}user_openid_identity (external_id, provider_uuid, tenant_uuid);"
           [("p", prefix)]

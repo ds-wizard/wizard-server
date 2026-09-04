@@ -10,9 +10,9 @@ import Wizard.Api.Resource.User.UserProfileChangeDTO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Database.Migration.Development.User.Data.AlbertEinstein
 import Wizard.Database.Migration.Development.User.Data.Roles
-import Wizard.Model.Tenant.Tenant
 import Wizard.Model.User.User
 import WizardLib.Public.Database.Migration.Development.User.Data.UserGroups
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.User.UserGroup
 import WizardLib.Public.Model.User.UserGroupMembership
 import WizardLib.Public.Service.User.RoleMapper (toRoleSimple)

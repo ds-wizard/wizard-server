@@ -32,7 +32,6 @@ import Wizard.Model.Context.AclContext
 import Wizard.Model.Context.AppContext
 import Wizard.Model.Tenant.Config.TenantConfig
 import Wizard.Model.Tenant.Config.TenantConfigDM
-import Wizard.Model.Tenant.Tenant
 import Wizard.Service.Tenant.Limit.LimitService
 import Wizard.Service.Tenant.TenantMapper
 import Wizard.Service.Tenant.TenantUtil
@@ -49,6 +48,7 @@ import WizardLib.Public.Model.PersistentCommand.Tenant.CreateTenantCommand
 import WizardLib.Public.Model.PersistentCommand.Tenant.UpdateTenantCommand
 import WizardLib.Public.Model.Tenant.Config.TenantConfig
 import WizardLib.Public.Model.Tenant.Config.TenantConfigDM
+import WizardLib.Public.Model.Tenant.Tenant
 import WizardLib.Public.Model.Tenant.TenantSuggestion
 import WizardLib.Public.Model.User.Role
 
@@ -61,7 +61,7 @@ getTenantsPage mQuery mStates mEnabled pageable sort = do
 getTenantSuggestions :: Maybe String -> AppContextM [TenantSuggestion]
 getTenantSuggestions mQuery = do
   checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
-  findTenantSuggestions mQuery
+  fmap toSuggestionUrls <$> findTenantSuggestions mQuery
 
 registerOrCreateTenantByAdmin :: TenantCreateDTO -> AppContextM TenantDTO
 registerOrCreateTenantByAdmin reqDto = do
@@ -83,7 +83,7 @@ registerTenant reqDto = do
     createLimitBundle uuid now
     userUuid <- liftIO generateUuid
     let userCreate = U_Mapper.fromTenantCreateToUserCreateDTO reqDto adminRole.uuid
-    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid tenant.clientUrl True
+    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid (tenantClientUrl tenant) True
     createConfig uuid adminRole.uuid now
     createLocale uuid now
     return $ toDTO tenant Nothing Nothing
@@ -103,7 +103,7 @@ createTenantByAdmin reqDto = do
     userUuid <- liftIO generateUuid
     userPassword <- liftIO $ generateRandomString 25
     let userCreate = U_Mapper.fromTenantCreateToUserCreateDTO (reqDto {password = userPassword}) adminRole.uuid
-    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid tenant.clientUrl False
+    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid (tenantClientUrl tenant) False
     createConfig uuid adminRole.uuid now
     createLocale uuid now
     return $ toDTO tenant Nothing Nothing
@@ -111,9 +111,7 @@ createTenantByAdmin reqDto = do
 createTenantByCommand :: CreateTenantCommand -> AppContextM ()
 createTenantByCommand command = do
   now <- liftIO getCurrentTime
-  serverConfig <- asks serverConfig
-  let tenant = fromCreateCommand command NotSeededTenantState serverConfig now now
-  insertTenant tenant
+  tenant <- findTenantByUuid command.uuid
   adminRole <- createAdminRoleWithUuid command.adminRoleUuid tenant.uuid command.adminRolePermissions now
   createConfig tenant.uuid adminRole.uuid now
   createLimitBundle tenant.uuid now
@@ -141,17 +139,11 @@ modifyTenant uuid reqDto = do
   let updatedTenant = fromChangeDTO tenant reqDto serverConfig
   updateTenantByUuid updatedTenant
 
-modifyTenantFromCommand :: UpdateTenantCommand -> AppContextM Tenant
+modifyTenantFromCommand :: UpdateTenantCommand -> AppContextM ()
 modifyTenantFromCommand command =
   runInTransaction $ do
     checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
-    now <- liftIO getCurrentTime
-    serverConfig <- asks serverConfig
-    tenant <- findTenantByUuid command.uuid
-    let updatedTenant = fromUpdateCommand command tenant.state serverConfig tenant.createdAt now
-    updateTenantByUuid updatedTenant
-    modifyLimitBundle command.uuid command.limits
-    return updatedTenant
+    void $ modifyLimitBundle command.uuid command.limits
 
 deleteTenant :: U.UUID -> AppContextM ()
 deleteTenant uuid = do

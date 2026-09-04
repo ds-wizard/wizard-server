@@ -5,8 +5,8 @@ import qualified Data.UUID as U
 import GHC.Generics
 
 import Wizard.Api.Resource.User.UserDTO
-import Wizard.Model.Tenant.Tenant
 import WizardLib.Public.Api.Resource.Tenant.Usage.WizardUsageDTO
+import WizardLib.Public.Model.Tenant.Tenant
 
 data TenantDetailDTO = TenantDetailDTO
   { uuid :: U.UUID

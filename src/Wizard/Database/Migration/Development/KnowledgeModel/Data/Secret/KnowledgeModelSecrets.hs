@@ -5,7 +5,7 @@ import Shared.Common.Util.Uuid
 import Wizard.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeDTO
 import Wizard.Database.Migration.Development.Tenant.Data.Tenants
 import Wizard.Model.KnowledgeModel.KnowledgeModelSecret
-import Wizard.Model.Tenant.Tenant
+import WizardLib.Public.Model.Tenant.Tenant
 
 kmSecret1 :: KnowledgeModelSecret
 kmSecret1 =
