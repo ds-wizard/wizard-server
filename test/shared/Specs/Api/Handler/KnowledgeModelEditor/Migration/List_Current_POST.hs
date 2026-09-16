@@ -34,11 +34,11 @@ import Specs.Api.Handler.KnowledgeModelEditor.Migration.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-editors/{uuid}/migrations/current
+-- POST /api/knowledge-model-editors/{uuid}/migrations/current
 -- ------------------------------------------------------------------------
 list_current_POST :: RequestContext -> SpecWith ((), Application)
 list_current_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-editors/{uuid}/migrations/current" $ do
+  describe "POST /api/knowledge-model-editors/{uuid}/migrations/current" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -50,7 +50,7 @@ list_current_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

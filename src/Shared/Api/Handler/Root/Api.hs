@@ -10,5 +10,5 @@ type RootAPI = List_GET
 rootApi :: Proxy RootAPI
 rootApi = Proxy
 
-rootServer :: ServerContextC s sc m => String -> ServerT RootAPI m
+rootServer :: ServerContextC s sc m => ServerT RootAPI m
 rootServer = list_GET

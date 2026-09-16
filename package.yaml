@@ -163,10 +163,12 @@ _test-dependencies: &test-dependencies
     - pwstore-fast
     - random
     - regex-compat
+    - insert-ordered-containers
     - resource-pool
     - servant
     - servant-server
     - servant-errors
+    - swagger2
     - text
     - time
     - unordered-containers

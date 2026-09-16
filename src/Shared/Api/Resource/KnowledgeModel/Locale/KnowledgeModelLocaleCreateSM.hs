@@ -24,6 +24,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem KnowledgeModelLocaleCre
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }

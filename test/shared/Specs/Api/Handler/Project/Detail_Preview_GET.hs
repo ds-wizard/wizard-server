@@ -35,11 +35,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/{projectUuid}/preview
+-- GET /api/projects/{projectUuid}/preview
 -- ------------------------------------------------------------------------
 detail_preview_GET :: RequestContext -> SpecWith ((), Application)
 detail_preview_GET requestContext =
-  describe "GET /wizard-api/projects/{projectUuid}/preview" $ do
+  describe "GET /api/projects/{projectUuid}/preview" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -49,7 +49,7 @@ detail_preview_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/preview"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/preview"
 
 reqHeadersT authHeader = authHeader
 
@@ -203,7 +203,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/preview"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/preview"
     [reqHeadersT reqAuthHeader]
     reqBody
     "project"

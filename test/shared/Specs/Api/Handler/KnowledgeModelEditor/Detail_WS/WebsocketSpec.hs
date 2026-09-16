@@ -10,7 +10,7 @@ import Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.SetRepliesSpec
 
 knowledgeModelEditorWebsocketAPI :: RequestContext -> SpecWith ()
 knowledgeModelEditorWebsocketAPI requestContext =
-  describe "WS /wizard-api/knowledge-model-editors/{uuid}/websocket" $ do
+  describe "WS /api/knowledge-model-editors/{uuid}/websocket" $ do
     generalSpec requestContext
     setEventSpec requestContext
     setRepliesSpec requestContext

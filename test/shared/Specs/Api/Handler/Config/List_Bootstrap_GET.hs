@@ -28,17 +28,17 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/configs/bootstrap
+-- GET /api/configs/bootstrap
 -- ------------------------------------------------------------------------
 list_bootstrap_GET :: RequestContext -> SpecWith ((), Application)
-list_bootstrap_GET requestContext = describe "GET /wizard-api/configs/bootstrap" $ test_200 requestContext
+list_bootstrap_GET requestContext = describe "GET /api/configs/bootstrap" $ test_200 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/configs/bootstrap"
+reqUrl = "/api/configs/bootstrap"
 
 reqHeadersT authHeaders = authHeaders
 

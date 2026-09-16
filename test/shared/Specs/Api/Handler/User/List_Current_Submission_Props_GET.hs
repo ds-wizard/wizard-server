@@ -23,11 +23,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/users/current/submission-props
+-- GET /api/users/current/submission-props
 -- ------------------------------------------------------------------------
 list_current_submission_props_GET :: RequestContext -> SpecWith ((), Application)
 list_current_submission_props_GET requestContext =
-  describe "GET /wizard-api/users/current/submission-props" $ do
+  describe "GET /api/users/current/submission-props" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -36,7 +36,7 @@ list_current_submission_props_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/users/current/submission-props"
+reqUrl = "/api/users/current/submission-props"
 
 reqHeaders = [reqAuthHeader]
 

@@ -18,11 +18,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelSecret.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-secrets
+-- POST /api/knowledge-model-secrets
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-secrets" $ do
+  describe "POST /api/knowledge-model-secrets" $ do
     test_200 requestContext
     test_400 requestContext
 
@@ -31,7 +31,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-secrets"
+reqUrl = "/api/knowledge-model-secrets"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

@@ -19,17 +19,17 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-secrets
+-- GET /api/knowledge-model-secrets
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
-list_GET requestContext = describe "GET /wizard-api/knowledge-model-secrets" $ test_200 requestContext
+list_GET requestContext = describe "GET /api/knowledge-model-secrets" $ test_200 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/knowledge-model-secrets"
+reqUrl = "/api/knowledge-model-secrets"
 
 reqHeaders = [reqAuthHeader]
 

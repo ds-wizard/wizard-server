@@ -17,11 +17,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/locales
+-- DELETE /api/locales
 -- ------------------------------------------------------------------------
 list_DELETE :: RequestContext -> SpecWith ((), Application)
 list_DELETE requestContext =
-  describe "DELETE /wizard-api/locales" $ do
+  describe "DELETE /api/locales" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -31,7 +31,7 @@ list_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/locales?organizationId=global&localeId=dutch"
+reqUrl = "/api/locales?organizationId=global&localeId=dutch"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

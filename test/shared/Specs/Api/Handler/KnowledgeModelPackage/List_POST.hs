@@ -35,11 +35,11 @@ import Specs.Api.Handler.KnowledgeModelPackage.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-packages
+-- POST /api/knowledge-model-packages
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-packages" $ do
+  describe "POST /api/knowledge-model-packages" $ do
     test_201_req_all_db_all requestContext
     test_201_req_all_db_no requestContext
     test_201_req_no_db_all requestContext
@@ -56,7 +56,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-packages"
+reqUrl = "/api/knowledge-model-packages"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

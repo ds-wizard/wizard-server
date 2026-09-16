@@ -32,11 +32,11 @@ import Specs.Api.Handler.KnowledgeModelPackage.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/package/from-editor
+-- POST /api/package/from-editor
 -- ------------------------------------------------------------------------
 list_from_editor_POST :: RequestContext -> SpecWith ((), Application)
 list_from_editor_POST requestContext =
-  describe "POST /wizard-api/package/from-editor" $ do
+  describe "POST /api/package/from-editor" $ do
     test_201 requestContext
     test_201_with_locales requestContext
     test_400_not_reusable_locales requestContext
@@ -51,7 +51,7 @@ list_from_editor_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-packages/from-editor"
+reqUrl = "/api/knowledge-model-packages/from-editor"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -172,7 +172,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-packages/from-editor"
+    "/api/knowledge-model-packages/from-editor"
     reqHeaders
     reqBody
     "knowledge_model_editor"

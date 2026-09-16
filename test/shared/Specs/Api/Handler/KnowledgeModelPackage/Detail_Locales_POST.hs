@@ -29,11 +29,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-packages/{uuid}/locales
+-- POST /api/knowledge-model-packages/{uuid}/locales
 -- ------------------------------------------------------------------------
 detail_locales_POST :: RequestContext -> SpecWith ((), Application)
 detail_locales_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-packages/{uuid}/locales" $ do
+  describe "POST /api/knowledge-model-packages/{uuid}/locales" $ do
     test_200 requestContext
     test_400_missing_language requestContext
     test_400_duplicate_code requestContext
@@ -47,7 +47,7 @@ detail_locales_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales"
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales"
 
 boundary = "X-TEST-BOUNDARY"
 
@@ -157,7 +157,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-packages/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales"
+    "/api/knowledge-model-packages/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales"
     reqHeaders
     reqBody
     "knowledge_model_package"

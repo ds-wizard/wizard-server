@@ -24,11 +24,11 @@ import Specs.Api.Handler.Role.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/roles/{uuid}
+-- DELETE /api/roles/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/roles/{uuid}" $ do
+  describe "DELETE /api/roles/{uuid}" $ do
     test_204 requestContext
     test_400_admin requestContext
     test_400_default requestContext
@@ -42,7 +42,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/roles/1df6b458-304f-440b-b9e6-2f87e75f2eee"
+reqUrl = "/api/roles/1df6b458-304f-440b-b9e6-2f87e75f2eee"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -88,7 +88,7 @@ createDeleteValidationTest requestContext title roleUuid expError =
     -- AND: Run migrations
     runInContextIO U_Migration.runMigration requestContext
     -- WHEN: Call API
-    response <- request reqMethod ("/wizard-api/roles/" `mappend` roleUuid) reqHeaders reqBody
+    response <- request reqMethod ("/api/roles/" `mappend` roleUuid) reqHeaders reqBody
     -- THEN: Compare response with expectation
     let responseMatcher =
           ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
@@ -110,7 +110,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest
     reqMethod
-    "/wizard-api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "role"

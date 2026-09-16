@@ -25,11 +25,11 @@ import Specs.Api.Handler.Tenant.PluginSettings.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/tenants/current/plugin-settings/{uuid}
+-- PUT /api/tenants/current/plugin-settings/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/tenants/current/plugin-settings/{uuid}" $ do
+  describe "PUT /api/tenants/current/plugin-settings/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -38,7 +38,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = BS.pack $ "/wizard-api/tenants/current/plugin-settings/" ++ U.toString plugin1.uuid
+reqUrl = BS.pack $ "/api/tenants/current/plugin-settings/" ++ U.toString plugin1.uuid
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

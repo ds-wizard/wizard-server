@@ -30,11 +30,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/document-templates/{uuid}/locales
+-- POST /api/document-templates/{uuid}/locales
 -- ------------------------------------------------------------------------
 detail_locales_POST :: RequestContext -> SpecWith ((), Application)
 detail_locales_POST requestContext =
-  describe "POST /wizard-api/document-templates/{uuid}/locales" $ do
+  describe "POST /api/document-templates/{uuid}/locales" $ do
     test_200 requestContext
     test_400_missing_language requestContext
     test_400_duplicate_code requestContext
@@ -47,7 +47,7 @@ detail_locales_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales"
+reqUrl = BS.pack $ "/api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales"
 
 boundary = "X-TEST-BOUNDARY"
 
@@ -143,7 +143,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-templates/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales"
+    "/api/document-templates/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales"
     reqHeaders
     reqBody
     "document_template"

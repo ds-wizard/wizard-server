@@ -30,11 +30,11 @@ import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects?cloneUuid={projectUuid}
+-- POST /api/projects?cloneUuid={projectUuid}
 -- ------------------------------------------------------------------------
 list_POST_cloneUuid :: RequestContext -> SpecWith ((), Application)
 list_POST_cloneUuid requestContext =
-  describe "POST /wizard-api/projects/{projectUuid}/clone" $ do
+  describe "POST /api/projects/{projectUuid}/clone" $ do
     test_201 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -45,7 +45,7 @@ list_POST_cloneUuid requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/clone"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/clone"
 
 reqHeadersT authHeader = [authHeader]
 
@@ -122,7 +122,7 @@ create_test_403 title requestContext project reason =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/clone"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/clone"
     (reqHeadersT reqAuthHeader)
     reqBody
     "project"

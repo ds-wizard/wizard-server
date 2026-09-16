@@ -18,11 +18,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/open-id-clients
+-- GET /api/open-id-clients
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/open-id-clients" $ do
+  describe "GET /api/open-id-clients" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -32,7 +32,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/open-id-clients"
+reqUrl = "/api/open-id-clients"
 
 reqHeaders = [reqAuthHeader]
 

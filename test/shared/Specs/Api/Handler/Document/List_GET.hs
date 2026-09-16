@@ -31,11 +31,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/documents
+-- GET /api/documents
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/documents" $ do
+  describe "GET /api/documents" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -45,7 +45,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/documents"
+reqUrl = "/api/documents"
 
 reqHeadersT authHeader = [authHeader]
 
@@ -58,7 +58,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/wizard-api/documents"
+    "/api/documents"
     ( Page
         "documents"
         (PageMetadata 20 3 1 0)
@@ -70,17 +70,17 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
-    "/wizard-api/documents?q=My exported document 2"
+    "/api/documents?q=My exported document 2"
     (Page "documents" (PageMetadata 20 1 1 0) [toDTOWithDocTemplate doc2 project2 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple])
   create_test_200
     "HTTP 200 OK (query for non-existing)"
     requestContext
-    "/wizard-api/documents?q=Non-existing document"
+    "/api/documents?q=Non-existing document"
     (Page "documents" (PageMetadata 20 0 0 0) ([] :: [DocumentDTO]))
   create_test_200
     "HTTP 200 OK (documentTemplateUuid)"
     requestContext
-    "/wizard-api/documents?documentTemplateUuid=557e76d8-338a-4664-886a-f6af2228776c&sort=name,asc"
+    "/api/documents?documentTemplateUuid=557e76d8-338a-4664-886a-f6af2228776c&sort=name,asc"
     ( Page
         "documents"
         (PageMetadata 20 3 1 0)

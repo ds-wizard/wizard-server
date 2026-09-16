@@ -21,11 +21,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/api-keys
+-- GET /api/api-keys
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/api-keys" $ do
+  describe "GET /api/api-keys" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -34,7 +34,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/api-keys"
+reqUrl = "/api/api-keys"
 
 reqHeaders = [reqAuthHeader]
 

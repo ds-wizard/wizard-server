@@ -26,11 +26,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-editors
+-- GET /api/knowledge-model-editors
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-editors" $ do
+  describe "GET /api/knowledge-model-editors" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -40,7 +40,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/knowledge-model-editors"
+reqUrl = "/api/knowledge-model-editors"
 
 reqHeaders = [reqAuthHeader]
 
@@ -50,16 +50,16 @@ reqBody = ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_200 requestContext = do
-  create_test_200 "HTTP 200 OK" requestContext "/wizard-api/knowledge-model-editors" (Page "knowledgeModelEditors" (PageMetadata 20 1 1 0) [amsterdamKnowledgeModelEditorList])
+  create_test_200 "HTTP 200 OK" requestContext "/api/knowledge-model-editors" (Page "knowledgeModelEditors" (PageMetadata 20 1 1 0) [amsterdamKnowledgeModelEditorList])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
-    "/wizard-api/knowledge-model-editors?q=Amsterdam Knowledge Model"
+    "/api/knowledge-model-editors?q=Amsterdam Knowledge Model"
     (Page "knowledgeModelEditors" (PageMetadata 20 1 1 0) [amsterdamKnowledgeModelEditorList])
   create_test_200
     "HTTP 200 OK (query for non-existing)"
     requestContext
-    "/wizard-api/knowledge-model-editors?q=Non-existing KM Editor"
+    "/api/knowledge-model-editors?q=Non-existing KM Editor"
     (Page "knowledgeModelEditors" (PageMetadata 20 0 0 0) [])
   create_test_200_outdated "HTTP 200 OK (outdated editor)" requestContext
 

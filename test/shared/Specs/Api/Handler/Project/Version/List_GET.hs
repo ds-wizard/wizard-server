@@ -32,11 +32,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/{projectUuid}/versions
+-- GET /api/projects/{projectUuid}/versions
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/projects/{projectUuid}/versions" $ do
+  describe "GET /api/projects/{projectUuid}/versions" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -46,7 +46,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/versions"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/versions"
 
 reqHeadersT authHeader = authHeader
 
@@ -165,7 +165,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/versions"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/versions"
     [reqHeadersT reqAuthHeader]
     reqBody
     "project"

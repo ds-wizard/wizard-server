@@ -28,11 +28,11 @@ import Specs.Api.Handler.Role.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/roles/{uuid}
+-- PUT /api/roles/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/roles/{uuid}" $ do
+  describe "PUT /api/roles/{uuid}" $ do
     test_200 requestContext
     test_400_invalid requestContext
     test_400_admin requestContext
@@ -45,9 +45,9 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/roles/65f88e18-8a24-4f70-92e7-8f20f7559600"
+reqUrl = "/api/roles/65f88e18-8a24-4f70-92e7-8f20f7559600"
 
-reqUrlAdmin = "/wizard-api/roles/378bdd91-96e4-44ad-9b39-25cd3cdde18d"
+reqUrlAdmin = "/api/roles/378bdd91-96e4-44ad-9b39-25cd3cdde18d"
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 
@@ -126,7 +126,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest
     reqMethod
-    "/wizard-api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "role"

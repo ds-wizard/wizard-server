@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-template-drafts
+-- GET /api/document-template-drafts
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/document-template-drafts" $ do
+  describe "GET /api/document-template-drafts" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -38,7 +38,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/document-template-drafts"
+reqUrl = "/api/document-template-drafts"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -51,19 +51,19 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/wizard-api/document-template-drafts"
+    "/api/document-template-drafts"
     reqAuthHeader
     (Page "documentTemplateDrafts" (PageMetadata 20 1 1 0) [toDraftList wizardDocumentTemplateDraft])
   create_test_200
     "HTTP 200 OK (query 'q')"
     requestContext
-    "/wizard-api/document-template-drafts?q=Project Report"
+    "/api/document-template-drafts?q=Project Report"
     reqAuthHeader
     (Page "documentTemplateDrafts" (PageMetadata 20 1 1 0) [toDraftList wizardDocumentTemplateDraft])
   create_test_200
     "HTTP 200 OK (query 'q' for non-existing)"
     requestContext
-    "/wizard-api/document-template-drafts?q=Non-existing Project Report"
+    "/api/document-template-drafts?q=Non-existing Project Report"
     reqAuthHeader
     (Page "documentTemplateDrafts" (PageMetadata 20 0 0 0) ([] :: [DocumentTemplateDraftList]))
 

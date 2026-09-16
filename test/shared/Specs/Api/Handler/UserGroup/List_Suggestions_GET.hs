@@ -21,11 +21,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/user-groups/suggestions
+-- GET /api/user-groups/suggestions
 -- ------------------------------------------------------------------------
 list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
-  describe "GET /wizard-api/user-groups/suggestions" $ do
+  describe "GET /api/user-groups/suggestions" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -34,7 +34,7 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/user-groups/suggestions"
+reqUrl = "/api/user-groups/suggestions"
 
 reqHeaders = [reqNonAdminAuthHeader]
 
@@ -47,27 +47,27 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/wizard-api/user-groups/suggestions?sort=uuid,asc"
+    "/api/user-groups/suggestions?sort=uuid,asc"
     (Page "userGroups" (PageMetadata 20 2 1 0) [toSuggestion bioGroup, toSuggestion plantGroup])
   create_test_200
     "HTTP 200 OK (pagination)"
     requestContext
-    "/wizard-api/user-groups/suggestions?sort=uuid,asc&page=1&size=1"
+    "/api/user-groups/suggestions?sort=uuid,asc&page=1&size=1"
     (Page "userGroups" (PageMetadata 1 2 2 1) [toSuggestion plantGroup])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
-    "/wizard-api/user-groups/suggestions?sort=uuid,asc&q=plan"
+    "/api/user-groups/suggestions?sort=uuid,asc&q=plan"
     (Page "userGroups" (PageMetadata 20 1 1 0) [toSuggestion plantGroup])
   create_test_200
     "HTTP 200 OK (sort asc)"
     requestContext
-    "/wizard-api/user-groups/suggestions?sort=name,asc"
+    "/api/user-groups/suggestions?sort=name,asc"
     (Page "userGroups" (PageMetadata 20 2 1 0) [toSuggestion bioGroup, toSuggestion plantGroup])
   create_test_200
     "HTTP 200 OK (sort desc)"
     requestContext
-    "/wizard-api/user-groups/suggestions?sort=name,desc"
+    "/api/user-groups/suggestions?sort=name,desc"
     (Page "userGroups" (PageMetadata 20 2 1 0) [toSuggestion plantGroup, toSuggestion bioGroup])
 
 create_test_200 title requestContext reqUrl expDto =

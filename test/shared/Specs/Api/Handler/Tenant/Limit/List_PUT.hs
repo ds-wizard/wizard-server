@@ -18,11 +18,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/tenants/{tenantUuid}/limits
+-- PUT /api/tenants/{tenantUuid}/limits
 -- ------------------------------------------------------------------------
 list_PUT :: RequestContext -> SpecWith ((), Application)
 list_PUT requestContext =
-  describe "PUT /wizard-api/tenants/{tenantUuid}/limits" $ do
+  describe "PUT /api/tenants/{tenantUuid}/limits" $ do
     test_200 requestContext
     test_400_invalid_json requestContext
     test_401 requestContext
@@ -33,7 +33,7 @@ list_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/tenants/00000000-0000-0000-0000-000000000000/limits"
+reqUrl = "/api/tenants/00000000-0000-0000-0000-000000000000/limits"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

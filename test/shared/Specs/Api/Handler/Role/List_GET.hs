@@ -21,11 +21,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/roles
+-- GET /api/roles
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/roles" $ do
+  describe "GET /api/roles" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -35,7 +35,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/roles"
+reqUrl = "/api/roles"
 
 reqHeaders = [reqAuthHeader]
 
@@ -48,7 +48,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (sort by uuid asc)"
     requestContext
-    "/wizard-api/roles?sort=uuid,asc"
+    "/api/roles?sort=uuid,asc"
     ( Page
         "roles"
         (PageMetadata 20 3 1 0)
@@ -57,12 +57,12 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (pagination)"
     requestContext
-    "/wizard-api/roles?sort=uuid,asc&page=1&size=1"
+    "/api/roles?sort=uuid,asc&page=1&size=1"
     (Page "roles" (PageMetadata 1 3 3 1) [Mapper.toDTO researcherRole 1])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
-    "/wizard-api/roles?sort=uuid,asc&q=Researcher"
+    "/api/roles?sort=uuid,asc&q=Researcher"
     (Page "roles" (PageMetadata 20 1 1 0) [Mapper.toDTO researcherRole 1])
 
 create_test_200 title requestContext reqUrl expDto =

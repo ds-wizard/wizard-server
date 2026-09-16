@@ -30,11 +30,11 @@ import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects
+-- POST /api/projects
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/projects" $ do
+  describe "POST /api/projects" $ do
     test_201 requestContext
     test_400 requestContext
 
@@ -43,7 +43,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/projects"
+reqUrl = "/api/projects"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 

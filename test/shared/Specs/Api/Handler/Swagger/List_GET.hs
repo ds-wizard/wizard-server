@@ -12,17 +12,17 @@ import WizardServer.Model.Context.RequestContext
 import SharedTest.Specs.Api.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/swaggers
+-- GET /api/swaggers
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
-list_GET requestContext = describe "GET /wizard-api/swagger.json" $ test_200 requestContext
+list_GET requestContext = describe "GET /api/swagger.json" $ test_200 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/swagger.json"
+reqUrl = "/api/swagger.json"
 
 reqHeaders = [reqCtHeader]
 

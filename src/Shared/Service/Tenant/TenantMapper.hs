@@ -10,6 +10,7 @@ import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantDetailDTO
 import Shared.Api.Resource.Tenant.Usage.WizardUsageDTO
+import Shared.Constant.Api
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Tenant.Tenant
@@ -112,7 +113,7 @@ toSuggestionUrls :: TenantSuggestion -> TenantSuggestion
 toSuggestionUrls suggestion = suggestion {clientUrl = tenantClientUrl suggestion}
 
 tenantServerUrl :: HasField "serverUrl" entity String => entity -> String
-tenantServerUrl entity = f' "%s/wizard-api" [entity.serverUrl]
+tenantServerUrl entity = f' "%s%s" [entity.serverUrl, apiPrefix]
 
 tenantClientUrl :: HasField "clientUrl" entity String => entity -> String
 tenantClientUrl entity = f' "%s/wizard" [entity.clientUrl]

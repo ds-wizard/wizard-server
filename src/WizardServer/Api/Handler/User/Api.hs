@@ -37,8 +37,6 @@ type UserAPI =
            :<|> List_From_External_POST
            :<|> List_Current_GET
            :<|> List_Current_PUT
-           :<|> List_Current_Submission_Props_GET
-           :<|> List_Current_Submission_Props_PUT
            :<|> List_Current_Password_PUT
            :<|> List_Current_Locale_GET
            :<|> List_Current_Locale_PUT
@@ -55,6 +53,18 @@ type UserAPI =
            :<|> TourAPI
        )
 
+type UserSubmissionPropsAPI =
+  Tags "User"
+    :> ( List_Current_Submission_Props_GET
+           :<|> List_Current_Submission_Props_PUT
+       )
+
+userSubmissionPropsApi :: Proxy UserSubmissionPropsAPI
+userSubmissionPropsApi = Proxy
+
+userSubmissionPropsServer :: WizardHandlerC s sm r rm => ServerT UserSubmissionPropsAPI sm
+userSubmissionPropsServer = list_current_submission_props_GET :<|> list_current_submission_props_PUT
+
 userApi :: Proxy UserAPI
 userApi = Proxy
 
@@ -67,8 +77,6 @@ userServer =
     :<|> list_from_external_POST
     :<|> list_current_GET
     :<|> list_current_PUT
-    :<|> list_current_submission_props_GET
-    :<|> list_current_submission_props_PUT
     :<|> list_current_password_PUT
     :<|> list_current_locale_GET
     :<|> list_current_locale_PUT

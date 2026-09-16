@@ -31,11 +31,11 @@ import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects?fromTemplate=true
+-- POST /api/projects?fromTemplate=true
 -- ------------------------------------------------------------------------
 list_POST_fromTemplate :: RequestContext -> SpecWith ((), Application)
 list_POST_fromTemplate requestContext =
-  describe "POST /wizard-api/projects/from-template" $ do
+  describe "POST /api/projects/from-template" $ do
     test_201 requestContext
     test_400 requestContext
     test_403 requestContext
@@ -45,7 +45,7 @@ list_POST_fromTemplate requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/projects/from-template"
+reqUrl = "/api/projects/from-template"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 

@@ -25,11 +25,11 @@ import Specs.Api.Handler.Project.Version.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects/{projectUuid}/revert
+-- POST /api/projects/{projectUuid}/revert
 -- ------------------------------------------------------------------------
 detail_revert_POST :: RequestContext -> SpecWith ((), Application)
 detail_revert_POST requestContext =
-  describe "POST /wizard-api/projects/{projectUuid}/revert" $ do
+  describe "POST /api/projects/{projectUuid}/revert" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -39,7 +39,7 @@ detail_revert_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/projects/af984a75-56e3-49f8-b16f-d6b99599910a/revert"
+reqUrl = "/api/projects/af984a75-56e3-49f8-b16f-d6b99599910a/revert"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

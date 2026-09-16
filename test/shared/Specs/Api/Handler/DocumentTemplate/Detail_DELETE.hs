@@ -25,11 +25,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/{uuid}
+-- GET /api/document-templates/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/document-templates/{uuid}" $ do
+  describe "DELETE /api/document-templates/{uuid}" $ do
     test_204 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -41,7 +41,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ U.toString wizardDocumentTemplate.uuid
+reqUrl = BS.pack $ "/api/document-templates/" ++ U.toString wizardDocumentTemplate.uuid
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -120,7 +120,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-templates/3db4265e-8ba2-433d-97fb-6cc504866bbd"
+    "/api/document-templates/3db4265e-8ba2-433d-97fb-6cc504866bbd"
     (reqHeadersT reqAuthHeader)
     reqBody
     "document_template"

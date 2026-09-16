@@ -23,11 +23,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/locales/suggestions
+-- GET /api/locales/suggestions
 -- ------------------------------------------------------------------------
 list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
-  describe "GET /wizard-api/locales/suggestions" $ do
+  describe "GET /api/locales/suggestions" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -36,7 +36,7 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/locales/suggestions?sort=code,asc"
+reqUrl = "/api/locales/suggestions?sort=code,asc"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 

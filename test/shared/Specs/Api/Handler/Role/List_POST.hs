@@ -28,11 +28,11 @@ import Specs.Api.Handler.Role.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/roles
+-- POST /api/roles
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/roles" $ do
+  describe "POST /api/roles" $ do
     test_201 requestContext
     test_400 requestContext
     test_400_invalid_permission requestContext
@@ -44,7 +44,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/roles"
+reqUrl = "/api/roles"
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 

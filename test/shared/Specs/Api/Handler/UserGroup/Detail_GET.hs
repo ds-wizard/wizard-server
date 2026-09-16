@@ -23,11 +23,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/user-groups/{uuid}
+-- GET /api/user-groups/{uuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/user-groups/{uuid}" $ do
+  describe "GET /api/user-groups/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_404 requestContext
@@ -37,7 +37,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/user-groups/6ab8ecc3-c0f5-4864-a055-b0096ca55569"
+reqUrl = "/api/user-groups/6ab8ecc3-c0f5-4864-a055-b0096ca55569"
 
 reqHeaders = [reqAuthHeader]
 
@@ -73,7 +73,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/user-groups/deab6c38-aeac-4b17-a501-4365a0a70176"
+    "/api/user-groups/deab6c38-aeac-4b17-a501-4365a0a70176"
     reqHeaders
     reqBody
     "user_group"

@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/knowledge-model-packages/{uuid}
+-- DELETE /api/knowledge-model-packages/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/knowledge-model-packages/{uuid}" $ do
+  describe "DELETE /api/knowledge-model-packages/{uuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -39,7 +39,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show netherlandsKmPackageV2.uuid
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ show netherlandsKmPackageV2.uuid
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -87,7 +87,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-packages/2fc01ee0-4128-4af4-9eb6-c33b52c4d7b4"
+    "/api/knowledge-model-packages/2fc01ee0-4128-4af4-9eb6-c33b52c4d7b4"
     reqHeaders
     reqBody
     "knowledge_model_package"

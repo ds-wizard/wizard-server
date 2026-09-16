@@ -5,6 +5,7 @@ import Data.Swagger
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantSM ()
 import Shared.Api.Resource.Tenant.WizardTenantJM ()
+import Shared.Constant.Api
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Service.Tenant.TenantMapper
 import Shared.Util.Swagger

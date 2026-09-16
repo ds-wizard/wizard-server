@@ -22,11 +22,11 @@ import Specs.Api.Handler.Project.Version.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/projects/{projectUuid}/versions/{vUuid}
+-- DELETE /api/projects/{projectUuid}/versions/{vUuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/projects/{projectUuid}/versions/{vUuid}" $ do
+  describe "DELETE /api/projects/{projectUuid}/versions/{vUuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_404 requestContext
@@ -36,7 +36,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/projects/af984a75-56e3-49f8-b16f-d6b99599910a/versions/af984a75-56e3-49f8-b16f-dd016270ce7e"
+reqUrl = "/api/projects/af984a75-56e3-49f8-b16f-d6b99599910a/versions/af984a75-56e3-49f8-b16f-dd016270ce7e"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -75,7 +75,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/00084a75-56e3-49f8-b16f-d6b99599910a/versions/00084a75-56e3-49f8-b16f-dd016270ce7e"
+    "/api/projects/00084a75-56e3-49f8-b16f-d6b99599910a/versions/00084a75-56e3-49f8-b16f-dd016270ce7e"
     reqHeaders
     reqBody
     "project"

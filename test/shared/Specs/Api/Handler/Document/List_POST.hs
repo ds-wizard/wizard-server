@@ -43,11 +43,11 @@ import Specs.Api.Handler.Document.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/documents
+-- POST /api/documents
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/documents" $ do
+  describe "POST /api/documents" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -58,7 +58,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/documents"
+reqUrl = "/api/documents"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 

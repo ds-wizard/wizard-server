@@ -22,11 +22,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/project-tags/suggestions
+-- GET /api/projects/project-tags/suggestions
 -- ------------------------------------------------------------------------
 list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
-  describe "GET /wizard-api/projects/project-tags/suggestions" $ do
+  describe "GET /api/projects/project-tags/suggestions" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -35,7 +35,7 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/projects/project-tags/suggestions"
+reqUrl = "/api/projects/project-tags/suggestions"
 
 reqHeaders = [reqAuthHeader]
 
@@ -48,7 +48,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (All)"
     requestContext
-    "/wizard-api/projects/project-tags/suggestions?sort=projectTag,asc"
+    "/api/projects/project-tags/suggestions?sort=projectTag,asc"
     ( Page
         "projectTags"
         (PageMetadata 20 4 1 0)
@@ -57,17 +57,17 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (pagination)"
     requestContext
-    "/wizard-api/projects/project-tags/suggestions?sort=projectTag,asc&page=1&size=1"
+    "/api/projects/project-tags/suggestions?sort=projectTag,asc&page=1&size=1"
     (Page "projectTags" (PageMetadata 1 4 4 1) [_PROJECT_TAG_2])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
-    "/wizard-api/projects/project-tags/suggestions?sort=projectTag,asc&q=settingsProject"
+    "/api/projects/project-tags/suggestions?sort=projectTag,asc&q=settingsProject"
     (Page "projectTags" (PageMetadata 20 2 1 0) [_SETTINGS__PROJECT_TAG_1, _SETTINGS__PROJECT_TAG_2])
   create_test_200
     "HTTP 200 OK (exclude)"
     requestContext
-    "/wizard-api/projects/project-tags/suggestions?sort=projectTag,asc&exclude=settingsProjectTag2"
+    "/api/projects/project-tags/suggestions?sort=projectTag,asc&exclude=settingsProjectTag2"
     ( Page
         "projectTags"
         (PageMetadata 20 3 1 0)
@@ -76,7 +76,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (query, exclude)"
     requestContext
-    "/wizard-api/projects/project-tags/suggestions?sort=projectTag,asc&q=settings&exclude=settingsProjectTag2"
+    "/api/projects/project-tags/suggestions?sort=projectTag,asc&q=settings&exclude=settingsProjectTag2"
     (Page "projectTags" (PageMetadata 20 1 1 0) [_SETTINGS__PROJECT_TAG_1])
 
 create_test_200 title requestContext reqUrl expDto =

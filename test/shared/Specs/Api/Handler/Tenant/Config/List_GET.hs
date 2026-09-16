@@ -19,11 +19,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/tenants/current/config
+-- GET /api/tenants/current/config
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/tenants/current/config" $ do
+  describe "GET /api/tenants/current/config" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -33,7 +33,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/tenants/current/config"
+reqUrl = "/api/tenants/current/config"
 
 reqHeaders = [reqAuthHeader]
 

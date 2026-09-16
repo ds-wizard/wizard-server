@@ -32,11 +32,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/documents/{docUuid}/submissions
+-- GET /api/documents/{docUuid}/submissions
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/documents/{docUuid}/submissions" $ do
+  describe "GET /api/documents/{docUuid}/submissions" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -46,7 +46,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/submissions"
+reqUrl = "/api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/submissions"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 

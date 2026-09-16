@@ -26,11 +26,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages/{uuid}
+-- GET /api/knowledge-model-packages/{uuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-packages/{uuid}" $ do
+  describe "GET /api/knowledge-model-packages/{uuid}" $ do
     test_200 requestContext
     test_200_with_locales requestContext
     test_403 requestContext
@@ -41,7 +41,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT pkgUuid = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show pkgUuid
+reqUrlT pkgUuid = BS.pack $ "/api/knowledge-model-packages/" ++ show pkgUuid
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 
@@ -127,7 +127,7 @@ test_403 requestContext = do
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-packages/23cb2e5b-23e6-4402-b591-61dc74eba9bb"
+    "/api/knowledge-model-packages/23cb2e5b-23e6-4402-b591-61dc74eba9bb"
     (reqHeadersT [reqAuthHeader])
     reqBody
     "knowledge_model_package"

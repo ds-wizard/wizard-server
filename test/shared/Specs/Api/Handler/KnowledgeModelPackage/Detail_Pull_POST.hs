@@ -28,11 +28,11 @@ import Specs.Api.Handler.KnowledgeModelPackage.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages/{pkgId}
+-- GET /api/knowledge-model-packages/{pkgId}
 -- ------------------------------------------------------------------------
 detail_pull_POST :: RequestContext -> SpecWith ((), Application)
 detail_pull_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-packages/{pkgId}/pull" $ do
+  describe "POST /api/knowledge-model-packages/{pkgId}/pull" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -43,7 +43,7 @@ detail_pull_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show (createCoordinate globalKmPackage) ++ "/pull"
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ show (createCoordinate globalKmPackage) ++ "/pull"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -81,7 +81,7 @@ test_400 requestContext =
   it "HTTP 400 BAD REQUEST - Package was not found in Registry" $
     -- GIVEN: Prepare request
     do
-      let reqUrl = "/wizard-api/knowledge-model-packages/global:non-existing-package:1.0.0/pull"
+      let reqUrl = "/api/knowledge-model-packages/global:non-existing-package:1.0.0/pull"
       -- AND: Prepare expectation
       let expStatus = 400
       let expHeaders = resCtHeader : resCorsHeaders

@@ -33,11 +33,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects
+-- GET /api/projects
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/projects" $ do
+  describe "GET /api/projects" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -46,7 +46,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/projects"
+reqUrl = "/api/projects"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -59,26 +59,26 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - pagination)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&page=1&size=1"
+    "/api/projects?sort=uuid,asc&page=1&size=1"
     reqAuthHeader
     (Page "projects" (PageMetadata 1 6 6 1) [project14Dto])
   create_test_200
     "HTTP 200 OK (Admin - query)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&q=pri"
+    "/api/projects?sort=uuid,asc&q=pri"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 2 1 0) [project1Dto, project12Dto])
   create_test_200
     "HTTP 200 OK (Admin - userUuids)"
     requestContext
-    (BS.pack $ "/wizard-api/projects?sort=uuid,asc&userUuids=" ++ U.toString userAlbert.uuid)
+    (BS.pack $ "/api/projects?sort=uuid,asc&userUuids=" ++ U.toString userAlbert.uuid)
     reqAuthHeader
     (Page "projects" (PageMetadata 20 3 1 0) [project1Dto, project2Dto, project12Dto])
   create_test_200
     "HTTP 200 OK (Admin - userUuids, or)"
     requestContext
     ( BS.pack $
-        "/wizard-api/projects?sort=uuid,asc&userUuidsOp=or&userUuids="
+        "/api/projects?sort=uuid,asc&userUuidsOp=or&userUuids="
           ++ U.toString userAlbert.uuid
           ++ ","
           ++ U.toString userIsaac.uuid
@@ -89,7 +89,7 @@ test_200 requestContext = do
     "HTTP 200 OK (Admin - userUuids, and)"
     requestContext
     ( BS.pack $
-        "/wizard-api/projects?sort=uuid,asc&userUuidsOp=and&userUuids="
+        "/api/projects?sort=uuid,asc&userUuidsOp=and&userUuids="
           ++ U.toString userAlbert.uuid
           ++ ","
           ++ U.toString userIsaac.uuid
@@ -99,14 +99,14 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - userGroupUuids)"
     requestContext
-    (BS.pack $ "/wizard-api/projects?sort=uuid,asc&userGroupUuids=" ++ U.toString bioGroup.uuid)
+    (BS.pack $ "/api/projects?sort=uuid,asc&userGroupUuids=" ++ U.toString bioGroup.uuid)
     reqAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project15Dto])
   create_test_200
     "HTTP 200 OK (Admin - userGroupUuids, or)"
     requestContext
     ( BS.pack $
-        "/wizard-api/projects?sort=uuid,asc&userGroupUuidsOp=or&userGroupUuids="
+        "/api/projects?sort=uuid,asc&userGroupUuidsOp=or&userGroupUuids="
           ++ U.toString bioGroup.uuid
           ++ ","
           ++ U.toString plantGroup.uuid
@@ -117,7 +117,7 @@ test_200 requestContext = do
     "HTTP 200 OK (Admin - userGroupUuids, and)"
     requestContext
     ( BS.pack $
-        "/wizard-api/projects?sort=uuid,asc&userGroupUuidsOp=and&userGroupUuids="
+        "/api/projects?sort=uuid,asc&userGroupUuidsOp=and&userGroupUuids="
           ++ U.toString bioGroup.uuid
           ++ ","
           ++ U.toString plantGroup.uuid
@@ -127,19 +127,19 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - isTemplate - true)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&isTemplate=true"
+    "/api/projects?sort=uuid,asc&isTemplate=true"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 3 1 0) [project14Dto, project1Dto, project12Dto])
   create_test_200
     "HTTP 200 OK (Admin - isTemplate - false)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&isTemplate=false"
+    "/api/projects?sort=uuid,asc&isTemplate=false"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 3 1 0) [project3Dto, project15Dto, project2Dto])
   create_test_200
     "HTTP 200 OK (Admin - projectTags)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&projectTags=projectTag1"
+    "/api/projects?sort=uuid,asc&projectTags=projectTag1"
     reqAuthHeader
     ( Page
         "projects"
@@ -149,7 +149,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - projectTags, or)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&projectTagsOp=or&projectTags=projectTag1,projectTag2"
+    "/api/projects?sort=uuid,asc&projectTagsOp=or&projectTags=projectTag1,projectTag2"
     reqAuthHeader
     ( Page
         "projects"
@@ -159,19 +159,19 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - projectTags, and)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&projectTagsOp=and&projectTags=projectTag1,projectTag2"
+    "/api/projects?sort=uuid,asc&projectTagsOp=and&projectTags=projectTag1,projectTag2"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project2Dto])
   create_test_200
     "HTTP 200 OK (Admin - knowledgePackage)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam:core-amsterdam:all"
+    "/api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam:core-amsterdam:all"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project14Dto])
   create_test_200
     "HTTP 200 OK (Admin - sort asc)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc"
+    "/api/projects?sort=uuid,asc"
     reqAuthHeader
     ( Page
         "projects"
@@ -181,7 +181,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - sort desc)"
     requestContext
-    "/wizard-api/projects?sort=updatedAt,desc"
+    "/api/projects?sort=updatedAt,desc"
     reqAuthHeader
     ( Page
         "projects"
@@ -191,7 +191,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Non-Admin)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc"
+    "/api/projects?sort=uuid,asc"
     reqNonAdminAuthHeader
     ( Page
         "projects"
@@ -201,43 +201,43 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Non-Admin - query)"
     requestContext
-    "/wizard-api/projects?q=pri"
+    "/api/projects?q=pri"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project12Dto])
   create_test_200
     "HTTP 200 OK (Non-Admin - query users)"
     requestContext
-    (BS.pack $ "/wizard-api/projects?sort=uuid,asc&userUuids=" ++ U.toString userAlbert.uuid)
+    (BS.pack $ "/api/projects?sort=uuid,asc&userUuids=" ++ U.toString userAlbert.uuid)
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 2 1 0) [project2Dto, project12Dto])
   create_test_200
     "HTTP 200 OK (Non-Admin - query user groups)"
     requestContext
-    (BS.pack $ "/wizard-api/projects?sort=uuid,asc&userGroupUuids=" ++ U.toString bioGroup.uuid)
+    (BS.pack $ "/api/projects?sort=uuid,asc&userGroupUuids=" ++ U.toString bioGroup.uuid)
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project15Dto])
   create_test_200
     "HTTP 200 OK (Non-Admin - projectTags)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&projectTags=projectTag1"
+    "/api/projects?sort=uuid,asc&projectTags=projectTag1"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 3 1 0) [project14Dto, project2Dto, project12Dto])
   create_test_200
     "HTTP 200 OK (Non-Admin - knowledgeModelPackage)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam:core-amsterdam:all"
+    "/api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam:core-amsterdam:all"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project14Dto])
   create_test_200
     "HTTP 200 OK (Non-Admin - isTemplate - true)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&isTemplate=true"
+    "/api/projects?sort=uuid,asc&isTemplate=true"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 2 1 0) [project14Dto, project12Dto])
   create_test_200
     "HTTP 200 OK (Non-Admin - isTemplate - false)"
     requestContext
-    "/wizard-api/projects?sort=uuid,asc&isTemplate=false"
+    "/api/projects?sort=uuid,asc&isTemplate=false"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 3 1 0) [project3Dto, project15Dto, project2Dto])
 

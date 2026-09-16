@@ -17,11 +17,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelEditor.Migration.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-editors/{uuid}/migrations/current
+-- GET /api/knowledge-model-editors/{uuid}/migrations/current
 -- ------------------------------------------------------------------------
 list_current_GET :: RequestContext -> SpecWith ((), Application)
 list_current_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-editors/{uuid}/migrations/current" $ do
+  describe "GET /api/knowledge-model-editors/{uuid}/migrations/current" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -32,7 +32,7 @@ list_current_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

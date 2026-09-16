@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages/{uuid}/locales/{localeUuid}/content
+-- GET /api/knowledge-model-packages/{uuid}/locales/{localeUuid}/content
 -- ------------------------------------------------------------------------
 detail_locales_content_GET :: RequestContext -> SpecWith ((), Application)
 detail_locales_content_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-packages/{uuid}/locales/{localeUuid}/content" $ do
+  describe "GET /api/knowledge-model-packages/{uuid}/locales/{localeUuid}/content" $ do
     test_200 requestContext
     test_401 requestContext
     test_404 requestContext
@@ -38,7 +38,7 @@ detail_locales_content_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/" ++ show czechGlobalKmLocale.uuid ++ "/content"
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/" ++ show czechGlobalKmLocale.uuid ++ "/content"
 
 reqHeaders = [reqAuthHeader]
 
@@ -76,7 +76,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    (BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/content")
+    (BS.pack $ "/api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/content")
     reqHeaders
     reqBody
     "knowledge_model_locale"

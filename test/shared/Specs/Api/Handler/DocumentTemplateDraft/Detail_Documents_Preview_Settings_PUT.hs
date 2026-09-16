@@ -32,11 +32,11 @@ import Specs.Api.Handler.DocumentTemplateDraft.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/document-template-drafts/{dtUuid}/documents/preview/settings
+-- PUT /api/document-template-drafts/{dtUuid}/documents/preview/settings
 -- ------------------------------------------------------------------------
 detail_documents_preview_settings_PUT :: RequestContext -> SpecWith ((), Application)
 detail_documents_preview_settings_PUT requestContext =
-  describe "PUT /wizard-api/document-template-drafts/{dtUuid}/documents/preview/settings" $ do
+  describe "PUT /api/document-template-drafts/{dtUuid}/documents/preview/settings" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -47,7 +47,7 @@ detail_documents_preview_settings_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = BS.pack $ "/wizard-api/document-template-drafts/" ++ U.toString wizardDocumentTemplateDraft.uuid ++ "/documents/preview/settings"
+reqUrl = BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplateDraft.uuid ++ "/documents/preview/settings"
 
 reqHeadersT reqAuthHeader = [reqCtHeader, reqAuthHeader]
 
@@ -102,7 +102,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd/documents/preview/settings"
+    "/api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd/documents/preview/settings"
     (reqHeadersT reqAuthHeader)
     reqBody
     "document_template_draft_data"

@@ -30,11 +30,11 @@ import Specs.Api.Handler.KnowledgeModelEditor.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/knowledge-model-editors/uuid
+-- PUT /api/knowledge-model-editors/uuid
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/knowledge-model-editors/uuid" $ do
+  describe "PUT /api/knowledge-model-editors/uuid" $ do
     test_200 requestContext
     test_400_invalid_json requestContext
     test_400_not_valid_kmId requestContext
@@ -47,7 +47,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -152,7 +152,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-editors/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/knowledge-model-editors/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "knowledge_model_editor"

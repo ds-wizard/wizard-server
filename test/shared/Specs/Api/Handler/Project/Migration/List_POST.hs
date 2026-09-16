@@ -37,11 +37,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects/{projectUuid}/migrations
+-- POST /api/projects/{projectUuid}/migrations
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/projects/{projectUuid}/migrations" $ do
+  describe "POST /api/projects/{projectUuid}/migrations" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -53,7 +53,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/migrations"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/migrations"
 
 reqHeadersT authHeader = [authHeader, reqCtHeader]
 

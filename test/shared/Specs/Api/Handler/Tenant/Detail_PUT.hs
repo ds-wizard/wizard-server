@@ -22,11 +22,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.Tenant.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/tenants/{tenantId}
+-- PUT /api/tenants/{tenantId}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/tenants/{tenantId}" $ do
+  describe "PUT /api/tenants/{tenantId}" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -37,7 +37,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/tenants/d9e73946-faa6-449d-83e4-2e38371b7bfa"
+reqUrl = "/api/tenants/d9e73946-faa6-449d-83e4-2e38371b7bfa"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

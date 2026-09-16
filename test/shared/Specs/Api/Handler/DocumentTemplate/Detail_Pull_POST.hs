@@ -26,11 +26,11 @@ import Specs.Api.Handler.DocumentTemplate.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/{uuid}
+-- GET /api/document-templates/{uuid}
 -- ------------------------------------------------------------------------
 detail_pull_POST :: RequestContext -> SpecWith ((), Application)
 detail_pull_POST requestContext =
-  describe "POST /wizard-api/document-templates/{uuid}/pull" $ do
+  describe "POST /api/document-templates/{uuid}/pull" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -41,7 +41,7 @@ detail_pull_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ show (createCoordinate wizardDocumentTemplate) ++ "/pull"
+reqUrl = BS.pack $ "/api/document-templates/" ++ show (createCoordinate wizardDocumentTemplate) ++ "/pull"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -83,7 +83,7 @@ test_400 requestContext =
   it "HTTP 400 BAD REQUEST - DocumentTemplate was not found in Registry" $
     -- GIVEN: Prepare request
     do
-      let reqUrl = "/wizard-api/document-templates/global:non-existing-template:1.0.0/pull"
+      let reqUrl = "/api/document-templates/global:non-existing-template:1.0.0/pull"
       let reqHeaders = reqHeadersT reqAuthHeader
       -- AND: Prepare expectation
       let expStatus = 400

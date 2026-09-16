@@ -23,11 +23,11 @@ import Specs.Api.Handler.Config.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/tenants/current/config
+-- PUT /api/tenants/current/config
 -- ------------------------------------------------------------------------
 list_PUT :: RequestContext -> SpecWith ((), Application)
 list_PUT requestContext =
-  describe "PUT /wizard-api/tenants/current/config" $ do
+  describe "PUT /api/tenants/current/config" $ do
     test_200 requestContext
     test_400_invalid_json requestContext
     test_401 requestContext
@@ -38,7 +38,7 @@ list_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/tenants/current/config"
+reqUrl = "/api/tenants/current/config"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

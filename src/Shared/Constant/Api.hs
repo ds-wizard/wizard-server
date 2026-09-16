@@ -3,6 +3,9 @@ module Shared.Constant.Api where
 import qualified Data.ByteString.Char8 as BS
 import Network.HTTP.Types.Header (HeaderName)
 
+apiPrefix :: String
+apiPrefix = "/api"
+
 authorizationHeaderName :: String
 authorizationHeaderName = "Authorization"
 

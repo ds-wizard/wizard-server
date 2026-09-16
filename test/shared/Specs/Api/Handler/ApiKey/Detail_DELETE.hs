@@ -19,11 +19,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/api-keys/{uuid}
+-- DELETE /api/api-keys/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/api-keys/{uuid}" $ do
+  describe "DELETE /api/api-keys/{uuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_404 requestContext
@@ -33,7 +33,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/api-keys/8591dd6f-c114-457a-9781-7411fc71e468"
+reqUrl = "/api/api-keys/8591dd6f-c114-457a-9781-7411fc71e468"
 
 reqHeaders = [reqAuthHeader]
 
@@ -71,7 +71,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/api-keys/1784f9c2-c5ad-4552-a8ce-560d55bc7482"
+    "/api/api-keys/1784f9c2-c5ad-4552-a8ce-560d55bc7482"
     reqHeaders
     reqBody
     "user_token"

@@ -20,11 +20,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common ()
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/domains
+-- GET /api/domains
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/wizard-api/domains?check-domain={tenantId}" $ do
+  describe "GET /api/domains?check-domain={tenantId}" $ do
     test_204 requestContext
     test_400 requestContext
 
@@ -33,7 +33,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT tenantId = BS.pack $ "/wizard-api/domains?check-domain=" ++ tenantId
+reqUrlT tenantId = BS.pack $ "/api/domains?check-domain=" ++ tenantId
 
 reqHeaders = []
 

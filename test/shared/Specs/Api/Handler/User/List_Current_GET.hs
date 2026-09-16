@@ -17,11 +17,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/users/current
+-- GET /api/users/current
 -- ------------------------------------------------------------------------
 list_current_GET :: RequestContext -> SpecWith ((), Application)
 list_current_GET requestContext =
-  describe "GET /wizard-api/users/current" $ do
+  describe "GET /api/users/current" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -30,7 +30,7 @@ list_current_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/users/current"
+reqUrl = "/api/users/current"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

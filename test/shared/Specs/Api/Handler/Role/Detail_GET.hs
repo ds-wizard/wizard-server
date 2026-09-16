@@ -19,11 +19,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/roles/{uuid}
+-- GET /api/roles/{uuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/roles/{uuid}" $ do
+  describe "GET /api/roles/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -34,7 +34,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/roles/378bdd91-96e4-44ad-9b39-25cd3cdde18d"
+reqUrl = "/api/roles/378bdd91-96e4-44ad-9b39-25cd3cdde18d"
 
 reqHeaders = [reqAuthHeader]
 
@@ -76,7 +76,7 @@ test_403 requestContext = createNoPermissionsAnyTest requestContext reqMethod re
 test_404 requestContext =
   createNotFoundTest
     reqMethod
-    "/wizard-api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "role"

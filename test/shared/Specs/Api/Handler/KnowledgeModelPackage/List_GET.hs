@@ -28,11 +28,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages
+-- GET /api/knowledge-model-packages
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-packages" $ do
+  describe "GET /api/knowledge-model-packages" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -41,7 +41,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/knowledge-model-packages"
+reqUrl = "/api/knowledge-model-packages"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -55,7 +55,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/wizard-api/knowledge-model-packages?sort=name,asc"
+    "/api/knowledge-model-packages?sort=name,asc"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
@@ -67,12 +67,12 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (query - q)"
     requestContext
-    "/wizard-api/knowledge-model-packages?q=Germany Knowledge Model"
+    "/api/knowledge-model-packages?q=Germany Knowledge Model"
     (Page "knowledgeModelPackages" (PageMetadata 20 1 1 0) [toSimpleDTO' [] expOrgRs germanyKmPackage])
   create_test_200
     "HTTP 200 OK (query - kmId)"
     requestContext
-    "/wizard-api/knowledge-model-packages?kmId=core-nl"
+    "/api/knowledge-model-packages?kmId=core-nl"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 1 1 0)
@@ -81,12 +81,12 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (query for non-existing)"
     requestContext
-    "/wizard-api/knowledge-model-packages?q=Non-existing Knowledge Model"
+    "/api/knowledge-model-packages?q=Non-existing Knowledge Model"
     (Page "knowledgeModelPackages" (PageMetadata 20 0 0 0) ([] :: [KnowledgeModelPackageSimpleDTO]))
   create_test_200
     "HTTP 200 OK (outdated=false)"
     requestContext
-    "/wizard-api/knowledge-model-packages?outdated=false&sort=name,asc"
+    "/api/knowledge-model-packages?outdated=false&sort=name,asc"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
@@ -98,7 +98,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (outdated=true)"
     requestContext
-    "/wizard-api/knowledge-model-packages?outdated=true"
+    "/api/knowledge-model-packages?outdated=true"
     (Page "knowledgeModelPackages" (PageMetadata 20 0 0 0) ([] :: [KnowledgeModelPackageSimpleDTO]))
 
 create_test_200 title requestContext reqUrl expDto =

@@ -27,11 +27,11 @@ import Specs.Api.Handler.User.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/{uuid}
+-- PUT /api/users/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/users/{uuid}" $ do
+  describe "PUT /api/users/{uuid}" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -43,7 +43,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66"
+reqUrl = "/api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -112,7 +112,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "user_entity"

@@ -16,11 +16,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/tenants/current/plugin-settings
+-- PUT /api/tenants/current/plugin-settings
 -- ------------------------------------------------------------------------
 list_PUT :: RequestContext -> SpecWith ((), Application)
 list_PUT requestContext =
-  describe "PUT /wizard-api/tenants/current/plugin-settings" $ do
+  describe "PUT /api/tenants/current/plugin-settings" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -29,7 +29,7 @@ list_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/tenants/current/plugin-settings"
+reqUrl = "/api/tenants/current/plugin-settings"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

@@ -33,11 +33,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/suggestions
+-- GET /api/document-templates/suggestions
 -- ------------------------------------------------------------------------
 list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
-  describe "GET /wizard-api/document-templates/suggestions" $ do
+  describe "GET /api/document-templates/suggestions" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -46,7 +46,7 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/document-templates/suggestions"
+reqUrl = "/api/document-templates/suggestions"
 
 reqHeadersT reqAuthHeader = [reqNonAdminAuthHeader]
 
@@ -59,31 +59,31 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/wizard-api/document-templates/suggestions"
+    "/api/document-templates/suggestions"
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 1 1 0) [toSuggestionDTO' wizardDocumentTemplate wizardDocumentTemplateFormats [czechWizardDocumentTemplateLocaleList]])
   create_test_200
     "HTTP 200 OK (query 'q')"
     requestContext
-    "/wizard-api/document-templates/suggestions?q=Project Report"
+    "/api/document-templates/suggestions?q=Project Report"
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 1 1 0) [toSuggestionDTO' wizardDocumentTemplate wizardDocumentTemplateFormats [czechWizardDocumentTemplateLocaleList]])
   create_test_200
     "HTTP 200 OK (query 'knowledgeModelPackageUuid')"
     requestContext
-    (BS.pack $ "/wizard-api/document-templates/suggestions?knowledgeModelPackageUuid=" ++ U.toString globalKmPackage.uuid)
+    (BS.pack $ "/api/document-templates/suggestions?knowledgeModelPackageUuid=" ++ U.toString globalKmPackage.uuid)
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 1 1 0) [toSuggestionDTO' wizardDocumentTemplate wizardDocumentTemplateFormats [czechWizardDocumentTemplateLocaleList]])
   create_test_200
     "HTTP 200 OK (query 'knowledgeModelPackageUuid' - no templates)"
     requestContext
-    (BS.pack $ "/wizard-api/document-templates/suggestions?knowledgeModelPackageUuid=" ++ U.toString netherlandsKmPackage.uuid)
+    (BS.pack $ "/api/document-templates/suggestions?knowledgeModelPackageUuid=" ++ U.toString netherlandsKmPackage.uuid)
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 0 0 0) ([] :: [DocumentTemplateSuggestionDTO]))
   create_test_200
     "HTTP 200 OK (query 'q' for non-existing)"
     requestContext
-    "/wizard-api/document-templates/suggestions?q=Non-existing Project Report"
+    "/api/document-templates/suggestions?q=Non-existing Project Report"
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 0 0 0) ([] :: [DocumentTemplateSuggestionDTO]))
 

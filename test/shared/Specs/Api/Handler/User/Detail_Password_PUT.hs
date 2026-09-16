@@ -19,11 +19,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.User.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/{uuid}/password
+-- PUT /api/users/{uuid}/password
 -- ------------------------------------------------------------------------
 detail_password_PUT :: RequestContext -> SpecWith ((), Application)
 detail_password_PUT requestContext =
-  describe "PUT /wizard-api/users/{uuid}/password" $ do
+  describe "PUT /api/users/{uuid}/password" $ do
     test_204 requestContext
     test_400 requestContext
     test_404 requestContext
@@ -33,7 +33,7 @@ detail_password_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66/password"
+reqUrl = "/api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66/password"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -70,7 +70,7 @@ test_400 requestContext = createInvalidJsonTest reqMethod reqUrl "password"
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0/password"
+    "/api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0/password"
     reqHeaders
     reqBody
     "user_entity"

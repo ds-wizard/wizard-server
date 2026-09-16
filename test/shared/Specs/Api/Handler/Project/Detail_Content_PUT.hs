@@ -36,11 +36,11 @@ import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/projects/{projectUuid}/content
+-- PUT /api/projects/{projectUuid}/content
 -- ------------------------------------------------------------------------
 detail_content_PUT :: RequestContext -> SpecWith ((), Application)
 detail_content_PUT requestContext =
-  describe "PUT /wizard-api/projects/{projectUuid}/content" $ do
+  describe "PUT /api/projects/{projectUuid}/content" $ do
     test_200 requestContext
     test_400 requestContext
     test_403 requestContext
@@ -51,7 +51,7 @@ detail_content_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/content"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/content"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 
@@ -169,7 +169,7 @@ create_test_403 title requestContext project projectEventsEdited authHeader reas
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/content"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/content"
     (reqHeadersT [reqAuthHeader])
     (reqBody $ u' "f08ead5f-746d-411b-aee6-77ea3d24016a")
     "project"

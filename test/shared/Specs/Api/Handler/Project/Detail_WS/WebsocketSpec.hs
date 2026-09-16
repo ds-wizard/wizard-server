@@ -20,7 +20,7 @@ import Specs.Api.Handler.Project.Detail_WS.SetReplySpec
 
 projectWebsocketAPI :: RequestContext -> SpecWith ()
 projectWebsocketAPI requestContext =
-  describe "WS /wizard-api/projects/{projectUuid}/websocket" $ do
+  describe "WS /api/projects/{projectUuid}/websocket" $ do
     generalSpec requestContext
     setReplySpec requestContext
     clearReplySpec requestContext

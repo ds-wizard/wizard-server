@@ -25,11 +25,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates
+-- GET /api/document-templates
 -- ------------------------------------------------------------------------
 list_DELETE :: RequestContext -> SpecWith ((), Application)
 list_DELETE requestContext =
-  describe "DELETE /wizard-api/document-templates" $ do
+  describe "DELETE /api/document-templates" $ do
     test_204 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -40,7 +40,7 @@ list_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/document-templates?organizationId=global&templateId=project-report"
+reqUrl = "/api/document-templates?organizationId=global&templateId=project-report"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

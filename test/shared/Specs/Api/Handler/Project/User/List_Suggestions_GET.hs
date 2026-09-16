@@ -35,11 +35,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/{projectUuid}/users/suggestions
+-- GET /api/projects/{projectUuid}/users/suggestions
 -- ------------------------------------------------------------------------
 list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
-  describe "GET /wizard-api/projects/{projectUuid}/users/suggestions" $ do
+  describe "GET /api/projects/{projectUuid}/users/suggestions" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -49,7 +49,7 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT projectUuid query = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/users/suggestions?sort=uuid,asc" ++ query
+reqUrlT projectUuid query = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/users/suggestions?sort=uuid,asc" ++ query
 
 reqHeadersT authHeader = authHeader
 
@@ -184,7 +184,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/users/suggestions"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/users/suggestions"
     [reqHeadersT reqAuthHeader]
     reqBody
     "project"

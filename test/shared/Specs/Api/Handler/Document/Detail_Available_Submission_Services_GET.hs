@@ -32,11 +32,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------------------
--- GET /wizard-api/documents/{docUuid}/available-submission-services
+-- GET /api/documents/{docUuid}/available-submission-services
 -- ------------------------------------------------------------------------------------
 detail_available_submission_Services_GET :: RequestContext -> SpecWith ((), Application)
 detail_available_submission_Services_GET requestContext =
-  describe "GET /wizard-api/documents/{docUuid}/available-submission-services" $ do
+  describe "GET /api/documents/{docUuid}/available-submission-services" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -47,7 +47,7 @@ detail_available_submission_Services_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/available-submission-services"
+reqUrl = "/api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/available-submission-services"
 
 reqHeadersT authHeader = authHeader
 
@@ -139,7 +139,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/documents/dc9fe65f-748b-47ec-b30c-d255bbac64a0/available-submission-services"
+    "/api/documents/dc9fe65f-748b-47ec-b30c-d255bbac64a0/available-submission-services"
     (reqHeadersT [reqAuthHeader])
     reqBody
     "document"

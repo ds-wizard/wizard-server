@@ -20,6 +20,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem FileCreateDTO :> api) w
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }

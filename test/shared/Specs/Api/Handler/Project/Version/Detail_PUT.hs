@@ -23,11 +23,11 @@ import Specs.Api.Handler.Project.Version.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/projects/{projectUuid}/versions/{vUuid}
+-- PUT /api/projects/{projectUuid}/versions/{vUuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/projects/{projectUuid}/versions/{vUuid}" $ do
+  describe "PUT /api/projects/{projectUuid}/versions/{vUuid}" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -38,7 +38,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/projects/af984a75-56e3-49f8-b16f-d6b99599910a/versions/af984a75-56e3-49f8-b16f-dd016270ce7e"
+reqUrl = "/api/projects/af984a75-56e3-49f8-b16f-d6b99599910a/versions/af984a75-56e3-49f8-b16f-dd016270ce7e"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -86,7 +86,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/00084a75-56e3-49f8-b16f-d6b99599910a/versions/bd6611c8-ea11-48ab-adaa-3ce51b66aae5"
+    "/api/projects/00084a75-56e3-49f8-b16f-d6b99599910a/versions/bd6611c8-ea11-48ab-adaa-3ce51b66aae5"
     reqHeaders
     reqBody
     "project"

@@ -8,7 +8,6 @@ import Servant.Swagger.UI
 
 import RegistryPublic.Api.Resource.Organization.OrganizationSM ()
 import RegistryPublic.Api.Resource.Organization.OrganizationSimpleSM ()
-import Shared.Api.Handler.Api
 import Shared.Api.Resource.Auth.AuthConsentSM ()
 import Shared.Api.Resource.Common.AesonSM ()
 import Shared.Api.Resource.Common.FileSM ()
@@ -124,6 +123,8 @@ import Shared.Api.Resource.UserToken.UserTokenListSM ()
 import Shared.Api.Resource.UserToken.UserTokenSM ()
 import Shared.Api.Resource.Websocket.ProjectMessageSM ()
 import Shared.Api.Resource.Websocket.WebsocketSM ()
+import Shared.Constant.Api
+import Shared.Util.Swagger (normalizeSwagger)
 import WizardServer.Api.Handler.Api
 import WizardServer.Api.Resource.Common.PageSM ()
 import WizardServer.Api.Resource.Config.ClientConfigSM ()
@@ -151,7 +152,7 @@ type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 swagger :: String -> Swagger
 swagger version =
-  let s = toSwagger (Proxy :: Proxy (ApplicationAPI :<|> ManagementAPI))
+  let s = normalizeSwagger (toSwagger applicationApi)
    in s
         { _swaggerInfo =
             s._swaggerInfo
@@ -165,7 +166,7 @@ swagger version =
                       , _licenseUrl = Just . URL $ "https://raw.githubusercontent.com/ds-wizard/engine-backend/main/LICENSE.md"
                       }
               }
-        , _swaggerBasePath = Just "/wizard-api"
+        , _swaggerBasePath = Just apiPrefix
         }
 
 swaggerServer :: String -> Server SwaggerAPI

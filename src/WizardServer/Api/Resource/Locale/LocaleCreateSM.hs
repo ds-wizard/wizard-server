@@ -31,6 +31,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -43,6 +44,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -55,6 +57,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -67,6 +70,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -79,6 +83,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -91,6 +96,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -103,6 +109,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }
@@ -115,6 +122,7 @@ instance HasSwagger api => HasSwagger (MultipartForm Mem LocaleCreateDTO :> api)
               ParamOther
                 ( mempty
                     { _paramOtherSchemaIn = ParamFormData
+                    , _paramOtherSchemaParamSchema = mempty {_paramSchemaType = Just SwaggerString}
                     }
                 )
           }

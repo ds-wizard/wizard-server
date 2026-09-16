@@ -31,11 +31,11 @@ import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/projects/{projectUuid}/settings
+-- PUT /api/projects/{projectUuid}/settings
 -- ------------------------------------------------------------------------
 detail_settings_PUT :: RequestContext -> SpecWith ((), Application)
 detail_settings_PUT requestContext =
-  describe "PUT /wizard-api/projects/{projectUuid}/settings" $ do
+  describe "PUT /api/projects/{projectUuid}/settings" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -47,7 +47,7 @@ detail_settings_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/settings"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/settings"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 
@@ -219,7 +219,7 @@ create_test_403 title requestContext project projectEdited reason =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/settings"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/settings"
     (reqHeadersT [reqAuthHeader])
     (reqBodyT project1)
     "project"

@@ -22,11 +22,11 @@ import Specs.Api.Handler.DocumentTemplateDraft.Asset.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/document-template-drafts/{dtUuid}/assets/{assetUuid}
+-- DELETE /api/document-template-drafts/{dtUuid}/assets/{assetUuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/document-template-drafts/{dtUuid}/assets/{assetUuid}" $ do
+  describe "DELETE /api/document-template-drafts/{dtUuid}/assets/{assetUuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -37,7 +37,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = BS.pack $ "/wizard-api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/assets/" ++ U.toString assetLogo.uuid
+reqUrl = BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/assets/" ++ U.toString assetLogo.uuid
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -84,7 +84,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    (BS.pack $ "/wizard-api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/assets/b918fa4a-b0cf-4bef-ada6-e8cb3848cc75")
+    (BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/assets/b918fa4a-b0cf-4bef-ada6-e8cb3848cc75")
     (reqHeadersT reqAuthHeader)
     reqBody
     "document_template_asset"

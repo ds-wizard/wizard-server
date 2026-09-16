@@ -30,11 +30,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/{uuid}/locales/template
+-- GET /api/document-templates/{uuid}/locales/template
 -- ------------------------------------------------------------------------
 detail_locales_template_GET :: RequestContext -> SpecWith ((), Application)
 detail_locales_template_GET requestContext =
-  describe "GET /wizard-api/document-templates/{uuid}/locales/template" $ do
+  describe "GET /api/document-templates/{uuid}/locales/template" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -46,7 +46,7 @@ detail_locales_template_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/template"
+reqUrl = BS.pack $ "/api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/template"
 
 reqHeaders = [reqAuthHeader]
 
@@ -109,7 +109,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-templates/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales/template"
+    "/api/document-templates/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales/template"
     reqHeaders
     reqBody
     "document_template"

@@ -28,11 +28,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelEditor.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-editors
+-- POST /api/knowledge-model-editors
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-editors" $ do
+  describe "POST /api/knowledge-model-editors" $ do
     test_201 requestContext
     test_400_invalid_json requestContext
     test_400_not_valid_kmId requestContext
@@ -45,7 +45,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-editors"
+reqUrl = "/api/knowledge-model-editors"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

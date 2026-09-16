@@ -18,11 +18,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/current/news/{news-id}
+-- PUT /api/users/current/news/{news-id}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/users/current/news/{news-id}" $ do
+  describe "PUT /api/users/current/news/{news-id}" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -31,7 +31,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/current/news/my-news-id"
+reqUrl = "/api/users/current/news/my-news-id"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

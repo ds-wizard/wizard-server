@@ -31,11 +31,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects/{projectUuid}/events
+-- POST /api/projects/{projectUuid}/events
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/projects/{projectUuid}/events" $ do
+  describe "POST /api/projects/{projectUuid}/events" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -45,7 +45,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/events"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/events"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 
@@ -128,7 +128,7 @@ create_test_403 title requestContext project projectEvents authHeader errorMessa
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/events"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/events"
     (reqHeadersT [reqAuthHeader])
     reqBody
     "project"

@@ -17,11 +17,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/tenants/00000000-0000-0000-0000-000000000000/usages/wizard
+-- GET /api/tenants/00000000-0000-0000-0000-000000000000/usages/wizard
 -- ------------------------------------------------------------------------
 detail_wizard_GET :: RequestContext -> SpecWith ((), Application)
 detail_wizard_GET requestContext =
-  describe "GET /wizard-api/tenants/00000000-0000-0000-0000-000000000000/usages/wizard" $ do
+  describe "GET /api/tenants/00000000-0000-0000-0000-000000000000/usages/wizard" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -30,7 +30,7 @@ detail_wizard_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/tenants/00000000-0000-0000-0000-000000000000/usages/wizard"
+reqUrl = "/api/tenants/00000000-0000-0000-0000-000000000000/usages/wizard"
 
 reqHeaders = [reqAuthHeader]
 

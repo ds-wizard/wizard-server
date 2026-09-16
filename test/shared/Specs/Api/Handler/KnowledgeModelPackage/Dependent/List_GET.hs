@@ -32,11 +32,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages/{uuid}/dependents
+-- GET /api/knowledge-model-packages/{uuid}/dependents
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-packages/{uuid}/dependents" $ do
+  describe "GET /api/knowledge-model-packages/{uuid}/dependents" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -45,7 +45,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ U.toString netherlandsKmPackage.uuid ++ "/dependents"
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ U.toString netherlandsKmPackage.uuid ++ "/dependents"
 
 reqHeaders = [reqAuthHeader]
 

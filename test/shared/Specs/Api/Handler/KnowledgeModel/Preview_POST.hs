@@ -27,11 +27,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-models/preview
+-- POST /api/knowledge-models/preview
 -- ------------------------------------------------------------------------
 preview_POST :: RequestContext -> SpecWith ((), Application)
 preview_POST requestContext =
-  describe "POST /wizard-api/knowledge-models/preview" $ do
+  describe "POST /api/knowledge-models/preview" $ do
     test_200 requestContext
     test_403 requestContext
 
@@ -40,7 +40,7 @@ preview_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-models/preview"
+reqUrl = "/api/knowledge-models/preview"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 

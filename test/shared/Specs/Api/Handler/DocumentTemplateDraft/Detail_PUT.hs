@@ -33,11 +33,11 @@ import Specs.Api.Handler.DocumentTemplate.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/document-template-drafts/{uuid}
+-- PUT /api/document-template-drafts/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/document-template-drafts/{uuid}" $ do
+  describe "PUT /api/document-template-drafts/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -48,7 +48,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = BS.pack $ "/wizard-api/document-template-drafts/" ++ U.toString wizardDocumentTemplateDraft.uuid
+reqUrl = BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplateDraft.uuid
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 
@@ -115,7 +115,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd"
+    "/api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd"
     reqHeaders
     (reqBodyT reqDto)
     "document_template"

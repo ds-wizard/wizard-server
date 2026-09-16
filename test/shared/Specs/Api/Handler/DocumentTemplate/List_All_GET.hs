@@ -22,11 +22,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/all
+-- GET /api/document-templates/all
 -- ------------------------------------------------------------------------
 list_all_GET :: RequestContext -> SpecWith ((), Application)
 list_all_GET requestContext =
-  describe "GET /wizard-api/document-templates/all" $ do
+  describe "GET /api/document-templates/all" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -35,7 +35,7 @@ list_all_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/document-templates/all"
+reqUrl = "/api/document-templates/all"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 

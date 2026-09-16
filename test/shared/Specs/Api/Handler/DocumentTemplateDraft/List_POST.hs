@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/document-template-drafts
+-- POST /api/document-template-drafts
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/document-template-drafts" $ do
+  describe "POST /api/document-template-drafts" $ do
     test_201 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -38,7 +38,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/document-template-drafts"
+reqUrl = "/api/document-template-drafts"
 
 reqHeadersT reqAuthHeader = [reqCtHeader, reqAuthHeader]
 

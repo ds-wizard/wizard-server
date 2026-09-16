@@ -23,11 +23,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/users/current/plugin-settings/{uuid}
+-- GET /api/users/current/plugin-settings/{uuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/users/current/plugin-settings/{uuid}" $ do
+  describe "GET /api/users/current/plugin-settings/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -36,7 +36,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/users/current/plugin-settings/" ++ U.toString plugin1.uuid
+reqUrl = BS.pack $ "/api/users/current/plugin-settings/" ++ U.toString plugin1.uuid
 
 reqHeaders = [reqAuthHeader]
 
