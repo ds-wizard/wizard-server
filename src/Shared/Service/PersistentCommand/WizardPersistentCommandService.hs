@@ -69,7 +69,7 @@ runPersistentCommand' :: forall s m. WizardRequestContextC s m => Bool -> Persis
 runPersistentCommand' = runPersistentCommand (runWithConnection @s @m) updateContext execute
 
 runPersistentCommandChannelListener' :: forall s m. WizardRequestContextC s m => m ()
-runPersistentCommandChannelListener' = runPersistentCommandChannelListener (runWithConnection @s @m) updateContext execute components
+runPersistentCommandChannelListener' = runPersistentCommandChannelListener runPersistentCommands'
 
 updateContext :: WizardRequestContextC s m => PersistentCommandSimple U.UUID -> s -> m s
 updateContext commandSimple context = do

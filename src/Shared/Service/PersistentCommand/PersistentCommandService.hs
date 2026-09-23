@@ -95,18 +95,12 @@ executePersistentCommandByUuid runRequestContextWithRequestContext' execute forc
               logInfoI _CMP_SERVICE (f' "Command finished with following state: '%s'" [show resultState])
           )
 
-runPersistentCommandChannelListener
-  :: (Show identity, FromField identity, ToField identity, RequestContextC s sc m)
-  => (function -> requestContext -> IO (Either String (PersistentCommandState, Maybe String)))
-  -> (PersistentCommandSimple identity -> s -> m requestContext)
-  -> (PersistentCommand identity -> function)
-  -> [String]
-  -> m ()
-runPersistentCommandChannelListener runRequestContextWithRequestContext updateContext execute components = do
+runPersistentCommandChannelListener :: RequestContextC s sc m => m () -> m ()
+runPersistentCommandChannelListener runCommands = do
   listenPersistentCommandChannel
   forever $ do
     _ <- getChannelNotification
-    runPersistentCommands runRequestContextWithRequestContext updateContext execute components
+    runCommands
 
 retryPersistentCommandsForLambda :: RequestContextC s sc m => [String] -> m ()
 retryPersistentCommandsForLambda ownComponents = do
