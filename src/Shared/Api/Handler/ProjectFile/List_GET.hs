@@ -1,5 +1,6 @@
 module Shared.Api.Handler.ProjectFile.List_GET where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -15,6 +16,7 @@ type List_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "project-files"
+    :> QueryParam "w" U.UUID
     :> QueryParam "q" String
     :> QueryParam "page" Int
     :> QueryParam "size" Int
@@ -25,12 +27,13 @@ list_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
+  -> Maybe U.UUID
   -> Maybe String
   -> Maybe Int
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page ProjectFileList))
-list_GET mTokenHeader mServerUrl mQuery mPage mSize mSort =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_GET mTokenHeader mServerUrl mW mQuery mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW Nothing $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< getProjectFilesPage mQuery Nothing (Pageable mPage mSize) (parseSortQuery mSort)

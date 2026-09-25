@@ -63,6 +63,7 @@ createTenantTable = do
         \    updated_at    timestamptz NOT NULL, \
         \    server_url    varchar     NOT NULL, \
         \    state         varchar     NOT NULL DEFAULT 'ReadyForUseTenantState', \
+        \    multi_workspace bool      NOT NULL DEFAULT false, \
         \    CONSTRAINT tenant_pk PRIMARY KEY (uuid) \
         \);"
   let action conn = execute_ conn sql

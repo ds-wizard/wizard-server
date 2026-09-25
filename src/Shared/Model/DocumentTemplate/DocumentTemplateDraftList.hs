@@ -13,6 +13,7 @@ data DocumentTemplateDraftList = DocumentTemplateDraftList
   , description :: String
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 

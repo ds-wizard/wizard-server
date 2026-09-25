@@ -18,6 +18,7 @@ data KnowledgeModelEditorList = KnowledgeModelEditorList
   , createdBy :: Maybe U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Generic)
 
@@ -31,3 +32,4 @@ instance Eq KnowledgeModelEditorList where
       && a.previousPackageUuid == b.previousPackageUuid
       && a.forkOfPackage == b.forkOfPackage
       && a.createdBy == b.createdBy
+      && a.workspaceUuid == b.workspaceUuid

@@ -2,6 +2,8 @@ module Specs.Api.Handler.KnowledgeModelEditor.List_GET (
   list_GET,
 ) where
 
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -9,20 +11,25 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Api.Resource.Common.WizardPageJM ()
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Workspace
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelEditorMigration as KnowledgeModelEditor
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorState
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Model.Workspace.Workspace
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -32,6 +39,7 @@ list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
   describe "GET /api/knowledge-model-editors" $ do
     test_200 requestContext
+    test_200_workspace requestContext
     test_401 requestContext
     test_403 requestContext
 
@@ -92,6 +100,45 @@ create_test_200_outdated title requestContext =
       runInContextIO (deleteKnowledgeModelEventsByEditorUuid amsterdamKnowledgeModelEditorList.uuid) requestContext
       runInContextIO (deletePackageByUuid netherlandsKmPackageV2.uuid) requestContext
       runInContextIO (insertPackage netherlandsKmPackageV2) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, Page KnowledgeModelEditorList)
+      assertResStatus status expStatus
+      assertResHeaders headers expHeaders
+      liftIO $ resDto `shouldBe` expDto
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200_workspace requestContext = do
+  create_test_200_workspace
+    "HTTP 200 OK (all workspaces of the caller)"
+    requestContext
+    "/api/knowledge-model-editors?sort=createdAt,asc"
+    (Page "knowledgeModelEditors" (PageMetadata 20 2 1 0) [amsterdamKnowledgeModelEditorList, secondWorkspaceKnowledgeModelEditorList])
+  create_test_200_workspace
+    "HTTP 200 OK (w)"
+    requestContext
+    (BS.pack $ "/api/knowledge-model-editors?w=" ++ U.toString secondWorkspace.uuid)
+    (Page "knowledgeModelEditors" (PageMetadata 20 1 1 0) [secondWorkspaceKnowledgeModelEditorList])
+  create_test_200_workspace
+    "HTTP 200 OK (not a member of w)"
+    requestContext
+    (BS.pack $ "/api/knowledge-model-editors?w=" ++ U.toString differentWorkspaceUuid)
+    (Page "knowledgeModelEditors" (PageMetadata 20 0 0 0) [])
+
+create_test_200_workspace title requestContext reqUrl expDto =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let expStatus = 200
+      let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
+      -- AND: Run migrations
+      runInContextIO (deletePackageByUuid netherlandsKmPackageV2.uuid) requestContext
+      runInContextIO KnowledgeModelEditor.runMigration requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertKnowledgeModelEditor secondWorkspaceKnowledgeModelEditor) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

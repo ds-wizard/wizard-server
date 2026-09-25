@@ -11,11 +11,13 @@ import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorDetailDTO
 import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishEditorDTO
 import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishMigrationDTO
 import Shared.Constant.KnowledgeModel
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Event.KnowledgeModelEvents
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.WizardKnowledgeModelPackages
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorEvent
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
@@ -27,6 +29,7 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Project.ProjectReply
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.User
+import Shared.Model.Workspace.Workspace
 import Shared.Service.KnowledgeModel.Compiler.Compiler
 import Shared.Service.KnowledgeModel.Editor.EditorMapper
 import qualified Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper as SPM
@@ -46,6 +49,7 @@ amsterdamKnowledgeModelEditorList =
     , createdBy = Just userAlbert.uuid
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
+    , workspaceUuid = defaultWorkspaceUuid
     }
 
 amsterdamKnowledgeModelEditor :: KnowledgeModelEditor
@@ -64,6 +68,7 @@ amsterdamKnowledgeModelEditor =
     , squashed = True
     , createdBy = amsterdamKnowledgeModelEditorList.createdBy
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = amsterdamKnowledgeModelEditorList.createdAt
     , updatedAt = amsterdamKnowledgeModelEditorList.updatedAt
     }
@@ -152,6 +157,7 @@ amsterdamKnowledgeModelEditorDetail =
     , knowledgeModel = amsterdamKnowledgeModelEditorKnowledgeModel
     , createdAt = amsterdamKnowledgeModelEditorList.createdAt
     , updatedAt = amsterdamKnowledgeModelEditorList.updatedAt
+    , workspaceUuid = defaultWorkspaceUuid
     }
 
 leidenKnowledgeModelEditor :: KnowledgeModelEditorList
@@ -167,6 +173,7 @@ leidenKnowledgeModelEditor =
     , createdBy = Just userAlbert.uuid
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
+    , workspaceUuid = defaultWorkspaceUuid
     }
 
 leidenKnowledgeModelEditorCreate :: KnowledgeModelEditorCreateDTO
@@ -195,6 +202,7 @@ differentKnowledgeModelEditor =
     , squashed = True
     , createdBy = Just userCharles.uuid
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = differentWorkspaceUuid
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     }
@@ -217,4 +225,27 @@ packagePublishMigrationDTO =
     , description = amsterdamKmPackage.description
     , readme = amsterdamKmPackage.readme
     , localeUuids = Nothing
+    }
+
+secondWorkspaceKnowledgeModelEditor :: KnowledgeModelEditor
+secondWorkspaceKnowledgeModelEditor =
+  amsterdamKnowledgeModelEditor
+    { uuid = u' "b7e2d4c6-1a3f-4e5b-9c8d-2f6a7b8c9d0e"
+    , name = "Second Workspace Knowledge Model"
+    , kmId = "core-second-workspace"
+    , workspaceUuid = secondWorkspace.uuid
+    , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
+    , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
+    }
+
+secondWorkspaceKnowledgeModelEditorList :: KnowledgeModelEditorList
+secondWorkspaceKnowledgeModelEditorList =
+  amsterdamKnowledgeModelEditorList
+    { uuid = secondWorkspaceKnowledgeModelEditor.uuid
+    , name = secondWorkspaceKnowledgeModelEditor.name
+    , kmId = secondWorkspaceKnowledgeModelEditor.kmId
+    , state = DefaultKnowledgeModelEditorState
+    , createdAt = secondWorkspaceKnowledgeModelEditor.createdAt
+    , updatedAt = secondWorkspaceKnowledgeModelEditor.updatedAt
+    , workspaceUuid = secondWorkspace.uuid
     }

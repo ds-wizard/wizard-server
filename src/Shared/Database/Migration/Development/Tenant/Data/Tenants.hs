@@ -20,6 +20,7 @@ defaultTenant =
     , state = ReadyForUseTenantState
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
+    , multiWorkspace = False
     }
 
 differentTenant :: Tenant
@@ -35,6 +36,7 @@ differentTenant =
     , state = ReadyForUseTenantState
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
+    , multiWorkspace = False
     }
 
 differentTenantEdited :: Tenant
@@ -54,5 +56,5 @@ tenantSuggestion =
     , name = "Default Tenant"
     , logoUrl = Nothing
     , primaryColor = Nothing
-    , clientUrl = "http://localhost:8080/wizard"
+    , clientUrl = "http://localhost:8080"
     }

@@ -6,6 +6,7 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
@@ -20,7 +21,7 @@ assertExistenceOfPackageInDB requestContext package = do
   comparePackageDtos packageFromDb package
 
 assertExistenceOfBundlePackageInDB requestContext package = do
-  packageFromDb <- getOneFromDB (findPackageByCoordinate (Coordinate package.organizationId package.kmId package.version)) requestContext
+  packageFromDb <- getOneFromDB (findPackageByCoordinate (Coordinate package.organizationId package.kmId package.version) (Just defaultWorkspaceUuid)) requestContext
   comparePackageDtos packageFromDb package
 
 -- --------------------------------

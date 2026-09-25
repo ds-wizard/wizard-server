@@ -48,6 +48,7 @@ import Shared.Service.Tenant.TenantValidation
 import Shared.Service.Tenant.Usage.WizardUsageService
 import Shared.Service.User.UserService
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
+import Shared.Service.Workspace.WorkspaceService
 import Shared.Util.Crypto
 import Shared.Util.Uuid
 
@@ -78,6 +79,7 @@ registerTenant reqDto = do
     serverConfig <- asks (.serverConfig')
     let tenant = fromRegisterCreateDTO reqDto uuid serverConfig now
     insertTenant tenant
+    createDefaultWorkspace uuid tenant.name now
     adminRole <- createAdminRole uuid now
     createLimitBundle uuid now
     userUuid <- liftIO generateUuid
@@ -97,6 +99,7 @@ createTenantByAdmin reqDto = do
     serverConfig <- asks (.serverConfig')
     let tenant = fromAdminCreateDTO reqDto uuid serverConfig now
     insertTenant tenant
+    createDefaultWorkspace uuid tenant.name now
     adminRole <- createAdminRole uuid now
     createLimitBundle uuid now
     userUuid <- liftIO generateUuid
@@ -156,6 +159,7 @@ createAdminRole tenantUuid now = do
           , tenantUuid = tenantUuid
           , createdAt = now
           , updatedAt = now
+          , workspaceUuid = Nothing
           }
   insertRole role
   return role

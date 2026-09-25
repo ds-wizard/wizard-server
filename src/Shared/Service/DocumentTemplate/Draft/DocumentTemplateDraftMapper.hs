@@ -27,6 +27,7 @@ toDraftList dt =
     , description = dt.description
     , createdAt = dt.createdAt
     , updatedAt = dt.updatedAt
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toDraftDetail :: DocumentTemplate -> [DocumentTemplateFormat] -> DocumentTemplateDraftData -> Maybe ProjectSuggestion -> Maybe KnowledgeModelEditorSuggestion -> DocumentTemplateDraftDetail
@@ -98,8 +99,8 @@ toChangeDTO dt =
     , formats = []
     }
 
-fromCreateDTO :: DocumentTemplateDraftCreateDTO -> U.UUID -> DocumentTemplate -> [DocumentTemplateFormat] -> String -> UTCTime -> (DocumentTemplate, [DocumentTemplateFormat])
-fromCreateDTO dto uuid dt formats organizationId now =
+fromCreateDTO :: DocumentTemplateDraftCreateDTO -> U.UUID -> DocumentTemplate -> [DocumentTemplateFormat] -> String -> Maybe U.UUID -> UTCTime -> (DocumentTemplate, [DocumentTemplateFormat])
+fromCreateDTO dto uuid dt formats organizationId workspaceUuid now =
   let documentTemplateUuid = buildCoordinate organizationId dto.templateId dto.version
    in ( DocumentTemplate
           { uuid = uuid
@@ -119,6 +120,7 @@ fromCreateDTO dto uuid dt formats organizationId now =
           , tenantUuid = dt.tenantUuid
           , createdAt = now
           , updatedAt = now
+          , workspaceUuid = workspaceUuid
           }
       , fmap
           ( \f ->
@@ -143,8 +145,8 @@ fromCreateDTO dto uuid dt formats organizationId now =
           formats
       )
 
-fromCreateDTO' :: DocumentTemplateDraftCreateDTO -> U.UUID -> String -> U.UUID -> UTCTime -> DocumentTemplate
-fromCreateDTO' dto uuid organizationId tenantUuid now =
+fromCreateDTO' :: DocumentTemplateDraftCreateDTO -> U.UUID -> String -> U.UUID -> Maybe U.UUID -> UTCTime -> DocumentTemplate
+fromCreateDTO' dto uuid organizationId tenantUuid workspaceUuid now =
   DocumentTemplate
     { uuid = uuid
     , name = dto.name
@@ -163,6 +165,7 @@ fromCreateDTO' dto uuid organizationId tenantUuid now =
     , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = workspaceUuid
     }
 
 fromChangeDTO :: DocumentTemplateDraftChangeDTO -> DocumentTemplate -> UTCTime -> DocumentTemplate
@@ -185,6 +188,7 @@ fromChangeDTO dto dt now =
     , tenantUuid = dt.tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = dt.workspaceUuid
     }
 
 fromCreateDraftData :: DocumentTemplate -> DocumentTemplateDraftData

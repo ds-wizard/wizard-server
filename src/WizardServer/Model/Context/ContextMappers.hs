@@ -8,6 +8,7 @@ import Data.Time
 import qualified Data.UUID as U
 import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.Context.Scope
 import Shared.Model.Context.TransactionState
 import Shared.Model.Context.WizardRequestContext
 import Shared.Service.User.WizardUserMapper
@@ -57,6 +58,8 @@ requestContextFromServerContext tenantUuid mUser transactionState serverContext 
           , currentUser = mUser
           , shutdownFlag = serverContext.shutdownFlag
           , cache = serverContext.cache
+          , scope = NoScope
+          , tenantMultiWorkspace = False
           }
   case transactionState of
     Transactional -> do

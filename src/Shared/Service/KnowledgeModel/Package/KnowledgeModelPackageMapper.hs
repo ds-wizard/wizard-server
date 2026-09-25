@@ -53,8 +53,8 @@ toKnowledgeModelBundlePackage pkg pkgEvents previousPackageCoordinate =
     , createdAt = pkg.createdAt
     }
 
-fromKnowledgeModelBundlePackage :: KnowledgeModelBundlePackage -> U.UUID -> Maybe U.UUID -> U.UUID -> (KnowledgeModelPackage, [KnowledgeModelPackageEvent])
-fromKnowledgeModelBundlePackage dto pkgUuid previousPackageUuid tenantUuid =
+fromKnowledgeModelBundlePackage :: KnowledgeModelBundlePackage -> U.UUID -> Maybe U.UUID -> U.UUID -> Maybe U.UUID -> (KnowledgeModelPackage, [KnowledgeModelPackageEvent])
+fromKnowledgeModelBundlePackage dto pkgUuid previousPackageUuid tenantUuid workspaceUuid =
   ( KnowledgeModelPackage
       { uuid = pkgUuid
       , name = dto.name
@@ -73,6 +73,7 @@ fromKnowledgeModelBundlePackage dto pkgUuid previousPackageUuid tenantUuid =
       , nonEditable = dto.nonEditable
       , public = False
       , tenantUuid = tenantUuid
+      , workspaceUuid = workspaceUuid
       , createdAt = dto.createdAt
       }
   , fmap (toPackageEvent pkgUuid tenantUuid) dto.events

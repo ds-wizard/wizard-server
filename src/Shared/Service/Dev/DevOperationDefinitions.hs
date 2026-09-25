@@ -2,6 +2,7 @@ module Shared.Service.Dev.DevOperationDefinitions where
 
 import Control.Monad.Reader (ask, liftIO)
 import Data.Foldable (traverse_)
+import qualified Data.UUID as U
 
 import Shared.Api.Resource.Dev.DevExecutionDTO
 import Shared.Cache.CacheUtil
@@ -592,9 +593,13 @@ registry_pushKnowledgeModelBundle =
             { name = "id"
             , aType = StringDevOperationParameterType
             }
+        , DevOperationParameter
+            { name = "workspaceUuid"
+            , aType = StringDevOperationParameterType
+            }
         ]
     , function = \reqDto -> do
-        pushKnowledgeModelBundle (head reqDto.parameters)
+        pushKnowledgeModelBundle (head reqDto.parameters) (U.fromString (reqDto.parameters !! 1))
         return "Done"
     }
 
@@ -609,9 +614,13 @@ registry_pushDocumentTemplateBundle =
             { name = "id"
             , aType = StringDevOperationParameterType
             }
+        , DevOperationParameter
+            { name = "workspaceUuid"
+            , aType = StringDevOperationParameterType
+            }
         ]
     , function = \reqDto -> do
-        pushDocumentTemplateBundle (head reqDto.parameters)
+        pushDocumentTemplateBundle (head reqDto.parameters) (U.fromString (reqDto.parameters !! 1))
         return "Done"
     }
 

@@ -17,6 +17,7 @@ instance ToRow Role where
     , toField tenantUuid
     , toField createdAt
     , toField updatedAt
+    , toField workspaceUuid
     ]
 
 instance FromRow Role where
@@ -28,4 +29,5 @@ instance FromRow Role where
     tenantUuid <- field
     createdAt <- field
     updatedAt <- field
+    workspaceUuid <- field
     return $ Role {..}

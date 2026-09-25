@@ -12,5 +12,6 @@ data UserGroup = UserGroup
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Generic, Eq, Show)

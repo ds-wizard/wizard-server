@@ -18,7 +18,7 @@ validateMigrationExistence editorUuid = do
 
 validateNewPackageVersion pkgVersion kmEditor org = do
   validateVersionFormat False pkgVersion
-  mPkg <- findLatestPackageByOrganizationIdAndKmId' org.organizationId kmEditor.kmId Nothing
+  mPkg <- findLatestPackageByOrganizationIdAndKmId' org.organizationId kmEditor.kmId Nothing (Just kmEditor.workspaceUuid)
   case mPkg of
     Just pkg -> validateIsVersionHigher pkgVersion pkg.version
     Nothing -> return ()

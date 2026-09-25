@@ -26,18 +26,27 @@ import Shared.Service.UserToken.UserTokenValidation
 import Shared.Util.Token
 
 class (WizardServerContextC s sm, WizardRequestContextC r rm) => WizardHandlerC s sm r rm | sm -> rm where
-  runIn :: Maybe String -> Maybe UserDTO -> TransactionState -> rm a -> sm a
-  getAuthServiceExecutor :: Maybe String -> Maybe String -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+  runIn :: Maybe String -> Maybe UserDTO -> Maybe U.UUID -> Maybe Bool -> TransactionState -> rm a -> sm a
+  getScopedAuthServiceExecutor :: Maybe String -> Maybe String -> Maybe U.UUID -> Maybe Bool -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+
+getAuthServiceExecutor :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+getAuthServiceExecutor mTokenHeader mServerUrl = getScopedAuthServiceExecutor mTokenHeader mServerUrl Nothing Nothing
 
 runInUnauthService :: WizardHandlerC s sm r rm => Maybe String -> TransactionState -> rm a -> sm a
-runInUnauthService mServerUrl = runIn mServerUrl Nothing
+runInUnauthService mServerUrl = runIn mServerUrl Nothing Nothing Nothing
 
 runInAuthService :: WizardHandlerC s sm r rm => Maybe String -> UserDTO -> TransactionState -> rm a -> sm a
-runInAuthService mServerUrl user = runIn mServerUrl (Just user)
+runInAuthService mServerUrl user = runIn mServerUrl (Just user) Nothing Nothing
+
+runInScopedAuthService :: WizardHandlerC s sm r rm => Maybe String -> UserDTO -> Maybe U.UUID -> Maybe Bool -> TransactionState -> rm a -> sm a
+runInScopedAuthService mServerUrl user = runIn mServerUrl (Just user)
 
 getMaybeAuthServiceExecutor :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
-getMaybeAuthServiceExecutor (Just tokenHeader) mServerUrl callback = getAuthServiceExecutor (Just tokenHeader) mServerUrl callback
-getMaybeAuthServiceExecutor Nothing mServerUrl callback = callback (runInUnauthService mServerUrl)
+getMaybeAuthServiceExecutor mTokenHeader mServerUrl = getScopedMaybeAuthServiceExecutor mTokenHeader mServerUrl Nothing Nothing
+
+getScopedMaybeAuthServiceExecutor :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> Maybe U.UUID -> Maybe Bool -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+getScopedMaybeAuthServiceExecutor (Just tokenHeader) mServerUrl mW mTenant callback = getScopedAuthServiceExecutor (Just tokenHeader) mServerUrl mW mTenant callback
+getScopedMaybeAuthServiceExecutor Nothing mServerUrl mW mTenant callback = callback (runIn mServerUrl Nothing mW mTenant)
 
 validateJwtToken :: WizardServerContextC s sm => String -> sm UserTokenClaimsDTO
 validateJwtToken tokenHeader = do

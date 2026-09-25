@@ -38,6 +38,7 @@ toList editor mForkOfPackage state =
     , createdBy = editor.createdBy
     , createdAt = editor.createdAt
     , updatedAt = editor.updatedAt
+    , workspaceUuid = editor.workspaceUuid
     }
 
 toDetailDTO :: KnowledgeModelEditor -> [KnowledgeModelEditorEvent] -> [KnowledgeModelEditorReply] -> Maybe KnowledgeModelPackage -> KnowledgeModel -> Maybe Coordinate -> Maybe KnowledgeModelPackage -> KnowledgeModelEditorState -> KnowledgeModelEditorDetailDTO
@@ -60,10 +61,11 @@ toDetailDTO editor kmEditorEvents kmEditorReplies mPreviousPackage knowledgeMode
     , createdBy = editor.createdBy
     , createdAt = editor.createdAt
     , updatedAt = maximum (editor.updatedAt : fmap (.createdAt) kmEditorEvents)
+    , workspaceUuid = editor.workspaceUuid
     }
 
-fromCreateDTO :: KnowledgeModelEditorCreateDTO -> U.UUID -> Maybe KnowledgeModelPackage -> U.UUID -> U.UUID -> UTCTime -> KnowledgeModelEditor
-fromCreateDTO dto uuid mPreviousPkg createdBy tenantUuid now =
+fromCreateDTO :: KnowledgeModelEditorCreateDTO -> U.UUID -> Maybe KnowledgeModelPackage -> U.UUID -> U.UUID -> U.UUID -> UTCTime -> KnowledgeModelEditor
+fromCreateDTO dto uuid mPreviousPkg createdBy tenantUuid workspaceUuid now =
   KnowledgeModelEditor
     { uuid = uuid
     , name = dto.name
@@ -80,6 +82,7 @@ fromCreateDTO dto uuid mPreviousPkg createdBy tenantUuid now =
     , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = workspaceUuid
     }
 
 fromChangeDTO :: KnowledgeModelEditorChangeDTO -> KnowledgeModelEditor -> UTCTime -> KnowledgeModelEditor
@@ -100,6 +103,7 @@ fromChangeDTO dto editor bUpdatedAt =
     , tenantUuid = editor.tenantUuid
     , createdAt = editor.createdAt
     , updatedAt = bUpdatedAt
+    , workspaceUuid = editor.workspaceUuid
     }
 
 toKnowledgeModelEditorEvent :: U.UUID -> U.UUID -> KnowledgeModelEvent -> KnowledgeModelEditorEvent

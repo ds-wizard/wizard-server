@@ -22,6 +22,7 @@ import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.User.UserWithMembership
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.User.Group.UserGroupMapper
+import Shared.Service.Workspace.WorkspaceScopeService
 import WizardServer.Database.DAO.User.UserGroupDAO
 import WizardServer.Model.User.UserGroupSuggestion
 import WizardServer.Service.User.Group.UserGroupAcl
@@ -33,8 +34,9 @@ getUserGroupSuggestions = findUserGroupSuggestionsPage
 createUserGroup :: WizardRequestContextC s m => U.UUID -> String -> Maybe String -> Bool -> m ()
 createUserGroup uuid name description private = do
   tenantUuid <- asks (.tenantUuid')
+  workspaceUuid <- requireWorkspaceScope
   now <- liftIO getCurrentTime
-  let userGroup = fromCreate uuid name description private tenantUuid now
+  let userGroup = fromCreate uuid name description private tenantUuid workspaceUuid now
   insertUserGroup userGroup
   return ()
 

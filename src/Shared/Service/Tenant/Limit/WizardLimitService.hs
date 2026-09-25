@@ -76,7 +76,7 @@ checkKnowledgeModelEditorLimit = do
 
 checkPackageLimit :: WizardRequestContextC s m => String -> String -> m ()
 checkPackageLimit organizationId kmId = do
-  existingPackages <- findPackagesByOrganizationIdAndKmId organizationId kmId
+  existingPackages <- findPackagesFiltered [("organization_id", organizationId), ("km_id", kmId)]
   when (null existingPackages) $ do
     limit <- findLimitBundleForCurrentTenant
     count <- countPackagesGroupedByOrganizationIdAndKmId
@@ -90,7 +90,7 @@ checkProjectLimit = do
 
 checkDocumentTemplateLimit :: WizardRequestContextC s m => String -> String -> m ()
 checkDocumentTemplateLimit organizationId templateId = do
-  existingTemplates <- findDocumentTemplatesByOrganizationIdAndKmId organizationId templateId
+  existingTemplates <- findDocumentTemplatesFiltered [("organization_id", organizationId), ("template_id", templateId)]
   when (all (\dt -> dt.phase == DraftDocumentTemplatePhase) existingTemplates) $ do
     limit <- findLimitBundleForCurrentTenant
     count <- countDocumentTemplatesGroupedByOrganizationIdAndKmId

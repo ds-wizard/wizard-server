@@ -25,4 +25,5 @@ instance ToSchema ProjectDetailDTO where
         , isTemplate = project1.isTemplate
         , permissions = [project1AlbertEditProjectPermDto]
         , fileCount = 0
+        , workspaceUuid = project1.workspaceUuid
         }

@@ -37,8 +37,8 @@ findDocumentsForCurrentTenantFiltered params = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName (tenantQueryUuid tenantUuid : params)
 
-findDocumentsPage :: WizardRequestContextC s m => Maybe U.UUID -> Maybe String -> Maybe U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page DocumentList)
-findDocumentsPage mProjectUuid mProjectName mDocumentTemplateUuid mQuery pageable sort = do
+findDocumentsPage :: WizardRequestContextC s m => Bool -> Maybe U.UUID -> Maybe String -> Maybe U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page DocumentList)
+findDocumentsPage floored mProjectUuid mProjectName mDocumentTemplateUuid mQuery pageable sort = do
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
@@ -52,7 +52,8 @@ findDocumentsPage mProjectUuid mProjectName mDocumentTemplateUuid mQuery pageabl
           case mDocumentTemplateUuid of
             Just documentTemplateUuid -> (" AND doc.document_template_uuid = ? ", [U.toString documentTemplateUuid])
             Nothing -> ("", [])
-    let condition = "WHERE doc.tenant_uuid = ? AND doc.name ~* ? AND doc.durability = 'PersistentDocumentDurability' " ++ projectCondition ++ documentTemplateUuidCondition
+    workspaceCondition <- if floored then workspaceOnlyCondition "doc.workspace_uuid" else return ""
+    let condition = "WHERE doc.tenant_uuid = ? AND doc.name ~* ? AND doc.durability = 'PersistentDocumentDurability'" ++ workspaceCondition ++ " " ++ projectCondition ++ documentTemplateUuidCondition
     let baseParams = [U.toString tenantUuid, regexM mQuery] ++ projectParam ++ documentTemplateUuidParam
     let params = projectSelectParams ++ baseParams
     -- 2. Get total count
@@ -80,7 +81,8 @@ findDocumentsPage mProjectUuid mProjectName mDocumentTemplateUuid mQuery pageabl
               \       doc.file_size, \
               \       doc.worker_log, \
               \       doc.created_by, \
-              \       doc.created_at \
+              \       doc.created_at, \
+              \       doc.workspace_uuid \
               \FROM document doc \
               \${projectJoin} \
               \LEFT JOIN document_template doc_tml ON doc_tml.uuid = doc.document_template_uuid AND doc_tml.tenant_uuid = doc.tenant_uuid \

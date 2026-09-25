@@ -23,6 +23,7 @@ import Shared.Model.Config.BuildInfoConfig
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContext
+import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.Sentry.SentryEvent
@@ -45,6 +46,8 @@ data RequestContext = RequestContext
   , currentUser :: Maybe UserDTO
   , shutdownFlag :: MVar ()
   , cache :: ServerCache
+  , scope :: Scope
+  , tenantMultiWorkspace :: Bool
   }
 
 newtype RequestContextM a = RequestContextM
@@ -109,6 +112,12 @@ instance HasField "registryClient'" RequestContext ClientEnv where
 
 instance HasField "shutdownFlag'" RequestContext (MVar ()) where
   getField = (.shutdownFlag)
+
+instance HasField "scope'" RequestContext Scope where
+  getField = (.scope)
+
+instance HasField "tenantMultiWorkspace'" RequestContext Bool where
+  getField = (.tenantMultiWorkspace)
 
 instance WizardRequestContextC RequestContext RequestContextM where
   runRequestContextWithRequestContext function requestContext = do

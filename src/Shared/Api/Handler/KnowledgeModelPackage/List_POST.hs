@@ -1,5 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelPackage.List_POST where
 
+import qualified Data.UUID as U
 import Servant
 
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -15,6 +16,8 @@ type List_POST =
     :> Header "Host" String
     :> ReqBody '[JSONPlain] String
     :> "knowledge-model-packages"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> Verb 'POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
 
 list_POST
@@ -22,7 +25,9 @@ list_POST
   => Maybe String
   -> Maybe String
   -> String
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
-list_POST mTokenHeader mServerUrl reqBody =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_POST mTokenHeader mServerUrl reqBody mW mTenant =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $ addTraceUuidHeader =<< importAndConvertBundle (BSL.pack reqBody) False

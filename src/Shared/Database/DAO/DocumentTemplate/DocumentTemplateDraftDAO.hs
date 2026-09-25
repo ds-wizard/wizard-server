@@ -34,7 +34,8 @@ findDraftsPage mQuery pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    let condition = "WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ?"
+    workspaceCondition <- tenantOrWorkspaceCondition "workspace_uuid"
+    let condition = "WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ?" ++ workspaceCondition
     let conditionParams = [regexM mQuery, regexM mQuery, U.toString tenantUuid]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
@@ -50,11 +51,12 @@ findDraftsPage mQuery pageable sort =
               \       version, \
               \       description, \
               \       created_at, \
-              \       updated_at \
+              \       updated_at, \
+              \       workspace_uuid \
               \FROM document_template \
-              \WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ? \
+              \WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ? %s \
               \%s OFFSET %s LIMIT %s"
-              [mapSort sort, show skip, show sizeI]
+              [workspaceCondition, mapSort sort, show skip, show sizeI]
     logQuery sql conditionParams
     let action conn = query conn sql conditionParams
     entities <- runDB action

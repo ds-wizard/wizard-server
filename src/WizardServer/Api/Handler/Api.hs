@@ -27,6 +27,7 @@ import Shared.Api.Handler.Submission.Api
 import Shared.Api.Handler.Token.Api
 import Shared.Api.Handler.TypeHint.Api
 import Shared.Api.Handler.WizardCommon
+import Shared.Api.Handler.Workspace.Api
 import WizardServer.Api.Handler.Config.Api
 import WizardServer.Api.Handler.Locale.Api
 import WizardServer.Api.Handler.OpenIdClient.Api
@@ -73,6 +74,7 @@ type ApplicationAPI =
     :<|> UserGroupAPI
     :<|> UserGroupSuggestionsAPI
     :<|> UserSubmissionPropsAPI
+    :<|> WorkspaceAPI
 
 applicationApi :: Proxy ApplicationAPI
 applicationApi = Proxy
@@ -115,3 +117,4 @@ applicationServer =
     :<|> userGroupServer
     :<|> userGroupSuggestionsServer
     :<|> userSubmissionPropsServer
+    :<|> workspaceServer

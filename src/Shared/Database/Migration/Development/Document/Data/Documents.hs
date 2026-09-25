@@ -9,6 +9,7 @@ import Data.Time
 import Shared.Api.Resource.Document.DocumentCreateDTO
 import Shared.Api.Resource.Document.DocumentDTO
 import qualified Shared.Constant.DocumentTemplate as TemplateConstant
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.KnowledgeModel.Data.KnowledgeModels
@@ -50,6 +51,7 @@ doc1 =
     , fileSize = Just $ 50 * 1024
     , workerLog = Just "Success"
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
@@ -152,6 +154,7 @@ doc2 =
     , fileSize = Just $ 50 * 1024
     , workerLog = Just "Success"
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
@@ -176,6 +179,7 @@ doc3 =
     , fileSize = Just $ 50 * 1024
     , workerLog = Just "Success"
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
@@ -260,7 +264,18 @@ differentDoc =
     , fileSize = Just $ 50 * 1024
     , workerLog = Just "Success"
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = differentWorkspaceUuid
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
+    }
+
+secondWorkspaceDoc :: Document
+secondWorkspaceDoc =
+  doc1
+    { uuid = u' "0d3e9b7a-5c21-4f8e-a6b4-7c1d2e3f4a5b"
+    , name = "Second workspace document"
+    , projectUuid = Just project16.uuid
+    , projectEventUuid = Nothing
+    , workspaceUuid = project16.workspaceUuid
     }

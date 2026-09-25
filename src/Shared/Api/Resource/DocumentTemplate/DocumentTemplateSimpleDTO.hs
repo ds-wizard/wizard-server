@@ -23,5 +23,6 @@ data DocumentTemplateSimpleDTO = DocumentTemplateSimpleDTO
   , state :: DocumentTemplateState
   , organization :: Maybe OrganizationSimple
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

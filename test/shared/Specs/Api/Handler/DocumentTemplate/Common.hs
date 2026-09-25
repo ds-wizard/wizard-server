@@ -15,7 +15,7 @@ import Specs.Common
 -- ASSERTS
 -- --------------------------------
 assertExistenceOfDocumentTemplateInDB requestContext dt = do
-  eTemplate <- runInContextIO (findDocumentTemplateByCoordinate (createCoordinate dt)) requestContext
+  eTemplate <- runInContextIO (findDocumentTemplateByCoordinate (createCoordinate dt) dt.workspaceUuid) requestContext
   liftIO $ isRight eTemplate `shouldBe` True
   let (Right templateFromDB) = eTemplate
   compareTemplateDtos templateFromDB dt

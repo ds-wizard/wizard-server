@@ -35,7 +35,6 @@ import Shared.Service.Locale.LocaleValidation
 import Shared.Service.Tenant.Config.ConfigService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
-import Shared.Service.Tenant.TenantMapper (toClientUrlBase)
 import Shared.Util.Uuid
 import WizardServer.Api.Resource.Locale.LocaleDTO
 import WizardServer.Api.Resource.Locale.LocaleDetailDTO
@@ -89,7 +88,7 @@ getLocaleByUuid uuid = do
 getLocaleContentForCurrentUser :: WizardRequestContextC s m => Maybe String -> m BS.ByteString
 getLocaleContentForCurrentUser mClientUrl = do
   checkIfAdminIsDisabled
-  tenant <- maybe getCurrentTenant (findTenantByClientUrl . toClientUrlBase) mClientUrl
+  tenant <- maybe getCurrentTenant findTenantByClientUrl mClientUrl
   mUser <- asks (.currentUser')
   locale <-
     case mUser of

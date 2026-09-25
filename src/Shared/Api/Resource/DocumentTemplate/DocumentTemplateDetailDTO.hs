@@ -37,5 +37,6 @@ data DocumentTemplateDetailDTO = DocumentTemplateDetailDTO
   , registryLink :: Maybe String
   , state :: DocumentTemplateState
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

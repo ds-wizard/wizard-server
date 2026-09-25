@@ -25,6 +25,7 @@ data DocumentTemplateList = DocumentTemplateList
   , remoteOrganizationName :: Maybe String
   , remoteOrganizationLogo :: Maybe String
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 

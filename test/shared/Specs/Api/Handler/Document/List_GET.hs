@@ -2,7 +2,10 @@ module Specs.Api.Handler.Document.List_GET (
   list_GET,
 ) where
 
+import Control.Monad (void)
 import Data.Aeson (encode)
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -11,23 +14,34 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Document.DocumentDTO
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Workspace
+import Shared.Database.DAO.Document.DocumentDAO
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
+import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.Workspace.WorkspaceDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.Document.DocumentMigration as DOC_Migration
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Error.Error
+import Shared.Model.Workspace.Workspace
 import Shared.Service.Document.DocumentMapper
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -37,6 +51,7 @@ list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
   describe "GET /api/documents" $ do
     test_200 requestContext
+    test_200_workspace requestContext
     test_401 requestContext
     test_403 requestContext
 
@@ -110,6 +125,82 @@ create_test_200 title requestContext reqUrl expDto =
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200_workspace requestContext = do
+  create_test_200_workspace
+    "HTTP 200 OK (all workspaces of the caller)"
+    requestContext
+    insertSecondWorkspace
+    "/api/documents?sort=name,asc"
+    ( Page
+        "documents"
+        (PageMetadata 20 4 1 0)
+        [ toDTOWithDocTemplate doc1 project1 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple
+        , toDTOWithDocTemplate doc2 project2 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple
+        , toDTOWithDocTemplate doc3 project2 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple
+        , secondWorkspaceDocDto
+        ]
+    )
+  create_test_200_workspace
+    "HTTP 200 OK (w)"
+    requestContext
+    insertSecondWorkspace
+    (BS.pack $ "/api/documents?w=" ++ U.toString secondWorkspace.uuid)
+    (Page "documents" (PageMetadata 20 1 1 0) [secondWorkspaceDocDto])
+  create_test_200_workspace
+    "HTTP 200 OK (not a member of w)"
+    requestContext
+    insertSecondWorkspace
+    (BS.pack $ "/api/documents?w=" ++ U.toString differentWorkspaceUuid)
+    (Page "documents" (PageMetadata 20 0 0 0) ([] :: [DocumentDTO]))
+  create_test_200_workspace
+    "HTTP 200 OK (only the workspaces the caller is a member of)"
+    requestContext
+    insertSecondWorkspaceWithoutCaller
+    "/api/documents?sort=name,asc"
+    ( Page
+        "documents"
+        (PageMetadata 20 3 1 0)
+        [ toDTOWithDocTemplate doc1 project1 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple
+        , toDTOWithDocTemplate doc2 project2 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple
+        , toDTOWithDocTemplate doc3 project2 (Just "Version 1") [] wizardDocumentTemplate formatJsonSimple
+        ]
+    )
+
+create_test_200_workspace title requestContext prepareWorkspace reqUrl expDto =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO DOC_Migration.runMigration requestContext
+      runInContextIO (insertPackage amsterdamKmPackage) requestContext
+      prepareWorkspace requestContext
+      runInContextIO (insertProject project16) requestContext
+      runInContextIO (insertDocument secondWorkspaceDoc) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+insertSecondWorkspaceWithoutCaller requestContext = do
+  runInContextIO (insertWorkspace secondWorkspace) requestContext
+  void $ runInContextIO (insertWorkspaceMembership (secondWorkspaceMembership userSystem)) requestContext
+
+secondWorkspaceDocDto :: DocumentDTO
+secondWorkspaceDocDto = toDTOWithDocTemplate secondWorkspaceDoc project16 Nothing [] wizardDocumentTemplate formatJsonSimple
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

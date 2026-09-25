@@ -11,6 +11,7 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContext
+import Shared.Model.Context.Scope
 
 class
   ( RequestContextType context ServerConfig
@@ -20,6 +21,8 @@ class
   , HasField "registryClient'" context ClientEnv
   , HasField "restrictedHttpClientManager'" context Manager
   , HasField "shutdownFlag'" context (MVar ())
+  , HasField "scope'" context Scope
+  , HasField "tenantMultiWorkspace'" context Bool
   ) =>
   WizardRequestContextType context
   where

@@ -64,7 +64,7 @@ getDependentPackageResources uuid mAllVersions = do
   case mAllVersions of
     Just True -> do
       pkg <- findPackageByUuid uuid
-      allPkgs <- findPackagesByOrganizationIdAndKmId pkg.organizationId pkg.kmId
+      allPkgs <- findPackagesByOrganizationIdAndKmIdInPlane pkg.organizationId pkg.kmId pkg.workspaceUuid
       findDependentPackageResources (fmap (.uuid) allPkgs)
     _ -> findDependentPackageResources [uuid]
 
@@ -91,7 +91,7 @@ deletePackage uuid mAllVersions =
     case mAllVersions of
       Just True -> do
         pkg <- findPackageByUuid uuid
-        void $ deletePackagesFiltered [("organization_id", pkg.organizationId), ("km_id", pkg.kmId)]
+        void $ deletePackagesByOrganizationIdAndKmId pkg.organizationId pkg.kmId pkg.workspaceUuid
       _ -> do
         _ <- findPackageByUuid uuid
         void $ deletePackageByUuid uuid
@@ -101,7 +101,7 @@ deletePackage uuid mAllVersions =
 -- --------------------------------
 getPackageVersions :: WizardRequestContextC s m => KnowledgeModelPackage -> Bool -> m [(U.UUID, String)]
 getPackageVersions pkg excludeDeprecatedVersions = do
-  allPkgs <- findPackagesByOrganizationIdAndKmId pkg.organizationId pkg.kmId
+  allPkgs <- findPackagesByOrganizationIdAndKmIdInPlane pkg.organizationId pkg.kmId pkg.workspaceUuid
   return . fmap (\p -> (p.uuid, p.version)) . filter (filterPkg excludeDeprecatedVersions) $ allPkgs
   where
     filterPkg :: Bool -> KnowledgeModelPackage -> Bool

@@ -15,6 +15,7 @@ data Tenant = Tenant
   , state :: TenantState
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , multiWorkspace :: Bool
   }
   deriving (Show, Eq, Generic)
 

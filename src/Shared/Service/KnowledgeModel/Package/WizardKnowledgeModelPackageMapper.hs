@@ -38,6 +38,7 @@ toSimpleDTO' pkgRs orgRs pkg =
     , organization = selectOrganizationByOrgId pkg orgRs
     , language = pkg.language
     , createdAt = pkg.createdAt
+    , workspaceUuid = pkg.workspaceUuid
     }
 
 toSimpleDTO'' :: Bool -> KnowledgeModelPackageList -> KnowledgeModelPackageSimpleDTO
@@ -69,6 +70,7 @@ toSimpleDTO'' registryEnabled pkg =
           _ -> Nothing
     , language = pkg.language
     , createdAt = pkg.createdAt
+    , workspaceUuid = pkg.workspaceUuid
     }
 
 toDetailDTO :: KnowledgeModelPackage -> Bool -> [RegistryPackage] -> [RegistryOrganization] -> [(U.UUID, String)] -> Maybe String -> [KnowledgeModelLocaleList] -> KnowledgeModelPackageDetailDTO
@@ -105,6 +107,7 @@ toDetailDTO pkg registryEnabled pkgRs orgRs versionLs registryLink locales =
           then selectOrganizationByOrgId pkg orgRs
           else Nothing
     , createdAt = pkg.createdAt
+    , workspaceUuid = pkg.workspaceUuid
     }
 
 toSuggestion :: KnowledgeModelPackage -> KnowledgeModelPackageSuggestion

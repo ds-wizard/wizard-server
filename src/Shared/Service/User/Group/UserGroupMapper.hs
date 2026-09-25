@@ -15,4 +15,5 @@ toDetailDTO userGroup users =
     , users = fmap toWithMembershipDTO users
     , createdAt = userGroup.createdAt
     , updatedAt = userGroup.updatedAt
+    , workspaceUuid = userGroup.workspaceUuid
     }

@@ -34,6 +34,7 @@ fromCreateDTO dto uuid tenantUuid now =
     , permissions = dto.permissions
     , isAdmin = False
     , tenantUuid = tenantUuid
+    , workspaceUuid = Nothing
     , createdAt = now
     , updatedAt = now
     }
@@ -46,6 +47,7 @@ fromChangeDTO role dto now =
     , permissions = dto.permissions
     , isAdmin = role.isAdmin
     , tenantUuid = role.tenantUuid
+    , workspaceUuid = role.workspaceUuid
     , createdAt = role.createdAt
     , updatedAt = now
     }

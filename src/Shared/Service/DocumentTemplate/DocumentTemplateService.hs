@@ -41,6 +41,7 @@ import qualified Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMa
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
 import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Workspace.WorkspaceScopeService
 
 getDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateSimpleDTO)
 getDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated pageable sort = do
@@ -118,7 +119,8 @@ deleteDocumentTemplatesByQueryParams :: WizardRequestContextC s m => [(String, S
 deleteDocumentTemplatesByQueryParams queryParams =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-    dts <- findDocumentTemplatesFiltered queryParams
+    workspaceUuid <- requirePlaneScope
+    dts <- findDocumentTemplatesFilteredInPlane queryParams workspaceUuid
     traverse_ (\dt -> deleteDocumentTemplate dt.uuid) dts
 
 deleteDocumentTemplate :: WizardRequestContextC s m => U.UUID -> m ()
@@ -138,5 +140,5 @@ deleteDocumentTemplate uuid =
 -- --------------------------------
 getDocumentTemplateVersions :: WizardRequestContextC s m => DocumentTemplate -> m [(U.UUID, String)]
 getDocumentTemplateVersions tml = do
-  allTmls <- findDocumentTemplatesByOrganizationIdAndKmId tml.organizationId tml.templateId
+  allTmls <- findDocumentTemplatesByOrganizationIdAndKmIdInPlane tml.organizationId tml.templateId tml.workspaceUuid
   return . fmap (\t -> (t.uuid, t.version)) . filter (\t -> t.phase == ReleasedDocumentTemplatePhase || t.phase == DeprecatedDocumentTemplatePhase) $ allTmls

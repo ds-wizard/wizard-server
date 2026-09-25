@@ -11,6 +11,8 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Workspace
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelPackageMigration as KnowledgeModelPackage
 import Shared.Model.Error.Error
@@ -21,6 +23,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -30,6 +33,8 @@ detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
   describe "DELETE /api/knowledge-model-packages/{uuid}" $ do
     test_204 requestContext
+    test_204_all_versions_tenant_plane requestContext
+    test_204_all_versions_workspace_plane requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -70,6 +75,48 @@ test_204 requestContext =
       let (Left (NotExistsError _)) = eitherPackage
       -- AND: We have to end with expression (if there is another way, how to do it, please fix it)
       liftIO $ True `shouldBe` True
+
+test_204_all_versions_tenant_plane requestContext =
+  it "HTTP 204 NO CONTENT (allVersions=true keeps the workspace plane)" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 204
+      let expHeaders = resCorsHeaders
+      let expBody = ""
+      -- AND: Run migrations
+      runInContextIO KnowledgeModelPackage.runMigration requestContext
+      runInContextIO (insertPackage netherlandsWorkspaceKmPackageV3) requestContext
+      enableMultiWorkspace requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?allVersions=true") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Compare state in DB with expectation
+      assertCountInDB (findPackagesByOrganizationIdAndKmIdInPlane "org.nl" "core-nl" Nothing) requestContext 0
+      assertCountInDB (findPackagesByOrganizationIdAndKmIdInPlane "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 1
+
+test_204_all_versions_workspace_plane requestContext =
+  it "HTTP 204 NO CONTENT (allVersions=true keeps the tenant plane)" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 204
+      let expHeaders = resCorsHeaders
+      let expBody = ""
+      -- AND: Run migrations
+      runInContextIO KnowledgeModelPackage.runMigration requestContext
+      runInContextIO (insertPackage netherlandsWorkspaceKmPackageV3) requestContext
+      enableMultiWorkspace requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (BS.pack $ "/api/knowledge-model-packages/" ++ show netherlandsWorkspaceKmPackageV3.uuid ++ "?allVersions=true") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Compare state in DB with expectation
+      assertCountInDB (findPackagesByOrganizationIdAndKmIdInPlane "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 0
+      assertCountInDB (findPackagesByOrganizationIdAndKmIdInPlane "org.nl" "core-nl" Nothing) requestContext 2
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

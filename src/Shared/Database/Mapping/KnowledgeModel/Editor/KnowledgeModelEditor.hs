@@ -24,6 +24,7 @@ instance FromRow KnowledgeModelEditor where
     metamodelVersion <- field
     squashed <- field
     language <- field
+    workspaceUuid <- field
     return $ KnowledgeModelEditor {..}
 
 instance ToRow KnowledgeModelEditor where
@@ -43,4 +44,5 @@ instance ToRow KnowledgeModelEditor where
     , toField metamodelVersion
     , toField squashed
     , toField language
+    , toField workspaceUuid
     ]

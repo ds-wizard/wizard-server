@@ -20,4 +20,5 @@ instance FromRow KnowledgeModelEditorList where
     createdBy <- field
     createdAt <- field
     updatedAt <- field
+    workspaceUuid <- field
     return $ KnowledgeModelEditorList {..}

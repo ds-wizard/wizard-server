@@ -123,6 +123,9 @@ import Shared.Api.Resource.UserToken.UserTokenListSM ()
 import Shared.Api.Resource.UserToken.UserTokenSM ()
 import Shared.Api.Resource.Websocket.ProjectMessageSM ()
 import Shared.Api.Resource.Websocket.WebsocketSM ()
+import Shared.Api.Resource.Workspace.WorkspaceChangeSM ()
+import Shared.Api.Resource.Workspace.WorkspaceMemberSM ()
+import Shared.Api.Resource.Workspace.WorkspaceSM ()
 import Shared.Constant.Api
 import Shared.Util.Swagger (normalizeSwagger)
 import WizardServer.Api.Handler.Api

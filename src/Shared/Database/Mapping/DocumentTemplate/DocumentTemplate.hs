@@ -31,6 +31,7 @@ instance ToRow DocumentTemplate where
     , toField nonEditable
     , toField language
     , toField potFileReady
+    , toField workspaceUuid
     ]
 
 instance FromRow DocumentTemplate where
@@ -52,4 +53,5 @@ instance FromRow DocumentTemplate where
     nonEditable <- field
     language <- field
     potFileReady <- field
+    workspaceUuid <- field
     return $ DocumentTemplate {..}

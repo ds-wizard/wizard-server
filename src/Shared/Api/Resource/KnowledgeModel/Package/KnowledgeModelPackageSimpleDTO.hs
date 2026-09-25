@@ -21,5 +21,6 @@ data KnowledgeModelPackageSimpleDTO = KnowledgeModelPackageSimpleDTO
   , public :: Bool
   , language :: String
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

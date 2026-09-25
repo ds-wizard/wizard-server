@@ -45,6 +45,7 @@ toClientConfigDTO serverConfig tcOrganization tcAuthentication openIdClients tcP
                in [toModuleDTO m | m <- tenantModules, m.enabled, maybe True (`elem` perms) m.requiredPermission]
             Nothing -> []
           else []
+    , multiWorkspace = tenant.multiWorkspace
     }
 
 toClientAuthDTO :: TenantConfigAuthentication -> [OpenIdClientSimple] -> ClientConfigAuthDTO

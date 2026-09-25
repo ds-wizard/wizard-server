@@ -145,6 +145,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
                   , concatMap (\c -> if c.version == "all" then [c.organizationId, c.entityId] else [c.organizationId, c.entityId, c.version]) kmpCoordinates
                   )
     hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
+    workspaceCondition <- workspaceOnlyCondition "project.workspace_uuid"
     let (aclJoins, aclCondition) =
           if hasPermission
             then (userUuidsJoin ++ userGroupUuidsJoin, "")
@@ -174,10 +175,11 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \FROM project \
               \${knowledgeModelPackageJoin} \
               \${aclJoins} \
-              \WHERE project.tenant_uuid = '${tenantUuid}' ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}"
+              \WHERE project.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}"
               [ ("knowledgeModelPackageJoin", knowledgeModelPackageJoin)
               , ("aclJoins", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
+              , ("workspaceCondition", workspaceCondition)
               , ("aclCondition", aclCondition)
               , ("nameCondition", nameCondition)
               , ("isTemplateCondition", isTemplateCondition)
@@ -207,11 +209,12 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \                             project.created_at, \
               \                             project.updated_at, \
               \                             project.knowledge_model_package_uuid, \
-              \                             project.document_template_uuid \
+              \                             project.document_template_uuid, \
+              \                             project.workspace_uuid \
               \             FROM project \
               \             ${knowledgeModelPackageJoin} \
               \             ${aclJoins} \
-              \             WHERE project.tenant_uuid = '${tenantUuid}' ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}), \
+              \             WHERE project.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}), \
               \     pkg AS (SELECT knowledge_model_package.uuid, \
               \                    knowledge_model_package.name, \
               \                    knowledge_model_package.version, \
@@ -228,7 +231,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \        filtered_project.created_at, \
               \        filtered_project.updated_at, \
               \        CASE \
-              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase']) THEN 'OutdatedKnowledgeModelProjectState' \
+              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], filtered_project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
               \          ELSE 'UpToDateKnowledgeModelProjectState' END, \
               \        CASE \
               \          WHEN dt.uuid IS NULL THEN NULL \
@@ -238,9 +241,11 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \                             AND newest_dt.organization_id = dt.organization_id \
               \                             AND newest_dt.template_id = dt.template_id \
               \                             AND newest_dt.phase = 'ReleasedDocumentTemplatePhase' \
+              \                             AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = filtered_project.workspace_uuid) \
               \                           ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
               \                                    split_part(newest_dt.version, '.', 2)::int DESC, \
-              \                                    split_part(newest_dt.version, '.', 3)::int DESC \
+              \                                    split_part(newest_dt.version, '.', 3)::int DESC, \
+              \                                    newest_dt.workspace_uuid IS NOT NULL DESC \
               \                           LIMIT 1) THEN 'OutdatedDocumentTemplateProjectState' \
               \          ELSE 'UpToDateDocumentTemplateProjectState' END, \
               \        pkg.uuid, \
@@ -255,7 +260,8 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \        FROM project_perm_group \
               \        JOIN user_group ug on ug.uuid = project_perm_group.user_group_uuid \
               \        WHERE project_uuid = filtered_project.uuid \
-              \        GROUP BY project_uuid) as group_permissions \
+              \        GROUP BY project_uuid) as group_permissions, \
+              \       filtered_project.workspace_uuid \
               \FROM filtered_project \
               \JOIN pkg ON filtered_project.knowledge_model_package_uuid = pkg.uuid \
               \LEFT JOIN document_template dt ON filtered_project.document_template_uuid = dt.uuid AND dt.tenant_uuid = '${tenantUuid}' \
@@ -264,6 +270,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               [ ("knowledgeModelPackageJoin", knowledgeModelPackageJoin)
               , ("aclJoins", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
+              , ("workspaceCondition", workspaceCondition)
               , ("aclCondition", aclCondition)
               , ("nameCondition", nameCondition)
               , ("isTemplateCondition", isTemplateCondition)
@@ -321,6 +328,15 @@ findProjectsByDocumentTemplateUuid documentTemplateUuid = do
       let action conn = query conn sql params
       entities <- runDB action
       traverse enhance entities
+
+findProjectUuidsByWorkspaceUuid :: WizardRequestContextC s m => U.UUID -> m [U.UUID]
+findProjectUuidsByWorkspaceUuid workspaceUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString "SELECT uuid FROM project WHERE tenant_uuid = ? AND workspace_uuid = ?"
+  let params = [toField tenantUuid, toField workspaceUuid]
+  logQuery sql params
+  let action conn = query conn sql params
+  fmap (fmap fromOnly) (runDB action)
 
 findProjectsWithZeroAcl :: WizardRequestContextC s m => m [Project]
 findProjectsWithZeroAcl = do
@@ -418,7 +434,8 @@ findProjectDetail uuid = do
             \        SELECT count(*) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as file_count \
+            \       ) as file_count, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND project.tenant_uuid = knowledge_model_package.tenant_uuid \
             \WHERE project.tenant_uuid = ? AND project.uuid = ?"
@@ -545,6 +562,7 @@ findProjectDetailSettings uuid = do
             \       pkg.public                     as knowledge_model_package_public, \
             \       pkg.language                   as knowledge_model_package_language, \
             \       pkg.created_at                 as knowledge_model_package_created_at, \
+            \       pkg.workspace_uuid             as knowledge_model_package_workspace_uuid, \
             \       dt.uuid                        as document_template_uuid, \
             \       dt.name                        as document_template_name, \
             \       dt.organization_id             as document_template_organization_id, \
@@ -569,7 +587,7 @@ findProjectDetailSettings uuid = do
             \       ) AS document_template_locales, \
             \       dt.metamodel_version           as document_template_metamodel_version, \
             \       CASE \
-            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase']) THEN 'OutdatedKnowledgeModelProjectState' \
+            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
             \         ELSE 'UpToDateKnowledgeModelProjectState' END as knowledge_model_state, \
             \       CASE \
             \         WHEN dt.uuid IS NULL THEN NULL \
@@ -579,9 +597,11 @@ findProjectDetailSettings uuid = do
             \                            AND newest_dt.organization_id = dt.organization_id \
             \                            AND newest_dt.template_id = dt.template_id \
             \                            AND newest_dt.phase = 'ReleasedDocumentTemplatePhase' \
+            \                            AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = project.workspace_uuid) \
             \                          ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
             \                                   split_part(newest_dt.version, '.', 2)::int DESC, \
-            \                                   split_part(newest_dt.version, '.', 3)::int DESC \
+            \                                   split_part(newest_dt.version, '.', 3)::int DESC, \
+            \                                   newest_dt.workspace_uuid IS NOT NULL DESC \
             \                          LIMIT 1) THEN 'OutdatedDocumentTemplateProjectState' \
             \         ELSE 'UpToDateDocumentTemplateProjectState' END as document_template_state, \
             \       ( \
@@ -631,7 +651,7 @@ insertProject project = do
   -- Insert project
   let sql =
         fromString
-          "INSERT INTO project VALUES (?, ?, ?, ?, ?, ?::uuid[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::text[], ?, ?)"
+          "INSERT INTO project VALUES (?, ?, ?, ?, ?, ?::uuid[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::text[], ?, ?, ?)"
   let params = toRow project
   logQuery sql params
   let action conn = execute conn sql params
@@ -645,7 +665,7 @@ updateProjectByUuid project = do
   tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString
-          "UPDATE project SET uuid = ?, name = ?, visibility = ?, sharing = ?, knowledge_model_package_uuid = ?, selected_question_tag_uuids = ?::uuid[], document_template_uuid = ?, format_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, description = ?, is_template = ?, squashed = ?, tenant_uuid = ?, project_tags = ?::text[], language = ?, document_template_language = ? WHERE tenant_uuid = ? AND uuid = ?"
+          "UPDATE project SET uuid = ?, name = ?, visibility = ?, sharing = ?, knowledge_model_package_uuid = ?, selected_question_tag_uuids = ?::uuid[], document_template_uuid = ?, format_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, description = ?, is_template = ?, squashed = ?, tenant_uuid = ?, project_tags = ?::text[], language = ?, document_template_language = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
   let params = toRow project ++ [toField tenantUuid, toField . U.toText $ project.uuid]
   logInsertAndUpdate sql params
   let action conn = execute conn sql params

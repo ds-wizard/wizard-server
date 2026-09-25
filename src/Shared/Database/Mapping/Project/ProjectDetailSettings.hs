@@ -47,6 +47,7 @@ instance FromRow ProjectDetailSettings where
     knowledgeModelPackagePublic <- field
     knowledgeModelPackageLanguage <- field
     knowledgeModelPackageCreatedAt <- field
+    knowledgeModelPackageWorkspaceUuid <- field
     let knowledgeModelPackage =
           KnowledgeModelPackageSimpleDTO
             { uuid = knowledgeModelPackageUuid
@@ -62,6 +63,7 @@ instance FromRow ProjectDetailSettings where
             , public = knowledgeModelPackagePublic
             , language = knowledgeModelPackageLanguage
             , createdAt = knowledgeModelPackageCreatedAt
+            , workspaceUuid = knowledgeModelPackageWorkspaceUuid
             }
     let knowledgeModelTags = []
     let availableLocales = []

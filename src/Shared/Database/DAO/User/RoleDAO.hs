@@ -82,7 +82,7 @@ updateRoleByUuid role = do
   let sql =
         fromString $
           f'
-            "UPDATE %s SET uuid = ?, name = ?, permissions = ?, is_admin = ?, tenant_uuid = ?, created_at = ?, updated_at = ? WHERE tenant_uuid = ? AND uuid = ?"
+            "UPDATE %s SET uuid = ?, name = ?, permissions = ?, is_admin = ?, tenant_uuid = ?, created_at = ?, updated_at = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
             [entityName]
   let params = toRow role ++ [toField tenantUuid, toField role.uuid]
   logQuery sql params

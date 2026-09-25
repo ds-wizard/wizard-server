@@ -14,5 +14,6 @@ data UserGroupDetailDTO = UserGroupDetailDTO
   , users :: [UserWithMembershipDTO]
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Generic, Eq, Show)

@@ -32,6 +32,7 @@ instance ToRow Project where
     , toField . PGArray $ projectTags
     , toField language
     , toField documentTemplateLanguage
+    , toField workspaceUuid
     ]
 
 instance FromRow Project where
@@ -55,4 +56,5 @@ instance FromRow Project where
     projectTags <- fromPGArray <$> field
     language <- field
     documentTemplateLanguage <- field
+    workspaceUuid <- field
     return $ Project {..}

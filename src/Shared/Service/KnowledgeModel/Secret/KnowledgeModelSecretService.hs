@@ -12,6 +12,7 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretMapper
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 
 getKnowledgeModelSecrets :: WizardRequestContextC s m => m [KnowledgeModelSecret]
@@ -26,7 +27,8 @@ createKnowledgeModelSecret reqDto =
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     tenantUuid <- asks (.tenantUuid')
-    let kmSecret = fromCreateDTO reqDto uuid tenantUuid now
+    workspaceUuid <- requirePlaneScope
+    let kmSecret = fromCreateDTO reqDto uuid tenantUuid workspaceUuid now
     insertKnowledgeModelSecret kmSecret
     return kmSecret
 

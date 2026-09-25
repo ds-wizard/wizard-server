@@ -2,6 +2,7 @@ module Shared.Service.TypeHint.TypeHintService where
 
 import Control.Monad.Except (throwError)
 import Data.Map.Strict as M
+import qualified Data.UUID as U
 
 import Shared.Api.Resource.TypeHint.TypeHintRequestDTO
 import Shared.Api.Resource.TypeHint.TypeHintTestRequestDTO
@@ -37,7 +38,7 @@ getTypeHints (KnowledgeModelEditorIntegrationTypeHintRequest' reqDto) =
     km <- compileKnowledgeModel kmEvents kmEditor.previousPackageUuid []
     integration' <- getIntegration km reqDto.integrationUuid
     case integration' of
-      ApiIntegration' integration -> runApiIntegrationTypeHints integration integration.testVariables integration.testQ
+      ApiIntegration' integration -> runApiIntegrationTypeHints (Just kmEditor.workspaceUuid) integration integration.testVariables integration.testQ
       _ -> throwError . UserError $ _ERROR_SERVICE_TYPEHINT__BAD_TYPE_OF_INTEGRATION
 getTypeHints (KnowledgeModelEditorQuestionTypeHintRequest' reqDto) =
   runInTransaction $ do
@@ -49,7 +50,7 @@ getTypeHints (KnowledgeModelEditorQuestionTypeHintRequest' reqDto) =
     question <- getQuestion km reqDto.questionUuid
     integration' <- getIntegration km question.integrationUuid
     case integration' of
-      ApiIntegration' integration -> runApiIntegrationTypeHints integration question.variables reqDto.q
+      ApiIntegration' integration -> runApiIntegrationTypeHints (Just kmEditor.workspaceUuid) integration question.variables reqDto.q
       _ -> throwError . UserError $ _ERROR_SERVICE_TYPEHINT__BAD_TYPE_OF_INTEGRATION
 getTypeHints (ProjectTypeHintRequest' reqDto) =
   runInTransaction $ do
@@ -59,13 +60,13 @@ getTypeHints (ProjectTypeHintRequest' reqDto) =
     question <- getQuestion km reqDto.questionUuid
     integration' <- getIntegration km question.integrationUuid
     case integration' of
-      ApiIntegration' integration -> runApiIntegrationTypeHints integration question.variables reqDto.q
+      ApiIntegration' integration -> runApiIntegrationTypeHints (Just project.workspaceUuid) integration question.variables reqDto.q
       _ -> throwError . UserError $ _ERROR_SERVICE_TYPEHINT__BAD_TYPE_OF_INTEGRATION
 
-runApiIntegrationTypeHints :: WizardRequestContextC s m => ApiIntegration -> M.Map String String -> String -> m [TypeHintIDTO]
-runApiIntegrationTypeHints integration variables q =
+runApiIntegrationTypeHints :: WizardRequestContextC s m => Maybe U.UUID -> ApiIntegration -> M.Map String String -> String -> m [TypeHintIDTO]
+runApiIntegrationTypeHints mWorkspaceUuid integration variables q =
   runInTransaction $ do
-    secrets <- prepareSecrets
+    secrets <- prepareSecrets mWorkspaceUuid
     eiDtos <- retrieveTypeHints integration variables secrets q
     case eiDtos of
       Right iDtos -> return iDtos
@@ -84,7 +85,7 @@ testTypeHints reqDto =
     integration' <- getIntegration km reqDto.integrationUuid
     case integration' of
       ApiIntegration' integration -> do
-        secrets <- prepareSecrets
+        secrets <- prepareSecrets (Just kmEditor.workspaceUuid)
         testRetrieveTypeHints integration reqDto.variables secrets reqDto.q
       _ -> throwError . UserError $ _ERROR_SERVICE_TYPEHINT__BAD_TYPE_OF_INTEGRATION
 
@@ -102,8 +103,8 @@ getIntegration km integrationUuid =
     Just integration -> return integration
     Nothing -> throwError . UserError $ _ERROR_VALIDATION__INTEGRATION_ABSENCE
 
-prepareSecrets :: WizardRequestContextC s m => m (M.Map String String)
-prepareSecrets = do
-  kmSecrets <- fmap (M.fromList . fmap (\s -> (s.name, s.value))) findKnowledgeModelSecrets
+prepareSecrets :: WizardRequestContextC s m => Maybe U.UUID -> m (M.Map String String)
+prepareSecrets mWorkspaceUuid = do
+  kmSecrets <- fmap (M.fromList . fmap (\s -> (s.name, s.value))) (findKnowledgeModelSecretsForPlane mWorkspaceUuid)
   fileSecrets <- getFileIntegrationConfig "secrets"
   return $ M.union kmSecrets fileSecrets

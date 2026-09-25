@@ -26,7 +26,6 @@ import Shared.Model.Tenant.Tenant
 import Shared.Model.User.User
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
-import Shared.Service.Tenant.TenantMapper (toClientUrlBase)
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -61,6 +60,7 @@ reqBodyT dto = encode (reqDtoT dto)
 test_201 requestContext = do
   create_test_201 "HTTP 201 CREATED (anonymous)" requestContext tenantCreateDto [] 1 False
   create_test_201 "HTTP 201 CREATED (admin)" requestContext tenantCreateDto [reqAuthHeader] 0 True
+  create_test_201_trimmed_name requestContext
 
 create_test_201 title requestContext reqDto authHeaders persistentCommandCount userActive =
   it title $
@@ -78,12 +78,29 @@ create_test_201 title requestContext reqDto authHeaders persistentCommandCount u
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       -- AND: Find result in DB and compare with expectation state
-      (Right tenant) <- runInContextIO (findTenantByClientUrl (toClientUrlBase resDto.clientUrl)) requestContext
+      (Right tenant) <- runInContextIO (findTenantByClientUrl resDto.clientUrl) requestContext
       let updatedRequestContext = requestContext {currentTenantUuid = tenant.uuid}
       (Right [user]) <- runInContextIO findUsers updatedRequestContext
       liftIO $ user.active `shouldBe` userActive
       assertCountInDB (findUserEmailLinks :: RequestContextM [UserEmailLink U.UUID UserEmailLinkType]) updatedRequestContext 1
       assertCountInDB (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) updatedRequestContext persistentCommandCount
+
+create_test_201_trimmed_name requestContext =
+  it "HTTP 201 CREATED (admin, tenant name with surrounding spaces)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqBody = reqBodyT (tenantCreateDto {tenantName = " New Tenant "} :: TenantCreateDTO)
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let (status, _, resDto) = destructResponse response :: (Int, ResponseHeaders, TenantDTO)
+      assertResStatus status 201
+      -- AND: Find result in DB and compare with expectation state
+      (Right tenant) <- runInContextIO (findTenantByClientUrl resDto.clientUrl) requestContext
+      let updatedRequestContext = requestContext {currentTenantUuid = tenant.uuid}
+      (Right [workspace]) <- runInContextIO findWorkspaces updatedRequestContext
+      liftIO $ (tenant.name, workspace.name) `shouldBe` ("New Tenant", "New Tenant")
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

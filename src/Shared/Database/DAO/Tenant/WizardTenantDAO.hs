@@ -64,7 +64,7 @@ updateTenantByUuid tenant = do
   let updatedTenant = tenant {updatedAt = now}
   let sql =
         fromString
-          "UPDATE tenant SET uuid = ?, tenant_id = ?, name = ?, server_domain = ?, client_url = ?, enabled = ?, created_at = ?, updated_at = ?, server_url = ?, state = ? WHERE uuid = ?"
+          "UPDATE tenant SET uuid = ?, tenant_id = ?, name = ?, server_domain = ?, client_url = ?, enabled = ?, created_at = ?, updated_at = ?, server_url = ?, state = ?, multi_workspace = ? WHERE uuid = ?"
   let params = toRow tenant ++ [toField updatedTenant.uuid]
   logQuery sql params
   let action conn = execute conn sql params

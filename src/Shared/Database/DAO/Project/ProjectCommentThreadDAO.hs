@@ -279,7 +279,7 @@ findProjectCommentThreadsForNotifying = do
         \          AND comment.tenant_uuid = thread.tenant_uuid \
         \        ORDER BY comment.created_at \
         \        LIMIT 1) comment_text, \
-        \        tenant.client_url, \
+        \        project.workspace_uuid, \
         \        config_look_and_feel.app_title AS app_title, \
         \        config_look_and_feel.logo_url AS logo_url, \
         \        config_look_and_feel.primary_color AS primary_color, \
@@ -290,7 +290,6 @@ findProjectCommentThreadsForNotifying = do
         \JOIN project ON project.uuid = thread.project_uuid AND project.tenant_uuid = thread.tenant_uuid \
         \JOIN user_entity assigned_to ON assigned_to.uuid = thread.assigned_to AND assigned_to.tenant_uuid = thread.tenant_uuid \
         \LEFT JOIN user_entity assigned_by ON assigned_by.uuid = thread.assigned_by AND assigned_by.tenant_uuid = thread.tenant_uuid \
-        \JOIN tenant ON tenant.uuid = thread.tenant_uuid \
         \JOIN config_look_and_feel ON config_look_and_feel.tenant_uuid = thread.tenant_uuid \
         \JOIN config_privacy_and_support ON config_privacy_and_support.tenant_uuid = thread.tenant_uuid \
         \JOIN config_mail ON config_mail.tenant_uuid = thread.tenant_uuid \

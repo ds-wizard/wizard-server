@@ -22,6 +22,7 @@ instance ToRow ProjectCache where
     , toField tenantUuid
     , toField createdAt
     , toField updatedAt
+    , toField workspaceUuid
     ]
 
 instance FromRow ProjectCache where
@@ -35,4 +36,5 @@ instance FromRow ProjectCache where
     tenantUuid <- field
     createdAt <- field
     updatedAt <- field
+    workspaceUuid <- field
     return $ ProjectCache {..}

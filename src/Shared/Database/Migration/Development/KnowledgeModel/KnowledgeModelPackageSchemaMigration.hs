@@ -56,15 +56,18 @@ createKnowledgeModelPackageTable = do
         \    non_editable                bool        NOT NULL, \
         \    public                      bool        NOT NULL, \
         \    language                    varchar     NOT NULL DEFAULT 'en', \
+        \    workspace_uuid              uuid, \
         \    CONSTRAINT knowledge_model_package_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT knowledge_model_package_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT knowledge_model_package_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT knowledge_model_package_coordinate_unique UNIQUE (organization_id, km_id, version, tenant_uuid) \
+        \    CONSTRAINT knowledge_model_package_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT knowledge_model_package_coordinate_unique UNIQUE NULLS NOT DISTINCT (organization_id, km_id, version, tenant_uuid, workspace_uuid) \
         \); \
         \ \
         \CREATE INDEX knowledge_model_package_organization_id_km_id_index ON knowledge_model_package (organization_id, km_id, tenant_uuid); \
         \ \
-        \CREATE INDEX knowledge_model_package_previous_package_uuid_index ON knowledge_model_package (previous_package_uuid);"
+        \CREATE INDEX knowledge_model_package_previous_package_uuid_index ON knowledge_model_package (previous_package_uuid); \
+        \CREATE INDEX knowledge_model_package_workspace_uuid_index ON knowledge_model_package (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
@@ -99,7 +102,7 @@ createFunctions = do
 createGetNewestPackageFn :: WizardRequestContextC s m => m Int64
 createGetNewestPackageFn = do
   let sql =
-        "CREATE OR REPLACE FUNCTION get_newest_knowledge_model_package(req_organization_id varchar, req_km_id varchar, req_tenant_uuid uuid, req_phase varchar[]) \
+        "CREATE OR REPLACE FUNCTION get_newest_knowledge_model_package(req_organization_id varchar, req_km_id varchar, req_tenant_uuid uuid, req_phase varchar[], req_workspace_uuid uuid) \
         \    RETURNS uuid \
         \    LANGUAGE plpgsql \
         \AS \
@@ -114,9 +117,11 @@ createGetNewestPackageFn = do
         \      AND km_id = req_km_id \
         \      AND tenant_uuid = req_tenant_uuid \
         \      AND phase = ANY (req_phase) \
+        \      AND (workspace_uuid IS NULL OR workspace_uuid = req_workspace_uuid) \
         \    ORDER BY (string_to_array(version, '.')::int[])[1] DESC, \
         \             (string_to_array(version, '.')::int[])[2] DESC, \
-        \             (string_to_array(version, '.')::int[])[3] DESC \
+        \             (string_to_array(version, '.')::int[])[3] DESC, \
+        \             workspace_uuid IS NOT NULL DESC \
         \    LIMIT 1; \
         \ \
         \    RETURN p_uuid; \
@@ -128,7 +133,7 @@ createGetNewestPackageFn = do
 createGetNewestPackageCoordinateFn :: WizardRequestContextC s m => m Int64
 createGetNewestPackageCoordinateFn = do
   let sql =
-        "CREATE or REPLACE FUNCTION get_newest_knowledge_model_package_coordinate(req_coordinate varchar, req_tenant_uuid uuid, req_phase varchar[]) \
+        "CREATE or REPLACE FUNCTION get_newest_knowledge_model_package_coordinate(req_coordinate varchar, req_tenant_uuid uuid, req_phase varchar[], req_workspace_uuid uuid) \
         \    RETURNS varchar \
         \    LANGUAGE plpgsql \
         \AS \
@@ -145,7 +150,8 @@ createGetNewestPackageCoordinateFn = do
         \            get_organization_id(req_coordinate), \
         \            get_km_id(req_coordinate), \
         \            req_tenant_uuid, \
-        \            req_phase \
+        \            req_phase, \
+        \            req_workspace_uuid \
         \                   ); \
         \ \
         \    IF target_uuid IS NOT NULL THEN \

@@ -34,6 +34,7 @@ data DocumentTemplate = DocumentTemplate
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 

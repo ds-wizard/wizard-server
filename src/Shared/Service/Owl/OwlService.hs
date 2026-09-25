@@ -16,6 +16,7 @@ import Shared.Database.DAO.Tenant.Config.TenantConfigOwlDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.Public
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.Coordinate.Coordinate
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundleFile
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
@@ -23,10 +24,13 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.KnowledgeModel.Compiler.Compiler
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 import Shared.Service.Owl.Convertor.OwlConvertor
 import Shared.Service.Owl.Diff.Differ
 import Shared.Service.Owl.OwlMapper
+import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Logger
 import Shared.Util.Uuid
 
@@ -36,16 +40,19 @@ importOwl reqDto = do
   case (reqDto.rootElement, reqDto.name, reqDto.organizationId, reqDto.kmId, reqDto.version) of
     (Just rootElement, Just name, Just organizationId, Just kmId, Just version) -> do
       tenantUuid <- asks (.tenantUuid')
+      workspaceUuid <- requirePlaneScope
+      validatePackageIdUniqueness (Coordinate organizationId kmId version) workspaceUuid
+      checkPackageLimit organizationId kmId
       uuid <- liftIO generateUuid
       now <- liftIO getCurrentTime
       previousPackageUuid <-
         case reqDto.previousPackageId of
           Just previousPackageId -> do
-            pkg <- findPackageByCoordinate previousPackageId
+            pkg <- findPackageByCoordinate previousPackageId workspaceUuid
             return . Just $ pkg.uuid
           Nothing -> return Nothing
       events <- importEvents previousPackageUuid rootElement (TE.decodeUtf8 . BSL.toStrict $ reqDto.content)
-      let pkg = fromOwl uuid name organizationId kmId version previousPackageUuid tenantUuid now
+      let pkg = fromOwl uuid name organizationId kmId version previousPackageUuid tenantUuid workspaceUuid now
       let pkgEvents = fmap (toPackageEvent pkg.uuid tenantUuid) events
       insertPackage pkg
       traverse_ insertPackageEvent pkgEvents

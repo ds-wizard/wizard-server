@@ -20,5 +20,6 @@ data KnowledgeModelEditor = KnowledgeModelEditor
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

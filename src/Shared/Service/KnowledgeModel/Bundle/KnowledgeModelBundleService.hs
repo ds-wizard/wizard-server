@@ -51,6 +51,7 @@ import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation (
  )
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
@@ -123,8 +124,9 @@ importBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> m Knowledge
 importBundle pb =
   runInTransaction $ do
     pkg <- extractMainPackage pb
-    validatePackageIdUniqueness (createCoordinate pkg)
-    pkgs <- forM pb.packages importPackage
+    workspaceUuid <- requirePlaneScope
+    validatePackageIdUniqueness (createCoordinate pkg) workspaceUuid
+    pkgs <- forM pb.packages (importPackage workspaceUuid)
     case lastSafe . catMaybes $ pkgs of
       Just createdPkg -> return createdPkg
       Nothing -> throwError . UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ pkg)
@@ -137,14 +139,14 @@ importBundle pb =
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
-importPackage :: WizardRequestContextC s m => KnowledgeModelBundlePackage -> m (Maybe KnowledgeModelPackageSimpleDTO)
-importPackage dto =
+importPackage :: WizardRequestContextC s m => Maybe U.UUID -> KnowledgeModelBundlePackage -> m (Maybe KnowledgeModelPackageSimpleDTO)
+importPackage workspaceUuid dto =
   runInTransaction $ do
     tenantUuid <- asks (.tenantUuid')
     uuid <- liftIO generateUuid
-    validateMaybePreviousPackageIdExistence (createCoordinate dto) dto.previousPackageId
-    previousPackage <- traverse findPackageByCoordinate dto.previousPackageId
-    let (pkg, kmEvents) = KnowledgeModelPackageMapper.fromKnowledgeModelBundlePackage dto uuid (fmap (.uuid) previousPackage) tenantUuid
+    validateMaybePreviousPackageIdExistence (createCoordinate dto) dto.previousPackageId workspaceUuid
+    previousPackage <- traverse (`findPackageByCoordinate` workspaceUuid) dto.previousPackageId
+    let (pkg, kmEvents) = KnowledgeModelPackageMapper.fromKnowledgeModelBundlePackage dto uuid (fmap (.uuid) previousPackage) tenantUuid workspaceUuid
     skipIfPackageIsAlreadyImported pkg $ do
       let events = fmap KnowledgeModelPackageMapper.toEvent kmEvents
       validateKmValidity events pkg.previousPackageUuid
@@ -153,7 +155,7 @@ importPackage dto =
       return . Just $ createdPkg
   where
     skipIfPackageIsAlreadyImported pkg callback = do
-      eitherPackage <- findPackageByCoordinate' (createCoordinate pkg)
+      eitherPackage <- findPackageByCoordinate' (createCoordinate pkg) pkg.workspaceUuid
       case eitherPackage of
         Nothing -> callback
         Just _ -> return Nothing

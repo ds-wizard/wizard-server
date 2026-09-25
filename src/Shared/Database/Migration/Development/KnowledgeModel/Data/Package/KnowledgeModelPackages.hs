@@ -6,6 +6,7 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Constant.KnowledgeModel
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Event.KnowledgeModelEvents
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
@@ -36,6 +37,7 @@ globalKmPackageEmpty =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -65,6 +67,7 @@ globalKmPackage =
     , nonEditable = False
     , public = True
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -127,6 +130,7 @@ netherlandsKmPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -156,6 +160,7 @@ netherlandsKmPackageV2 =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -185,6 +190,7 @@ amsterdamKmPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -208,6 +214,7 @@ germanyKmPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -308,4 +315,14 @@ kmPackagePatternGlobal =
     , kmId = Just "core"
     , minVersion = Just "1.0.0"
     , maxVersion = Just "1.0.0"
+    }
+
+netherlandsWorkspaceKmPackageV3 :: KnowledgeModelPackage
+netherlandsWorkspaceKmPackageV3 =
+  netherlandsKmPackageV2
+    { uuid = u' "e7f8a9b0-1c2d-4e3f-8a4b-5c6d7e8f9a0b"
+    , version = "3.0.0"
+    , description = "Workspace Release"
+    , previousPackageUuid = Nothing
+    , workspaceUuid = Just defaultWorkspaceUuid
     }

@@ -24,9 +24,9 @@ documentTemplateAPI serverContext requestContext =
     describe "DOCUMENT TEMPLATE API Spec" $ do
       list_GET requestContext
       list_all_GET requestContext
-      list_bundle_POST requestContext
       list_suggestions_GET requestContext
       list_DELETE requestContext
+      list_bundle_POST requestContext
       detail_GET requestContext
       detail_PUT requestContext
       detail_DELETE requestContext

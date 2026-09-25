@@ -37,6 +37,7 @@ documentTemplateUtilSpec =
                     , language = "en"
                     , potFileReady = False
                     , tenantUuid = defaultTenant.uuid
+                    , workspaceUuid = Nothing
                     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     }
@@ -74,6 +75,7 @@ documentTemplateUtilSpec =
                     , language = "en"
                     , potFileReady = False
                     , tenantUuid = defaultTenant.uuid
+                    , workspaceUuid = Nothing
                     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     }
@@ -117,6 +119,7 @@ documentTemplateUtilSpec =
                     , language = "en"
                     , potFileReady = False
                     , tenantUuid = defaultTenant.uuid
+                    , workspaceUuid = Nothing
                     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     }

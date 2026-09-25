@@ -43,6 +43,8 @@ findLocalesPage mOrganizationId mLocaleId mQuery pageable sort =
     mLocaleId
     Nothing
     ""
+    False
+    ""
 
 findLocalesFiltered :: WizardRequestContextC s m => [(String, String)] -> m [Locale]
 findLocalesFiltered queryParams = do

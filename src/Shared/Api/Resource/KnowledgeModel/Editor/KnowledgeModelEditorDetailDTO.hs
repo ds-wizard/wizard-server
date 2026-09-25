@@ -30,6 +30,7 @@ data KnowledgeModelEditorDetailDTO = KnowledgeModelEditorDetailDTO
   , knowledgeModel :: KnowledgeModel
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Generic)
 
@@ -50,3 +51,4 @@ instance Eq KnowledgeModelEditorDetailDTO where
       && a.events == b.events
       && a.replies == b.replies
       && a.knowledgeModel == b.knowledgeModel
+      && a.workspaceUuid == b.workspaceUuid

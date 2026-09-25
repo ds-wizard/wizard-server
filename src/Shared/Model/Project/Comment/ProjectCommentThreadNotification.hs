@@ -19,7 +19,7 @@ data ProjectCommentThreadNotification = ProjectCommentThreadNotification
   , assignedBy :: Maybe UserSimple
   , text :: String
   , questionTitle :: Maybe String
-  , clientUrl :: String
+  , workspaceUuid :: U.UUID
   , appTitle :: Maybe String
   , logoUrl :: Maybe String
   , primaryColor :: Maybe String

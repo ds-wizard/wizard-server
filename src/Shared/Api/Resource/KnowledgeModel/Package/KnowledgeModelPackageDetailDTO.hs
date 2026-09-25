@@ -33,5 +33,6 @@ data KnowledgeModelPackageDetailDTO = KnowledgeModelPackageDetailDTO
   , organization :: Maybe RegistryOrganization
   , registryLink :: Maybe String
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

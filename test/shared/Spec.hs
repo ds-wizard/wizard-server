@@ -18,6 +18,7 @@ import Shared.Integration.Http.Common.HttpClientFactory
 import Shared.Integration.Http.Common.ServantClient
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
+import Shared.Model.Context.Scope
 import Shared.S3.Common
 import Shared.Service.Config.BuildInfo.BuildInfoConfigService
 import Shared.Service.Config.Server.ServerConfigService
@@ -48,6 +49,7 @@ import Specs.Api.Handler.Prefab.ApiSpec
 import Specs.Api.Handler.Project.ApiSpec
 import Specs.Api.Handler.Project.Detail_WS.WebsocketSpec
 import Specs.Api.Handler.ProjectCommentThread.ApiSpec
+import Specs.Api.Handler.ProjectFile.ApiSpec
 import Specs.Api.Handler.Role.ApiSpec
 import Specs.Api.Handler.Submission.ApiSpec
 import Specs.Api.Handler.Swagger.ApiSpec
@@ -62,6 +64,7 @@ import Specs.Api.Handler.User.News.ApiSpec
 import Specs.Api.Handler.User.Tour.ApiSpec
 import Specs.Api.Handler.UserGroup.ApiSpec
 import Specs.Api.Handler.Websocket.Common
+import Specs.Api.Handler.Workspace.ApiSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
 import Specs.Integration.Http.Common.SsrfProtectionSpec
@@ -95,7 +98,10 @@ import Specs.Service.Project.ProjectValidationSpec
 import Specs.Service.Report.ReportGeneratorSpec
 import Specs.Service.Tenant.Config.TenantConfigValidationSpec
 import Specs.Service.Tenant.TenantValidationSpec
+import Specs.Service.TypeHint.TypeHintServiceSpec
 import Specs.Service.User.UserServiceSpec
+import Specs.Service.Workspace.WorkspacePlaneSpec
+import Specs.Service.Workspace.WorkspaceScopeServiceSpec
 import Specs.Util.GettextSpec
 import Specs.Util.JinjaSpec
 import Specs.Util.ListSpec
@@ -163,6 +169,8 @@ prepareWebApp runCallback =
                 , currentUser = Just . toDTO $ userAlbert
                 , shutdownFlag = shutdownFlag
                 , cache = cache
+                , scope = NoScope
+                , tenantMultiWorkspace = False
                 }
         putStrLn "DB: start creating schema"
         buildSchema requestContext
@@ -240,6 +248,7 @@ main =
               prefabAPI serverContext requestContext
               projectAPI serverContext requestContext
               projectCommentThreadAPI serverContext requestContext
+              projectFileAPI serverContext requestContext
               submissionAPI serverContext requestContext
               swaggerAPI serverContext requestContext
               tenantAPI serverContext requestContext
@@ -253,6 +262,7 @@ main =
               userTourAPI serverContext requestContext
               roleAPI serverContext requestContext
               userGroupAPI serverContext requestContext
+              workspaceAPI serverContext requestContext
             describe "DATABASE" $
               describe "Migration" $
                 describe "Production" $
@@ -267,6 +277,7 @@ main =
                   knowledgeModelEditorServiceSpec requestContext
                 describe "Package" $ packageValidationSpec requestContext
               persistentCommandServiceSpec requestContext
+              typeHintServiceSpec requestContext
               describe "Project" $ do
                 describe "Migration" $
                   PRJ_SanitizerSpec.sanitizerIntegrationSpec requestContext
@@ -275,6 +286,9 @@ main =
                 projectCollaborationAclSpec requestContext
                 projectServiceSpec requestContext
               userServiceIntegrationSpec requestContext
+              describe "Workspace" $ do
+                workspacePlaneSpec requestContext
+                workspaceScopeServiceSpec requestContext
             describe "WEBSOCKET" $ do
               knowledgeModelEditorWebsocketAPI requestContext
               projectWebsocketAPI requestContext

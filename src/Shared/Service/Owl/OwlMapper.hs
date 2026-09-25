@@ -6,8 +6,8 @@ import qualified Data.UUID as U
 import Shared.Constant.KnowledgeModel
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 
-fromOwl :: U.UUID -> String -> String -> String -> String -> Maybe U.UUID -> U.UUID -> UTCTime -> KnowledgeModelPackage
-fromOwl uuid name organizationId kmId version mPreviousPackageUuid tenantUuid now =
+fromOwl :: U.UUID -> String -> String -> String -> String -> Maybe U.UUID -> U.UUID -> Maybe U.UUID -> UTCTime -> KnowledgeModelPackage
+fromOwl uuid name organizationId kmId version mPreviousPackageUuid tenantUuid workspaceUuid now =
   KnowledgeModelPackage
     { uuid = uuid
     , name = name
@@ -26,5 +26,6 @@ fromOwl uuid name organizationId kmId version mPreviousPackageUuid tenantUuid no
     , nonEditable = False
     , public = False
     , tenantUuid = tenantUuid
+    , workspaceUuid = workspaceUuid
     , createdAt = now
     }

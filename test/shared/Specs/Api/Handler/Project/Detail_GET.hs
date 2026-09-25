@@ -150,6 +150,7 @@ create_test_200 title requestContext project projectEvents kmPackage authHeader 
               , isTemplate = project.isTemplate
               , permissions = permissions
               , fileCount = 0
+              , workspaceUuid = project.workspaceUuid
               }
       let expBody = encode expDto
       -- WHEN: Call API

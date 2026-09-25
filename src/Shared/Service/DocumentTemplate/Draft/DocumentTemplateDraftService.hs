@@ -43,6 +43,7 @@ import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftValidation
 import Shared.Service.DocumentTemplate.File.DocumentTemplateFileService
 import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 
 getDraftsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page DocumentTemplateDraftList)
@@ -58,6 +59,7 @@ createDraft reqDto =
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     tcOrganization <- findTenantConfigOrganization
+    workspaceUuid <- requirePlaneScope
     case reqDto.basedOn of
       Just dtUuid -> do
         tml <- findDocumentTemplateByUuid dtUuid
@@ -65,7 +67,7 @@ createDraft reqDto =
         when
           tml.nonEditable
           (throwError . UserError $ _ERROR_SERVICE_DOC_TML__NON_EDITABLE_DOC_TML)
-        let (draft, draftFormats) = fromCreateDTO reqDto uuid tml formats tcOrganization.organizationId now
+        let (draft, draftFormats) = fromCreateDTO reqDto uuid tml formats tcOrganization.organizationId workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         traverse_ insertDocumentTemplateFormat draftFormats
@@ -77,7 +79,7 @@ createDraft reqDto =
         insertDraftData draftData
         return $ toSimple draft
       Nothing -> do
-        let draft = fromCreateDTO' reqDto uuid tcOrganization.organizationId tcOrganization.tenantUuid now
+        let draft = fromCreateDTO' reqDto uuid tcOrganization.organizationId tcOrganization.tenantUuid workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         let draftData = fromCreateDraftData draft

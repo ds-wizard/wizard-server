@@ -51,6 +51,7 @@ import Shared.Service.User.UserValidation
 import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.Login.LoginService
+import Shared.Service.Workspace.WorkspaceMembershipService
 import Shared.Util.Crypto (generateRandomString)
 import Shared.Util.String
 import Shared.Util.Uuid
@@ -122,6 +123,7 @@ createUser reqDto uUuid uPasswordHash role uPermissions uRoleName tenantUuid cli
     now <- liftIO getCurrentTime
     let user = fromUserCreateDTO reqDto uUuid uPasswordHash role uPermissions uRoleName tenantUuid now shouldSendRegistrationEmail
     insertUser user
+    addUserToSingleWorkspace tenantUuid uUuid now
     userEmailLink <- createUserEmailLink uUuid RegistrationUserEmailLinkType tenantUuid
     when
       shouldSendRegistrationEmail
@@ -173,6 +175,7 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
             tenantUuid
             now
     insertUser user
+    addUserToSingleWorkspace tenantUuid uUuid now
     identityUuid <- liftIO generateUuid
     let identity = UserOpenIdIdentityMapper.fromCreate identityUuid externalId Nothing user.uuid openIdClient.uuid openIdClient.tenantUuid now
     _ <- insertUserOpenIdIdentity identity

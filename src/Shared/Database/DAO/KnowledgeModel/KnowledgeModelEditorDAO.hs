@@ -37,12 +37,22 @@ findKnowledgeModelEditorsByPreviousPackageUuid previousPackageUuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("previous_package_uuid", U.toString previousPackageUuid)]
 
+findKnowledgeModelEditorUuidsByWorkspaceUuid :: WizardRequestContextC s m => U.UUID -> m [U.UUID]
+findKnowledgeModelEditorUuidsByWorkspaceUuid workspaceUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString "SELECT uuid FROM knowledge_model_editor WHERE tenant_uuid = ? AND workspace_uuid = ?"
+  let params = [toField tenantUuid, toField workspaceUuid]
+  logQuery sql params
+  let action conn = query conn sql params
+  fmap (fmap fromOnly) (runDB action)
+
 findKnowledgeModelEditorsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page KnowledgeModelEditorList)
 findKnowledgeModelEditorsPage mQuery pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    let condition = "WHERE (name ~* ? OR km_id ~* ?) AND tenant_uuid = ?"
+    workspaceCondition <- workspaceOnlyCondition "knowledge_model_editor.workspace_uuid"
+    let condition = "WHERE (name ~* ? OR km_id ~* ?) AND tenant_uuid = ?" ++ workspaceCondition
     let conditionParams = [regexM mQuery, regexM mQuery, U.toString tenantUuid]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
@@ -65,15 +75,16 @@ findKnowledgeModelEditorsPage mQuery pageable sort =
               \       fork_of_package.description, \
               \       knowledge_model_editor.created_by, \
               \       knowledge_model_editor.created_at, \
-              \       GREATEST(knowledge_model_editor.updated_at, (SELECT MAX(created_at) FROM knowledge_model_editor_event WHERE knowledge_model_editor_event.editor_uuid = knowledge_model_editor.uuid AND knowledge_model_editor_event.tenant_uuid = knowledge_model_editor.tenant_uuid)) AS updated_at  \
+              \       GREATEST(knowledge_model_editor.updated_at, (SELECT MAX(created_at) FROM knowledge_model_editor_event WHERE knowledge_model_editor_event.editor_uuid = knowledge_model_editor.uuid AND knowledge_model_editor_event.tenant_uuid = knowledge_model_editor.tenant_uuid)) AS updated_at, \
+              \       knowledge_model_editor.workspace_uuid \
               \FROM knowledge_model_editor \
               \JOIN config_organization ON knowledge_model_editor.tenant_uuid = config_organization.tenant_uuid \
               \LEFT JOIN knowledge_model_migration ON knowledge_model_editor.uuid = knowledge_model_migration.editor_uuid \
               \LEFT JOIN knowledge_model_package previous_pkg ON knowledge_model_editor.previous_package_uuid = previous_pkg.uuid and knowledge_model_editor.tenant_uuid = previous_pkg.tenant_uuid \
-              \LEFT JOIN knowledge_model_package fork_of_package ON get_knowledge_model_editor_fork_of_package_id(config_organization, previous_pkg, knowledge_model_editor) = concat(fork_of_package.organization_id, ':', fork_of_package.km_id, ':', fork_of_package.version) AND knowledge_model_editor.tenant_uuid = fork_of_package.tenant_uuid \
-              \WHERE (knowledge_model_editor.name ~* ? OR knowledge_model_editor.km_id ~* ?) AND knowledge_model_editor.tenant_uuid = ? \
+              \LEFT JOIN LATERAL (SELECT * FROM knowledge_model_package fop WHERE get_knowledge_model_editor_fork_of_package_id(config_organization, previous_pkg, knowledge_model_editor) = concat(fop.organization_id, ':', fop.km_id, ':', fop.version) AND fop.tenant_uuid = knowledge_model_editor.tenant_uuid AND (fop.workspace_uuid IS NULL OR fop.workspace_uuid = knowledge_model_editor.workspace_uuid) ORDER BY fop.workspace_uuid IS NOT NULL DESC LIMIT 1) fork_of_package ON true \
+              \WHERE (knowledge_model_editor.name ~* ? OR knowledge_model_editor.km_id ~* ?) AND knowledge_model_editor.tenant_uuid = ? %s \
               \%s OFFSET %s LIMIT %s"
-              [U.toString tenantUuid, mapSort sort, show skip, show sizeI]
+              [U.toString tenantUuid, workspaceCondition, mapSort sort, show skip, show sizeI]
     logQuery sql conditionParams
     let action conn = query conn sql conditionParams
     entities <- runDB action
@@ -145,7 +156,7 @@ updateKnowledgeModelEditorByUuid kmEditor = do
   tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString
-          "UPDATE knowledge_model_editor SET uuid = ?, name = ?, km_id = ?, previous_package_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, tenant_uuid = ?, version = ?, description = ?, readme = ?, license = ?, metamodel_version = ?, squashed = ?, language = ? WHERE tenant_uuid = ? AND uuid = ?;"
+          "UPDATE knowledge_model_editor SET uuid = ?, name = ?, km_id = ?, previous_package_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, tenant_uuid = ?, version = ?, description = ?, readme = ?, license = ?, metamodel_version = ?, squashed = ?, language = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?;"
   let params = toRow kmEditor ++ [toField tenantUuid, toField . U.toText $ kmEditor.uuid]
   logInsertAndUpdate sql params
   let action conn = execute conn sql params

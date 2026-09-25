@@ -243,12 +243,14 @@ sendProjectCommentThreadAssignedMail :: WizardRequestContextC s m => [ProjectCom
 sendProjectCommentThreadAssignedMail notifications =
   runInTransaction $ do
     tcMail <- findTenantConfigMail
+    clientUrl <- getClientUrl
     case notifications of
       [] -> return ()
       notification : _ -> do
         let notificationFn n =
               A.Object . KM.fromList $
                 [ ("projectUuid", A.uuid n.projectUuid)
+                , ("workspaceUuid", A.uuid n.workspaceUuid)
                 , ("projectName", A.string n.projectName)
                 , ("commentThreadUuid", A.uuid n.commentThreadUuid)
                 , ("path", A.string n.path)
@@ -267,7 +269,7 @@ sendProjectCommentThreadAssignedMail notifications =
                     M.fromList
                       [ ("userFirstName", A.string notification.assignedTo.firstName)
                       , ("notifications", A.Array . Vector.fromList . fmap notificationFn $ notifications)
-                      , ("clientUrl", A.string notification.clientUrl)
+                      , ("clientUrl", A.string clientUrl)
                       , ("appTitle", A.maybeString notification.appTitle)
                       , ("logoUrl", A.maybeString notification.logoUrl)
                       , ("primaryColor", A.maybeString notification.primaryColor)

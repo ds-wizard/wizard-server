@@ -68,14 +68,14 @@ import Shared.Util.Uuid
 getDocumentsPageDto :: WizardRequestContextC s m => Maybe U.UUID -> Maybe U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page DocumentDTO)
 getDocumentsPageDto mProjectUuid mDocumentTemplateUuid mQuery pageable sort = do
   checkPermission _PROJECTS_EDIT_ROLE_PERMISSION
-  docPage <- findDocumentsPage mProjectUuid Nothing mDocumentTemplateUuid mQuery pageable sort
+  docPage <- findDocumentsPage True mProjectUuid Nothing mDocumentTemplateUuid mQuery pageable sort
   traverse enhanceDocument docPage
 
 getDocumentsForProject :: WizardRequestContextC s m => U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page DocumentDTO)
 getDocumentsForProject projectUuid mQuery pageable sort = do
   project <- findProjectByUuid projectUuid
   checkViewPermissionToDoc' project
-  docPage <- findDocumentsPage (Just projectUuid) (Just project.name) Nothing mQuery pageable sort
+  docPage <- findDocumentsPage False (Just projectUuid) (Just project.name) Nothing mQuery pageable sort
   traverse enhanceDocument docPage
 
 createDocument :: WizardRequestContextC s m => DocumentCreateDTO -> m DocumentDTO
@@ -101,7 +101,7 @@ createDocument reqDto =
     tcOrganization <- findTenantConfigOrganization
     projectVersions <- findProjectVersionsByProjectUuid project.uuid
     let docContextHash = computeHash [] project projectVersions projectContent.phaseUuid projectContent.replies tcOrganization mCurrentUser
-    let doc = fromCreateDTO reqDto uuid docContextHash filteredProjectEvents mCurrentUser project.tenantUuid now
+    let doc = fromCreateDTO reqDto uuid docContextHash filteredProjectEvents mCurrentUser project.tenantUuid project.workspaceUuid now
     insertDocument doc
     pkg <- findPackageByUuid project.knowledgeModelPackageUuid
     publishToPersistentCommandQueue doc pkg [] project Nothing

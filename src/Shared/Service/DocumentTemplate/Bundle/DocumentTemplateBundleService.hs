@@ -36,6 +36,7 @@ import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.String
 import Shared.Util.Uuid
 
@@ -65,6 +66,7 @@ pullBundleFromRegistry :: WizardRequestContextC s m => Coordinate -> m DocumentT
 pullBundleFromRegistry coordinate =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
+    workspaceUuid <- requirePlaneScope
     checkDocumentTemplateLimit coordinate.organizationId coordinate.entityId
     tb <- catchError (retrieveDocumentTemplateBundleByCoordinate coordinate) handleError
     importAndConvertBundle tb True
@@ -79,14 +81,15 @@ importAndConvertBundle contentS fromRegistry =
   runInTransaction $ case fromDocumentTemplateArchive contentS of
     Right (bundle, assetContents) -> do
       checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
+      workspaceUuid <- requirePlaneScope
       checkDocumentTemplateLimit bundle.organizationId bundle.templateId
       let assetSize = foldl (\acc (_, content) -> acc + (fromIntegral . BS.length $ content)) 0 assetContents
       checkStorageSize assetSize
       uuid <- liftIO generateUuid
       tenantUuid <- asks (.tenantUuid')
-      let dt = fromBundle bundle uuid tenantUuid
+      let dt = fromBundle bundle uuid tenantUuid workspaceUuid
       validateNewDocumentTemplate dt True
-      deleteOldDocumentTemplateIfPresent bundle
+      deleteOldDocumentTemplateIfPresent bundle workspaceUuid
       insertDocumentTemplate dt
       traverse_ (insertDocumentTemplateFormat . fromFormatDTO dt.uuid tenantUuid dt.createdAt dt.updatedAt) bundle.formats
       traverse_ (importFile dt) bundle.files
@@ -98,11 +101,11 @@ importAndConvertBundle contentS fromRegistry =
       return . toSimple $ dt
     Left error -> throwError error
 
-deleteOldDocumentTemplateIfPresent :: WizardRequestContextC s m => DocumentTemplateBundleDTO -> m ()
-deleteOldDocumentTemplateIfPresent bundle =
+deleteOldDocumentTemplateIfPresent :: WizardRequestContextC s m => DocumentTemplateBundleDTO -> Maybe U.UUID -> m ()
+deleteOldDocumentTemplateIfPresent bundle workspaceUuid =
   runInTransaction $ do
     let coordinate = createCoordinate bundle
-    mOldDt <- findDocumentTemplateByCoordinate' coordinate
+    mOldDt <- findDocumentTemplateByCoordinate' coordinate workspaceUuid
     case mOldDt of
       Just oldDt -> do
         oldAssets <- findAssetsByDocumentTemplateUuid oldDt.uuid

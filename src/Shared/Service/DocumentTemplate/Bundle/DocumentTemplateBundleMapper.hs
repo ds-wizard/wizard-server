@@ -83,8 +83,8 @@ fromAssetEntry tb archive asset =
     Just assetEntry -> Right (asset, BSL.toStrict . fromEntry $ assetEntry)
     Nothing -> Left $ UserError (_ERROR_SERVICE_TB__MISSING_ASSET asset.fileName)
 
-fromBundle :: DocumentTemplateBundleDTO -> U.UUID -> U.UUID -> DocumentTemplate
-fromBundle tb uuid tenantUuid =
+fromBundle :: DocumentTemplateBundleDTO -> U.UUID -> U.UUID -> Maybe U.UUID -> DocumentTemplate
+fromBundle tb uuid tenantUuid workspaceUuid =
   DocumentTemplate
     { uuid = uuid
     , name = tb.name
@@ -103,4 +103,5 @@ fromBundle tb uuid tenantUuid =
     , tenantUuid = tenantUuid
     , createdAt = tb.createdAt
     , updatedAt = tb.createdAt
+    , workspaceUuid = workspaceUuid
     }

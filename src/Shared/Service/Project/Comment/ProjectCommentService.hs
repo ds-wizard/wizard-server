@@ -80,11 +80,10 @@ sendNotificationToNewAssignees =
 
 sendNotificationGroup :: WizardRequestContextC s m => [ProjectCommentThreadNotification] -> m ()
 sendNotificationGroup [] = return ()
-sendNotificationGroup notifications@(notification : _) = do
-  enriched <-
-    local (setTenantUuid notification.tenantUuid) $
-      traverse fillInQuestionTitle notifications
-  sendProjectCommentThreadAssignedMail enriched
+sendNotificationGroup notifications@(notification : _) =
+  local (setTenantUuid notification.tenantUuid) $ do
+    enriched <- traverse fillInQuestionTitle notifications
+    sendProjectCommentThreadAssignedMail enriched
 
 fillInQuestionTitle :: WizardRequestContextC s m => ProjectCommentThreadNotification -> m ProjectCommentThreadNotification
 fillInQuestionTitle n = do

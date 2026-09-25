@@ -37,6 +37,7 @@ import Shared.Service.KnowledgeModel.Editor.EditorUtil
 import Shared.Service.KnowledgeModel.Editor.EditorValidation
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 
 getEditorsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page KnowledgeModelEditorList)
@@ -64,16 +65,18 @@ createEditorWithParams uuid now currentUser reqDto =
     checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
     validateCreateDto reqDto
     tenantUuid <- asks (.tenantUuid')
+    workspaceUuid <- requireWorkspaceScope
     mPreviousPkg <-
       case reqDto.previousPackageUuid of
         Just previousPackageUuid -> do
           previousPkg <- findPackageByUuid previousPackageUuid
+          checkPackagePlane workspaceUuid previousPkg.workspaceUuid
           when
             previousPkg.nonEditable
             (throwError . UserError $ _ERROR_SERVICE_PKG__NON_EDITABLE_PKG)
           return . Just $ previousPkg
         Nothing -> return Nothing
-    let editor = fromCreateDTO reqDto uuid mPreviousPkg currentUser.uuid tenantUuid now
+    let editor = fromCreateDTO reqDto uuid mPreviousPkg currentUser.uuid tenantUuid workspaceUuid now
     insertKnowledgeModelEditor editor
     createDefaultEventIfPreviousPackageIsNotPresent editor
     return $ toList editor Nothing DefaultKnowledgeModelEditorState
@@ -110,7 +113,7 @@ getEditorByUuid kmEditorUuid = do
   mForkOfPackage <-
     case mForkOfPackageId of
       Just forkOfPackageId -> do
-        pkg <- findPackageByCoordinate forkOfPackageId
+        pkg <- findPackageByCoordinate forkOfPackageId (Just editor.workspaceUuid)
         return . Just $ pkg
       Nothing -> return Nothing
   return $ toDetailDTO editor editorEvents editorReplies mPreviousPackage knowledgeModel mForkOfPackageId mForkOfPackage kmEditorState
@@ -138,7 +141,7 @@ modifyEditor kmEditorUuid reqDto =
     mForkOfPackage <-
       case mForkOfPackageId of
         Just forkOfPackageId -> do
-          pkg <- findPackageByCoordinate forkOfPackageId
+          pkg <- findPackageByCoordinate forkOfPackageId (Just editor.workspaceUuid)
           return . Just $ pkg
         Nothing -> return Nothing
     return $ toDetailDTO editor editorEvents editorReplies mPreviousPackage knowledgeModel mForkOfPackageId mForkOfPackage kmEditorState

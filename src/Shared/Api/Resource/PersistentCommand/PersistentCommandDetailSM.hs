@@ -7,7 +7,6 @@ import Shared.Api.Resource.PersistentCommand.PersistentCommandDetailJM ()
 import Shared.Api.Resource.PersistentCommand.WizardPersistentCommandSM ()
 import Shared.Api.Resource.Tenant.WizardTenantSM ()
 import Shared.Api.Resource.User.UserSuggestionSM ()
-import Shared.Constant.Api
 import Shared.Database.Migration.Development.PersistentCommand.Data.WizardPersistentCommands
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers

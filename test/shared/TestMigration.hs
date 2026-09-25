@@ -27,6 +27,8 @@ import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.User.RoleDAO (insertRole)
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserTokenDAO
+import Shared.Database.DAO.Workspace.WorkspaceDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import qualified Shared.Database.Migration.Development.Audit.AuditSchemaMigration as Audit
 import qualified Shared.Database.Migration.Development.Common.CommonSchemaMigration as Common
 import qualified Shared.Database.Migration.Development.Component.ComponentSchemaMigration as Component
@@ -67,6 +69,8 @@ import qualified Shared.Database.Migration.Development.User.UserOpenIdIdentitySc
 import qualified Shared.Database.Migration.Development.User.UserRegistrationPendingSchemaMigration as UserRegistrationPending
 import qualified Shared.Database.Migration.Development.User.UserSchemaMigration as User
 import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLinkSchemaMigration as UserEmailLink
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
+import qualified Shared.Database.Migration.Development.Workspace.WorkspaceSchemaMigration as Workspace
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Tenant.Config.TenantConfig
 import Shared.Model.Tenant.Config.WizardTenantConfig
@@ -108,6 +112,7 @@ buildSchema requestContext = do
   runInContext UserOpenIdIdentity.dropTables requestContext
   runInContext User.dropTables requestContext
   runInContext Role.dropTables requestContext
+  runInContext Workspace.dropTables requestContext
   runInContext Tenant.dropConfigTables requestContext
   runInContext OpenIdClient.dropTables requestContext
   runInContext DocumentTemplate.dropTables requestContext
@@ -123,6 +128,7 @@ buildSchema requestContext = do
   putStrLn "DB: Creating schema"
   runInContext Instance.createTables requestContext
   runInContext Tenant.createTables requestContext
+  runInContext Workspace.createTables requestContext
   runInContext Plugin.createTables requestContext
   runInContext Locale.createTables requestContext
   runInContext DocumentTemplate.createTables requestContext
@@ -130,6 +136,7 @@ buildSchema requestContext = do
   runInContext OpenIdClient.createTables requestContext
   runInContext Role.createTables requestContext
   runInContext User.createTables requestContext
+  runInContext Workspace.createMembershipTable requestContext
   runInContext UserOpenIdIdentity.createTables requestContext
   runInContext UserRegistrationPending.createTables requestContext
   runInContext TemporaryFile.createTables requestContext
@@ -176,6 +183,8 @@ resetDBContent requestContext = do
   runInContext (insertPlugin differentPlugin1) requestContext
   runInContext (insertLimitBundle defaultTenantLimitBundle) requestContext
   runInContext (insertTenant differentTenant) requestContext
+  runInContext (insertWorkspace defaultWorkspace) requestContext
+  runInContext (insertWorkspace differentWorkspace) requestContext
   runInContext (insertLimitBundle differentTenantLimitBundle) requestContext
   runInContext (insertTenantConfigOrganization defaultOrganization) requestContext
   runInContext (insertTenantConfigAuthentication defaultAuthenticationEncrypted) requestContext
@@ -201,6 +210,9 @@ resetDBContent requestContext = do
   runInContext (insertUser userAlbert) requestContext
   runInContext (insertUserToken albertToken) requestContext
   runInContext (insertUser userCharles) requestContext
+  runInContext (insertWorkspaceMembership (defaultWorkspaceMembership userSystem)) requestContext
+  runInContext (insertWorkspaceMembership (defaultWorkspaceMembership userAlbert)) requestContext
+  runInContext (insertWorkspaceMembership (differentWorkspaceMembership userCharles)) requestContext
   runInContext (insertPackage globalKmPackageEmpty) requestContext
   runInContext (traverse_ insertPackageEvent globalKmPackageEmptyEvents) requestContext
   runInContext (insertPackage globalKmPackage) requestContext
@@ -258,11 +270,13 @@ deleteAllEntitiesSql =
     , "knowledge_model_package"
     , "user_token"
     , "user_group_membership"
+    , "workspace_membership"
     , "user_openid_identity"
     , "user_tour"
     , "user_entity"
     , "role"
     , "user_group"
+    , "workspace"
     , "locale"
     , "tenant_limit_bundle"
     , "plugin"

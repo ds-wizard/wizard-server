@@ -63,9 +63,9 @@ createMigration kmEditorUuid reqDto =
     editor <- findKnowledgeModelEditorByUuid kmEditorUuid
     previousPkg <- getPreviousPkg editor
     mergeCheckpointPkgId <- getMergeCheckpointPackageId editor
-    mergeCheckpointPkg <- findPackageByCoordinate mergeCheckpointPkgId
+    mergeCheckpointPkg <- findPackageByCoordinate mergeCheckpointPkgId (Just editor.workspaceUuid)
     forkOfPkgId <- getForkOfPackageId editor
-    forkOfPkg <- findPackageByCoordinate forkOfPkgId
+    forkOfPkg <- findPackageByCoordinate forkOfPkgId (Just editor.workspaceUuid)
     validateMigrationUniqueness kmEditorUuid
     validateIfTargetPackageVersionIsHigher forkOfPkgId (createCoordinate targetPkg)
     editorEvents <- getEditorEvents previousPkg.uuid mergeCheckpointPkg.uuid

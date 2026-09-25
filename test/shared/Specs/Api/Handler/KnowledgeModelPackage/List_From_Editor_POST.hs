@@ -2,6 +2,7 @@ module Specs.Api.Handler.KnowledgeModelPackage.List_From_Editor_POST (
   list_from_editor_POST,
 ) where
 
+import Control.Monad (when)
 import Data.Aeson (encode)
 import Network.HTTP.Types
 import Network.Wai (Application)
@@ -12,7 +13,9 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
 import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishEditorDTO
+import Shared.Constant.Workspace
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelLocaleDAO
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Locale.KnowledgeModelLocales
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
@@ -21,6 +24,7 @@ import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeM
 import Shared.Localization.Messages.KnowledgeModel.Public
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Locale.KnowledgeModelLocale
+import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.S3.KnowledgeModel.KnowledgeModelLocaleS3
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishService
@@ -29,6 +33,7 @@ import WizardServer.Model.Context.RequestContext
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelPackage.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -62,8 +67,12 @@ reqBody = encode reqDto
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_201 requestContext =
-  it "HTTP 201 CREATED" $
+test_201 requestContext = do
+  create_test_201 "HTTP 201 CREATED" requestContext False Nothing
+  create_test_201 "HTTP 201 CREATED (multi-workspace tenant publishes into the workspace plane)" requestContext True (Just defaultWorkspaceUuid)
+
+create_test_201 title requestContext multiWorkspace expWorkspaceUuid =
+  it title $
     -- GIVEN: Prepare expectation
     do
       let expStatus = 201
@@ -73,6 +82,7 @@ test_201 requestContext =
       -- AND: Run migrations
       runInContextIO KnowledgeModelPackage.runMigration requestContext
       runInContextIO KnowledgeModelEditor.runMigration requestContext
+      when multiWorkspace (enableMultiWorkspace requestContext)
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -82,6 +92,8 @@ test_201 requestContext =
       comparePackageDtos resBody expDto
       -- AND: Find result in DB and compare with expectation state
       assertExistenceOfBundlePackageInDB requestContext expDto
+      packageFromDb <- getOneFromDB (findPackageByUuid resBody.uuid) requestContext
+      liftIO $ packageFromDb.workspaceUuid `shouldBe` expWorkspaceUuid
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

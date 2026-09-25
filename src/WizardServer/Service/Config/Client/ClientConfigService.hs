@@ -28,7 +28,6 @@ import Shared.Model.Tenant.Tenant
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
 import Shared.Service.Tenant.Config.ConfigService
 import Shared.Service.Tenant.TenantHelper
-import Shared.Service.Tenant.TenantMapper (toClientUrlBase)
 import Shared.Service.User.WizardUserMapper
 import WizardServer.Api.Resource.Config.ClientConfigDTO
 import WizardServer.Database.DAO.Tenant.PluginSettings.TenantPluginSettingsDAO
@@ -42,7 +41,7 @@ getClientConfig mServerUrl mClientUrl = do
   mCurrentUser <- asks (.currentUser')
   tenant <-
     if serverConfig.cloud.enabled
-      then maybe getCurrentTenant (findTenantByClientUrl . toClientUrlBase) mClientUrl
+      then maybe getCurrentTenant findTenantByClientUrl mClientUrl
       else getCurrentTenant
   case tenant.state of
     NotSeededTenantState -> do

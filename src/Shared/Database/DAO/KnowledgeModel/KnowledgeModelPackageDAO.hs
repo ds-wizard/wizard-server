@@ -38,14 +38,15 @@ findPackagesPage
   -> Pageable
   -> [Sort]
   -> m (Page KnowledgeModelPackageList)
-findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort =
+findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort = do
+  workspaceCondition <- tenantOrWorkspaceCondition "knowledge_model_package.workspace_uuid"
   createFindEntitiesGroupByCoordinatePageableQuerySortFn
     entityName
     "registry_knowledge_model_package"
     pageLabel
     pageable
     sort
-    "uuid, knowledge_model_package.name, knowledge_model_package.organization_id, knowledge_model_package.km_id, version, phase, description, non_editable, public, registry_knowledge_model_package.remote_version, registry_organization.name as org_name, registry_organization.logo as org_logo, knowledge_model_package.language, knowledge_model_package.created_at"
+    "uuid, knowledge_model_package.name, knowledge_model_package.organization_id, knowledge_model_package.km_id, version, phase, description, non_editable, public, registry_knowledge_model_package.remote_version, registry_organization.name as org_name, registry_organization.logo as org_logo, knowledge_model_package.language, knowledge_model_package.created_at, knowledge_model_package.workspace_uuid"
     "km_id"
     mQuery
     Nothing
@@ -56,6 +57,8 @@ findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort =
         Just _ -> " AND is_outdated(registry_knowledge_model_package.remote_version, version) = ?"
         Nothing -> ""
     )
+    True
+    workspaceCondition
 
 findPackageSuggestionByUuid :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelPackageSuggestion
 findPackageSuggestionByUuid uuid = do
@@ -90,8 +93,9 @@ findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase 
           case mNonEditable of
             Just nonEditable -> f' "AND non_editable = '%s'" [show nonEditable]
             Nothing -> ""
+    workspaceCondition <- tenantOrWorkspaceCondition "workspace_uuid"
     -- 2. Get total count
-    count <- countPackageSuggestions mQuery selectCondition excludeCondition selectParams excludeParams phaseCondition nonEditableCondition
+    count <- countPackageSuggestions mQuery selectCondition excludeCondition selectParams excludeParams phaseCondition (nonEditableCondition ++ workspaceCondition)
     -- 3. Get entities
     let sql =
           fromString $
@@ -103,19 +107,19 @@ findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase 
               \       version, \
               \       description \
               \FROM knowledge_model_package outer_package \
-              \WHERE tenant_uuid = ? AND concat(organization_id, ':', km_id, ':', version) IN ( \
+              \WHERE tenant_uuid = ? AND concat(organization_id, ':', km_id, ':', version, ':', workspace_uuid) IN ( \
               \    SELECT CONCAT(organization_id, ':', km_id, ':', \
               \                  (max(string_to_array(version, '.')::int[]))[1] || '.' || \
               \                  (max(string_to_array(version, '.')::int[]))[2] || '.' || \
-              \                  (max(string_to_array(version, '.')::int[]))[3]) \
+              \                  (max(string_to_array(version, '.')::int[]))[3], ':', workspace_uuid) \
               \    FROM knowledge_model_package \
               \    WHERE tenant_uuid = ? \
-              \      AND (name ~* ? OR organization_id ~* ? OR km_id ~* ? OR version ~* ?) %s %s %s %s \
-              \    GROUP BY organization_id, km_id) \
+              \      AND (name ~* ? OR organization_id ~* ? OR km_id ~* ? OR version ~* ?) %s %s %s %s %s \
+              \    GROUP BY organization_id, km_id, workspace_uuid) \
               \%s \
               \OFFSET %s \
               \LIMIT %s"
-              [selectCondition, excludeCondition, phaseCondition, nonEditableCondition, mapSort sort, show skip, show sizeI]
+              [selectCondition, excludeCondition, phaseCondition, nonEditableCondition, workspaceCondition, mapSort sort, show skip, show sizeI]
     let params =
           [U.toString tenantUuid, U.toString tenantUuid]
             ++ [regexM mQuery]
@@ -147,7 +151,7 @@ countPackageSuggestions mQuery selectCondition excludeCondition selectParams exc
             \FROM (SELECT COUNT(*) \
             \   FROM knowledge_model_package \
             \   WHERE tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR km_id ~* ? OR version ~* ?) %s %s %s %s \
-            \   GROUP BY organization_id, km_id) nested"
+            \   GROUP BY organization_id, km_id, workspace_uuid) nested"
             [selectCondition, excludeCondition, phaseCondition, nonEditableCondition]
   let params =
         [U.toString tenantUuid, regexM mQuery, regexM mQuery, regexM mQuery, regexM mQuery]

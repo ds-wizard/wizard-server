@@ -49,6 +49,7 @@ toDTO doc submissions =
     , submissions = submissions
     , createdBy = doc.createdBy
     , createdAt = doc.createdAt
+    , workspaceUuid = doc.workspaceUuid
     }
 
 toDTOWithDocTemplate :: Document -> Project -> Maybe String -> [SubmissionList] -> DocumentTemplate -> DocumentTemplateFormatSimple -> DocumentDTO
@@ -71,10 +72,11 @@ toDTOWithDocTemplate doc project mProjectVersion submissions dt format =
     , submissions = submissions
     , createdBy = doc.createdBy
     , createdAt = doc.createdAt
+    , workspaceUuid = doc.workspaceUuid
     }
 
-fromCreateDTO :: DocumentCreateDTO -> U.UUID -> Int -> [ProjectEventList] -> Maybe UserDTO -> U.UUID -> UTCTime -> Document
-fromCreateDTO dto docUuid repliesHash projectEvents mCurrentUser tenantUuid now =
+fromCreateDTO :: DocumentCreateDTO -> U.UUID -> Int -> [ProjectEventList] -> Maybe UserDTO -> U.UUID -> U.UUID -> UTCTime -> Document
+fromCreateDTO dto docUuid repliesHash projectEvents mCurrentUser tenantUuid workspaceUuid now =
   Document
     { uuid = docUuid
     , name = trim dto.name
@@ -98,6 +100,7 @@ fromCreateDTO dto docUuid repliesHash projectEvents mCurrentUser tenantUuid now 
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = now
+    , workspaceUuid = workspaceUuid
     }
 
 fromTemporallyCreateDTO :: U.UUID -> Project -> Maybe U.UUID -> U.UUID -> U.UUID -> Maybe String -> Int -> Maybe UserDTO -> U.UUID -> UTCTime -> Bool -> Document
@@ -125,6 +128,7 @@ fromTemporallyCreateDTO docUuid project projectEventUuid documentTemplateUuid fo
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = now
+    , workspaceUuid = project.workspaceUuid
     }
 
 toTemporaryPackage :: U.UUID -> UTCTime -> KnowledgeModelPackage
@@ -147,6 +151,7 @@ toTemporaryPackage tenantUuid createdAt =
     , nonEditable = False
     , public = False
     , tenantUuid = tenantUuid
+    , workspaceUuid = Nothing
     , createdAt = createdAt
     }
 
@@ -172,6 +177,7 @@ toTemporaryProject kmEditor package mCurrentUser =
     , tenantUuid = kmEditor.tenantUuid
     , createdAt = kmEditor.createdAt
     , updatedAt = kmEditor.updatedAt
+    , workspaceUuid = kmEditor.workspaceUuid
     }
 
 toDocPersistentCommand :: U.UUID -> DocumentContext -> Document -> PersistentCommand U.UUID

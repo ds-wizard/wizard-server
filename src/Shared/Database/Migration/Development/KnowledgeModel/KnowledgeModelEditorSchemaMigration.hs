@@ -54,11 +54,15 @@ createKnowledgeModelEditorTable = do
         \    metamodel_version     integer     NOT NULL, \
         \    squashed              boolean     NOT NULL, \
         \    language              varchar     NOT NULL DEFAULT 'en', \
+        \    workspace_uuid        uuid        NOT NULL, \
         \    CONSTRAINT knowledge_model_editor_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT knowledge_model_editor_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT knowledge_model_editor_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \    CONSTRAINT knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT knowledge_model_editor_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+        \); \
+        \ \
+        \CREATE INDEX knowledge_model_editor_workspace_uuid_index ON knowledge_model_editor (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
@@ -164,7 +168,7 @@ createGetKnowledgeModelEditorStateFn = do
         \               WHEN knowledge_model_migration.state ->> 'type' IS NOT NULL AND \
         \                    knowledge_model_migration.state ->> 'type' = 'CompletedKnowledgeModelMigrationState' THEN 'MigratedKnowledgeModelEditorState' \
         \               WHEN (SELECT COUNT(*) FROM knowledge_model_editor_event editor_event WHERE editor_event.tenant_uuid = editor.tenant_uuid AND editor_event.editor_uuid = editor.uuid) > 0 THEN 'EditedKnowledgeModelEditorState' \
-        \               WHEN fork_of_package_id != get_newest_knowledge_model_package_coordinate(fork_of_package_id, editor.tenant_uuid, ARRAY['ReleasedKnowledgeModelPackagePhase', 'DeprecatedKnowledgeModelPackagePhase']) THEN 'OutdatedKnowledgeModelEditorState' \
+        \               WHEN fork_of_package_id != get_newest_knowledge_model_package_coordinate(fork_of_package_id, editor.tenant_uuid, ARRAY['ReleasedKnowledgeModelPackagePhase', 'DeprecatedKnowledgeModelPackagePhase'], editor.workspace_uuid) THEN 'OutdatedKnowledgeModelEditorState' \
         \               WHEN True THEN 'DefaultKnowledgeModelEditorState' END \
         \    INTO state; \
         \    RETURN state; \

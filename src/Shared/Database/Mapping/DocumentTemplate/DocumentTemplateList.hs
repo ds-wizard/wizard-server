@@ -29,4 +29,5 @@ instance FromRow DocumentTemplateList where
     remoteOrganizationName <- field
     remoteOrganizationLogo <- field
     createdAt <- field
+    workspaceUuid <- field
     return $ DocumentTemplateList {..}

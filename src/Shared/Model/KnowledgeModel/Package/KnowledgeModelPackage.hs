@@ -30,6 +30,7 @@ data KnowledgeModelPackage = KnowledgeModelPackage
   , public :: Bool
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 

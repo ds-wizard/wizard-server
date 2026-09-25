@@ -24,5 +24,6 @@ data DocumentList = DocumentList
   , workerLog :: Maybe String
   , createdBy :: Maybe U.UUID
   , createdAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

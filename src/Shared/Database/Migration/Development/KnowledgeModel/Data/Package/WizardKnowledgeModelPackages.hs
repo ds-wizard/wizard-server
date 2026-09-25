@@ -105,6 +105,7 @@ differentPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 

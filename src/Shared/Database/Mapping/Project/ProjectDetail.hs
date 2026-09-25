@@ -23,4 +23,5 @@ instance FromRow ProjectDetail where
     isTemplate <- field
     permissions <- loadPermissions uuid
     fileCount <- field
+    workspaceUuid <- field
     return $ ProjectDetail {..}

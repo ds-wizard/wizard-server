@@ -11,6 +11,7 @@ data KnowledgeModelSecret = KnowledgeModelSecret
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Generic)
 
@@ -20,3 +21,4 @@ instance Eq KnowledgeModelSecret where
       && name a == name b
       && value a == value b
       && tenantUuid a == tenantUuid b
+      && workspaceUuid a == workspaceUuid b

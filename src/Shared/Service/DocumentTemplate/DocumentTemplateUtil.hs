@@ -12,11 +12,11 @@ groupDocumentTemplates :: [DocumentTemplate] -> [[DocumentTemplate]]
 groupDocumentTemplates =
   groupBy (\t1 t2 -> t1.organizationId == t2.organizationId && t1.templateId == t2.templateId)
 
-resolveDocumentTemplateCoordinate :: RequestContextC s sc m => Coordinate -> m DocumentTemplate
-resolveDocumentTemplateCoordinate coordinate =
+resolveDocumentTemplateCoordinate :: RequestContextC s sc m => Coordinate -> Maybe U.UUID -> m DocumentTemplate
+resolveDocumentTemplateCoordinate coordinate mWorkspaceUuid =
   if coordinate.version == "latest"
-    then findLatestDocumentTemplateByOrganizationIdAndTemplateId coordinate.organizationId coordinate.entityId
-    else findDocumentTemplateByCoordinate coordinate
+    then findLatestDocumentTemplateByOrganizationIdAndTemplateId coordinate.organizationId coordinate.entityId mWorkspaceUuid
+    else findDocumentTemplateByCoordinate coordinate mWorkspaceUuid
 
 changeDocumentTemplateIdInFormats :: U.UUID -> U.UUID -> [DocumentTemplateFormat] -> [DocumentTemplateFormat]
 changeDocumentTemplateIdInFormats documentTemplateUuid tenantUuid =

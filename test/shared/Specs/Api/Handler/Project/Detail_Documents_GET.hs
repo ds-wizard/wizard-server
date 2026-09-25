@@ -15,6 +15,7 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.Document.DocumentJM ()
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Database.DAO.Document.DocumentDAO
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Project.ProjectVersionDAO
@@ -22,6 +23,7 @@ import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.ProjectEvents
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
@@ -44,6 +46,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -53,6 +56,7 @@ detail_documents_GET :: RequestContext -> SpecWith ((), Application)
 detail_documents_GET requestContext =
   describe "GET /api/projects/{projectUuid}/documents" $ do
     test_200 requestContext
+    test_200_workspace requestContext
     test_403 requestContext
     test_404 requestContext
 
@@ -105,6 +109,37 @@ create_test_200 title requestContext authHeader =
               , toDTOWithDocTemplate doc2' project6 (Just "Version 1") []
               ]
       let expBody = encode (fmap (\x -> x wizardDocumentTemplate formatJsonSimple) expDto)
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200_workspace requestContext =
+  it "HTTP 200 OK (Non-Owner with permission, not a member of the workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project16.uuid
+      let reqHeaders = reqHeadersT [reqNonAdminAuthHeader]
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO (insertPackage amsterdamKmPackage) requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertProject project16) requestContext
+      runInContextIO deleteDocuments requestContext
+      runInContextIO removeDocumentContents requestContext
+      runInContextIO (insertDocument secondWorkspaceDoc) requestContext
+      -- AND: Prepare expectation
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = Page "documents" (PageMetadata 20 1 1 0) [toDTOWithDocTemplate secondWorkspaceDoc project16 Nothing [] wizardDocumentTemplate formatJsonSimple]
+      let expBody = encode expDto
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

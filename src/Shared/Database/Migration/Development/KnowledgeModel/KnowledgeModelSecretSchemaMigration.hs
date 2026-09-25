@@ -26,8 +26,11 @@ createTables = do
         \    tenant_uuid uuid        NOT NULL, \
         \    created_at  timestamptz NOT NULL, \
         \    updated_at  timestamptz NOT NULL, \
+        \    workspace_uuid uuid, \
         \    CONSTRAINT knowledge_model_secret_pk PRIMARY KEY (uuid), \
-        \    CONSTRAINT knowledge_model_secret_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \    CONSTRAINT knowledge_model_secret_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT knowledge_model_secret_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+        \); \
+        \CREATE INDEX knowledge_model_secret_workspace_uuid_index ON knowledge_model_secret (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action

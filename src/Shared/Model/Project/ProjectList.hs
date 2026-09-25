@@ -22,6 +22,7 @@ data ProjectList = ProjectList
   , isTemplate :: Bool
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Generic, Show)
 
@@ -37,3 +38,4 @@ instance Eq ProjectList where
       && a.knowledgeModelPackage == b.knowledgeModelPackage
       && a.permissions == b.permissions
       && a.isTemplate == b.isTemplate
+      && a.workspaceUuid == b.workspaceUuid

@@ -21,6 +21,7 @@ instance ToRow Tenant where
     , toField updatedAt
     , toField serverUrl
     , toField state
+    , toField multiWorkspace
     ]
 
 instance FromRow Tenant where
@@ -35,6 +36,7 @@ instance FromRow Tenant where
     updatedAt <- field
     serverUrl <- field
     state <- field
+    multiWorkspace <- field
     return $ Tenant {..}
 
 instance ToField TenantState where

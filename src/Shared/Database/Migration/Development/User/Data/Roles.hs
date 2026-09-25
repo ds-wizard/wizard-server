@@ -29,6 +29,7 @@ adminRole =
         ]
     , isAdmin = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = Nothing
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 20
     }
@@ -47,6 +48,7 @@ dataStewardRole =
         ]
     , isAdmin = False
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = Nothing
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 20
     }
@@ -59,6 +61,7 @@ researcherRole =
     , permissions = []
     , isAdmin = False
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = Nothing
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 20
     }
@@ -77,6 +80,7 @@ differentAdminRole =
   adminRole
     { uuid = u' "8261f971-eaa9-44bf-ba35-fb5cb0dc92eb"
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = Nothing
     }
 
 differentDataStewardRole :: Role
@@ -84,6 +88,7 @@ differentDataStewardRole =
   dataStewardRole
     { uuid = u' "3f09af4e-07b1-4d61-b79f-e2689a6903f4"
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = Nothing
     }
 
 differentResearcherRole :: Role
@@ -91,4 +96,5 @@ differentResearcherRole =
   researcherRole
     { uuid = u' "59f1d8c9-9ba5-4063-8ee8-e75d752a2c3c"
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = Nothing
     }

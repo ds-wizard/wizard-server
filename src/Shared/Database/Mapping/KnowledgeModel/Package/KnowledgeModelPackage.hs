@@ -29,6 +29,7 @@ instance ToRow KnowledgeModelPackage where
     , toField nonEditable
     , toField public
     , toField language
+    , toField workspaceUuid
     ]
 
 instance FromRow KnowledgeModelPackage where
@@ -51,4 +52,5 @@ instance FromRow KnowledgeModelPackage where
     nonEditable <- field
     public <- field
     language <- field
+    workspaceUuid <- field
     return $ KnowledgeModelPackage {..}

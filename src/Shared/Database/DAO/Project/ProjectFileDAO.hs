@@ -34,10 +34,12 @@ findProjectFilesPage mQuery mProjectUuid pageable sort = do
           case mQuery of
             Nothing -> ("", [])
             Just query -> (" AND file_name ~* ?", [query])
-    let (projectUuidCondition, projectUuidParam) =
+    workspaceCondition <- workspaceOnlyCondition "project.workspace_uuid"
+    let projectUuidCondition =
           case mProjectUuid of
-            Nothing -> ("", [])
-            Just projectUuid -> (" AND project_uuid = ?", [U.toString projectUuid])
+            Nothing -> workspaceCondition
+            Just _ -> " AND file.project_uuid = ?"
+    let projectUuidParam = maybe [] (\projectUuid -> [U.toString projectUuid]) mProjectUuid
     let condition =
           f''
             "WHERE file.tenant_uuid = ? ${queryCondition} ${projectUuidCondition}"
@@ -50,7 +52,7 @@ findProjectFilesPage mQuery mProjectUuid pageable sort = do
             ++ projectUuidParam
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
-    count <- createCountByFn "project_file file" condition conditionParams
+    count <- createCountByFn "project_file file LEFT JOIN project ON project.uuid = file.project_uuid AND project.tenant_uuid = file.tenant_uuid" condition conditionParams
     -- 3. Get entities
     let sql =
           fromString $

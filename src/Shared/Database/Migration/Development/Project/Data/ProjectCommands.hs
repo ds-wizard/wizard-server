@@ -18,6 +18,7 @@ command1 =
         ]
     , knowledgeModelPackageUuid = netherlandsKmPackageV2.uuid
     , documentTemplateUuid = Just wizardDocumentTemplate.uuid
+    , workspaceUuid = Nothing
     }
 
 command2 :: CreateProjectCommand
@@ -30,4 +31,5 @@ command2 =
         ]
     , knowledgeModelPackageUuid = netherlandsKmPackageV2.uuid
     , documentTemplateUuid = Nothing
+    , workspaceUuid = Nothing
     }

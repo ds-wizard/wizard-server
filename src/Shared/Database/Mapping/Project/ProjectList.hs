@@ -46,6 +46,7 @@ instance FromRow ProjectList where
             Just groupPermissions -> L.sort . fmap (parseGroupPermission uuid) . fromPGArray $ groupPermissions
             Nothing -> []
     let permissions = userPermissions ++ groupPermissions
+    workspaceUuid <- field
     return $ ProjectList {..}
     where
       parseUserPermission :: U.UUID -> String -> ProjectPermDTO

@@ -12,6 +12,7 @@ import Shared.Api.Resource.Project.ProjectCreateDTO
 import Shared.Api.Resource.Project.ProjectDTO
 import Shared.Api.Resource.Project.ProjectSettingsChangeDTO
 import Shared.Api.Resource.Project.ProjectShareChangeDTO
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
@@ -25,6 +26,7 @@ import Shared.Database.Migration.Development.Project.Data.ProjectVersions
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Model.Common.Lens
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.KnowledgeModel.KnowledgeModel
@@ -39,6 +41,7 @@ import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.User
 import Shared.Model.User.UserGroup
+import Shared.Model.Workspace.Workspace
 import Shared.Service.Project.Event.ProjectEventMapper
 import Shared.Service.Project.ProjectMapper
 import Shared.Util.Date
@@ -70,6 +73,7 @@ project1 =
     , isTemplate = True
     , squashed = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 25
     , language = Nothing
@@ -203,6 +207,7 @@ project2 =
     , isTemplate = False
     , squashed = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 22
     , language = Nothing
@@ -227,6 +232,7 @@ project2Edited =
     , isTemplate = False
     , squashed = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = project2.createdAt
     , updatedAt = project2.updatedAt
     , language = Nothing
@@ -309,6 +315,7 @@ project3 =
     , isTemplate = False
     , squashed = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 28
     , language = Nothing
@@ -358,6 +365,7 @@ project4 =
     , isTemplate = False
     , squashed = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 25
     , language = Nothing
@@ -864,6 +872,7 @@ project15 =
     , isTemplate = False
     , squashed = True
     , tenantUuid = defaultTenant.uuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 29
     , language = Nothing
@@ -911,6 +920,26 @@ project15GroupEditProjectPermDto = toUserGroupProjectPermDTO project15GroupEditP
 
 -- ------------------------------------------------------------------------
 -- ------------------------------------------------------------------------
+project16 :: Project
+project16 =
+  project14
+    { uuid = u' "5a2f1c8d-7e3b-4b6a-9d1c-2f4e6a8b0c3d"
+    , name = "Second workspace project"
+    , permissions = [project16NikolaEditProjectPerm]
+    , workspaceUuid = secondWorkspace.uuid
+    }
+
+project16Dto :: ProjectDTO
+project16Dto = toSimpleDTO project16 amsterdamKmPackage UpToDateKnowledgeModelProjectState (Just UpToDateDocumentTemplateProjectState) [project16NikolaEditProjectPermDto]
+
+project16NikolaEditProjectPerm :: ProjectPerm
+project16NikolaEditProjectPerm = project14NikolaEditProjectPerm {projectUuid = project16.uuid}
+
+project16NikolaEditProjectPermDto :: ProjectPermDTO
+project16NikolaEditProjectPermDto = toUserProjectPermDTO project16NikolaEditProjectPerm userNikola
+
+-- ------------------------------------------------------------------------
+-- ------------------------------------------------------------------------
 differentProject :: Project
 differentProject =
   Project
@@ -930,6 +959,7 @@ differentProject =
     , isTemplate = True
     , squashed = True
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = differentWorkspaceUuid
     , createdAt = dt' 2018 1 20
     , updatedAt = dt' 2018 1 25
     , language = Nothing

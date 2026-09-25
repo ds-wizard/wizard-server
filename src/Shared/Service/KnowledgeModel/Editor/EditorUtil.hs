@@ -67,7 +67,7 @@ getEditorState editor eventSize mForkOfPackageId = do
     isOutdated continue =
       case mForkOfPackageId of
         Just forkOfPackageId -> do
-          mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' forkOfPackageId.organizationId forkOfPackageId.entityId Nothing
+          mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' forkOfPackageId.organizationId forkOfPackageId.entityId Nothing (Just editor.workspaceUuid)
           case mLatestPkg of
             Just latestPkg ->
               if createCoordinate latestPkg /= forkOfPackageId

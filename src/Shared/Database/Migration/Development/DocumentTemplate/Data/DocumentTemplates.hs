@@ -5,6 +5,7 @@ import Data.Time
 
 import Shared.Constant.DocumentTemplate
 import Shared.Constant.Tenant
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.DocumentTemplate.DocumentTemplate
@@ -30,6 +31,7 @@ wizardDocumentTemplate =
     , language = "en"
     , potFileReady = False
     , tenantUuid = defaultTenantUuid
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
@@ -84,6 +86,7 @@ anotherWizardDocumentTemplate =
     , language = "en"
     , potFileReady = False
     , tenantUuid = defaultTenantUuid
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
@@ -107,6 +110,17 @@ differentDocumentTemplate =
     , language = "en"
     , potFileReady = False
     , tenantUuid = differentTenantUuid
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
+    }
+
+-- ---------------------------------------------------------------------------------------------------------------------
+workspaceWizardDocumentTemplate :: DocumentTemplate
+workspaceWizardDocumentTemplate =
+  wizardDocumentTemplate
+    { uuid = u' "b3c4d5e6-7f80-4a1b-9c2d-3e4f5a6b7c8d"
+    , name = "Workspace Project Report"
+    , templateId = "project-report-ws"
+    , workspaceUuid = Just defaultWorkspaceUuid
     }

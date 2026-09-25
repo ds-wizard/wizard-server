@@ -37,5 +37,6 @@ data Document = Document
   , retrievedAt :: Maybe UTCTime
   , finishedAt :: Maybe UTCTime
   , createdAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

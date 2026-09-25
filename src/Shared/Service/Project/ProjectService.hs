@@ -75,6 +75,7 @@ import Shared.Service.Project.ProjectValidation
 import Shared.Service.Project.Version.ProjectVersionService
 import Shared.Service.Tenant.Config.ConfigService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
@@ -121,9 +122,11 @@ createProjectWithGivenUuid reqDto projectUuid =
   runInTransaction $ do
     checkProjectLimit
     checkCreatePermissionToProject
+    workspaceUuid <- requireWorkspaceScope
     pkg <- findPackageByUuid reqDto.knowledgeModelPackageUuid
-    knowledgeModelState <- getKnowledgeModelProjectState pkg
-    documentTemplateState <- getDocumentTemplateProjectState reqDto.documentTemplateUuid
+    checkPackagePlane workspaceUuid pkg.workspaceUuid
+    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just workspaceUuid)
+    documentTemplateState <- getDocumentTemplateProjectState reqDto.documentTemplateUuid (Just workspaceUuid)
     now <- liftIO getCurrentTime
     tenantUuid <- asks (.tenantUuid')
     visibility <- extractVisibility reqDto
@@ -142,6 +145,7 @@ createProjectWithGivenUuid reqDto projectUuid =
             phaseEventUuid
             (headSafe knowledgeModel.phaseUuids)
             tenantUuid
+            workspaceUuid
             now
     insertProject project
     insertProjectEvents projectEvents
@@ -185,8 +189,8 @@ createProjectFromTemplate reqDto =
     insertProjectEvents (fmap (toEvent newProjectUuid newProject.tenantUuid) newProjectEventsWithReplacedFiles)
     duplicateCommentThreads reqDto.projectUuid newProjectUuid
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
-    knowledgeModelState <- getKnowledgeModelProjectState pkg
-    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid
+    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
+    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
     permissionDtos <- traverse enhanceProjectPerm newProject.permissions
     return $ toSimpleDTO newProject pkg knowledgeModelState documentTemplateState permissionDtos
 
@@ -220,8 +224,8 @@ cloneProject cloneUuid =
     insertProjectEvents (fmap (toEvent newProjectUuid newProject.tenantUuid) newProjectEventsWithReplacedFiles)
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
     duplicateCommentThreads cloneUuid newProjectUuid
-    knowledgeModelState <- getKnowledgeModelProjectState pkg
-    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid
+    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
+    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
     permissionDtos <- traverse enhanceProjectPerm newProject.permissions
     return $ toSimpleDTO newProject pkg knowledgeModelState documentTemplateState permissionDtos
 
@@ -234,8 +238,9 @@ createProjectsFromCommands = runInTransaction . traverse_ create
       now <- liftIO getCurrentTime
       tcProject <- getCurrentTenantConfigProject
       users <- findUsersByEmails (fmap (fmap toLower) command.emails)
+      workspaceUuid <- resolveCommandWorkspaceUuid command.workspaceUuid
       let permissions = fmap (createPermission uuid) users
-      let project = fromCreateProjectCommand command uuid permissions tcProject currentUser.uuid now
+      let project = fromCreateProjectCommand command uuid permissions tcProject currentUser.uuid workspaceUuid now
       insertProject project
       return ()
     createPermission :: U.UUID -> User -> ProjectPerm

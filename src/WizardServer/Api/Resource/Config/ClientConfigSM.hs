@@ -7,7 +7,6 @@ import Shared.Api.Resource.Common.AesonSM ()
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientSimpleSM ()
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientStyleSM ()
 import Shared.Api.Resource.Plugin.PluginListSM ()
-import Shared.Constant.Api
 import Shared.Database.Migration.Development.OpenId.Data.OpenIdClients
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
 import qualified Shared.Database.Migration.Development.Tenant.Data.TenantConfigs as STC

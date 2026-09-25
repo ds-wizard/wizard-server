@@ -30,6 +30,7 @@ toDTO tenant mLogoUrl mPrimaryColor =
     , clientUrl = tenantClientUrl tenant
     , state = tenant.state
     , enabled = tenant.enabled
+    , multiWorkspace = tenant.multiWorkspace
     , logoUrl = mLogoUrl
     , primaryColor = mPrimaryColor
     , createdAt = tenant.createdAt
@@ -47,6 +48,7 @@ toDetailDTO tenant mLogoUrl mPrimaryColor usage users =
     , clientUrl = tenantClientUrl tenant
     , state = tenant.state
     , enabled = tenant.enabled
+    , multiWorkspace = tenant.multiWorkspace
     , logoUrl = mLogoUrl
     , primaryColor = mPrimaryColor
     , usage = usage
@@ -72,6 +74,7 @@ fromRegisterCreateDTO reqDto aUuid serverConfig now =
         , state = ReadyForUseTenantState
         , createdAt = now
         , updatedAt = now
+        , multiWorkspace = False
         }
 
 fromAdminCreateDTO :: TenantCreateDTO -> U.UUID -> ServerConfig -> UTCTime -> Tenant
@@ -80,7 +83,7 @@ fromAdminCreateDTO reqDto aUuid serverConfig now =
    in Tenant
         { uuid = aUuid
         , tenantId = reqDto.tenantId
-        , name = reqDto.tenantName
+        , name = trim reqDto.tenantName
         , serverDomain = createServerDomain serverConfig reqDto.tenantId
         , serverUrl = url
         , clientUrl = url
@@ -88,6 +91,7 @@ fromAdminCreateDTO reqDto aUuid serverConfig now =
         , state = ReadyForUseTenantState
         , createdAt = now
         , updatedAt = now
+        , multiWorkspace = False
         }
 
 fromChangeDTO :: Tenant -> TenantChangeDTO -> ServerConfig -> Tenant
@@ -99,7 +103,7 @@ fromChangeDTO tenant reqDto serverConfig =
    in Tenant
         { uuid = tenant.uuid
         , tenantId = reqDto.tenantId
-        , name = reqDto.name
+        , name = trim reqDto.name
         , serverDomain = serverDomain
         , serverUrl = url
         , clientUrl = url
@@ -107,6 +111,7 @@ fromChangeDTO tenant reqDto serverConfig =
         , state = tenant.state
         , createdAt = tenant.createdAt
         , updatedAt = tenant.updatedAt
+        , multiWorkspace = tenant.multiWorkspace
         }
 
 toSuggestionUrls :: TenantSuggestion -> TenantSuggestion
@@ -116,10 +121,7 @@ tenantServerUrl :: HasField "serverUrl" entity String => entity -> String
 tenantServerUrl entity = f' "%s%s" [entity.serverUrl, apiPrefix]
 
 tenantClientUrl :: HasField "clientUrl" entity String => entity -> String
-tenantClientUrl entity = f' "%s/wizard" [entity.clientUrl]
-
-toClientUrlBase :: String -> String
-toClientUrlBase = stripSuffixIfExists "/wizard"
+tenantClientUrl entity = entity.clientUrl
 
 createServerDomain :: ServerConfig -> String -> String
 createServerDomain serverConfig tenantId = f' "%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]

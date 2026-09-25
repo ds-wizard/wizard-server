@@ -40,6 +40,7 @@ import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.Login.LoginService
 import Shared.Service.UserToken.Login.LoginValidation
+import Shared.Service.Workspace.WorkspaceMembershipService
 import Shared.Util.Uuid
 
 completeExternalRegistration :: WizardRequestContextC s m => UserFromExternalDTO -> Maybe String -> Maybe String -> m UserTokenDTO
@@ -112,4 +113,5 @@ createUserForPending pending reqDto emailVerified now = do
           tenantUuid
           now
   insertUser user
+  addUserToSingleWorkspace tenantUuid uUuid now
   return user

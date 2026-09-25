@@ -49,6 +49,7 @@ toList dt mDtR mOrgR phase =
           Just orgR -> orgR.logo
           Nothing -> Nothing
     , createdAt = dt.createdAt
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toSimpleDTO :: DocumentTemplate -> DocumentTemplateSimpleDTO
@@ -83,6 +84,7 @@ toSimpleDTO' registryEnabled dt =
                 }
           _ -> Nothing
     , createdAt = dt.createdAt
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toSuggestionDTOPage :: [DocumentTemplateSuggestion] -> Pageable -> Page DocumentTemplateSuggestionDTO
@@ -164,6 +166,7 @@ toDetailDTO tml formats registryEnabled tmlRs orgRs versionLs registryLink pkgs 
           then selectOrganizationByOrgId tml orgRs
           else Nothing
     , createdAt = tml.createdAt
+    , workspaceUuid = tml.workspaceUuid
     }
 
 toChangeDTO :: DocumentTemplate -> DocumentTemplateChangeDTO
@@ -190,6 +193,7 @@ fromChangeDTO dto dt =
     , language = dt.language
     , potFileReady = dt.potFileReady
     , tenantUuid = dt.tenantUuid
+    , workspaceUuid = dt.workspaceUuid
     , createdAt = dt.createdAt
     , updatedAt = dt.updatedAt
     }

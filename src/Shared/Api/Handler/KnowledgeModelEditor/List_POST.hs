@@ -1,5 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelEditor.List_POST where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -16,6 +17,8 @@ type List_POST =
     :> Header "Host" String
     :> ReqBody '[SafeJSON] KnowledgeModelEditorCreateDTO
     :> "knowledge-model-editors"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> Verb 'POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelEditorList)
 
 list_POST
@@ -23,7 +26,9 @@ list_POST
   => Maybe String
   -> Maybe String
   -> KnowledgeModelEditorCreateDTO
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelEditorList)
-list_POST mTokenHeader mServerUrl reqDto =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_POST mTokenHeader mServerUrl reqDto mW mTenant =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $ addTraceUuidHeader =<< createEditor reqDto

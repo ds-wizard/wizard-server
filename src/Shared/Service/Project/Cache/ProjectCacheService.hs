@@ -17,6 +17,7 @@ import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Project.Cache.ProjectCache
 import Shared.Model.Project.Cache.ProjectCacheSource
+import Shared.Model.Project.Project
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Project.ProjectService
 import Shared.Service.Report.ReportService
@@ -54,6 +55,7 @@ refreshProjectCache source =
         (questionnaire, report) <- computeQuestionnaireAndReport source.projectUuid
         versions <- findProjectVersionListByProjectUuidAndCreatedAt source.projectUuid Nothing
         tenantUuid <- asks (.tenantUuid')
+        project <- findProjectByUuid source.projectUuid
         void $
           insertProjectCache
             ProjectCache
@@ -66,6 +68,7 @@ refreshProjectCache source =
               , tenantUuid = tenantUuid
               , createdAt = now
               , updatedAt = now
+              , workspaceUuid = project.workspaceUuid
               }
 
 computeQuestionnaireAndReport :: WizardRequestContextC s m => U.UUID -> m (ProjectDetailQuestionnaireDTO, ProjectDetailReportDTO)

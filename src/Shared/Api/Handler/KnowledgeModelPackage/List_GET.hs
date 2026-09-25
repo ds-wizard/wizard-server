@@ -1,5 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelPackage.List_GET where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -15,6 +16,8 @@ type List_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "knowledge-model-packages"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> QueryParam "organizationId" String
     :> QueryParam "kmId" String
     :> QueryParam "q" String
@@ -28,6 +31,8 @@ list_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> Maybe String
   -> Maybe String
@@ -36,8 +41,8 @@ list_GET
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page KnowledgeModelPackageSimpleDTO))
-list_GET mTokenHeader mServerUrl mOrganizationId mKmId mQuery mOutdated mPage mSize mSort =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_GET mTokenHeader mServerUrl mW mTenant mOrganizationId mKmId mQuery mOutdated mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
         =<< getPackagesPage mOrganizationId mKmId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)

@@ -21,6 +21,7 @@ data KnowledgeModelPackageList = KnowledgeModelPackageList
   , remoteOrganizationLogo :: Maybe String
   , language :: String
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 

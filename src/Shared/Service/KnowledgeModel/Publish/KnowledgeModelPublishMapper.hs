@@ -15,6 +15,7 @@ import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper
 fromPackage
   :: KnowledgeModelEditor
   -> U.UUID
+  -> Maybe U.UUID
   -> Maybe Coordinate
   -> Maybe Coordinate
   -> TenantConfigOrganization
@@ -24,7 +25,7 @@ fromPackage
   -> [KnowledgeModelEvent]
   -> UTCTime
   -> (KnowledgeModelPackage, [KnowledgeModelPackageEvent])
-fromPackage editor uuid forkOfPkgId mergeCheckpointPkgId org version description readme events now =
+fromPackage editor uuid workspaceUuid forkOfPkgId mergeCheckpointPkgId org version description readme events now =
   ( KnowledgeModelPackage
       { uuid = uuid
       , name = editor.name
@@ -43,6 +44,7 @@ fromPackage editor uuid forkOfPkgId mergeCheckpointPkgId org version description
       , nonEditable = False
       , public = False
       , tenantUuid = editor.tenantUuid
+      , workspaceUuid = workspaceUuid
       , createdAt = now
       }
   , fmap (toPackageEvent uuid editor.tenantUuid) events

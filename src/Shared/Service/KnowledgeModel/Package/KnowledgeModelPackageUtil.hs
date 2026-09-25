@@ -2,6 +2,8 @@ module Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageUtil where
 
 import qualified Data.List as L
 
+import qualified Data.UUID as U
+
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Model.Context.RequestContext
 import Shared.Model.Coordinate.Coordinate
@@ -51,8 +53,8 @@ fitsIntoKMSpec coordinate kmSpec = heCompareOrgId $ heCompareKmId $ heCompareVer
             _ -> callback
         Nothing -> callback
 
-resolvePackageCoordinate :: RequestContextC s sc m => Coordinate -> m KnowledgeModelPackage
-resolvePackageCoordinate coordinate =
+resolvePackageCoordinate :: RequestContextC s sc m => Coordinate -> Maybe U.UUID -> m KnowledgeModelPackage
+resolvePackageCoordinate coordinate mWorkspaceUuid =
   if coordinate.version == "latest"
-    then findLatestPackageByOrganizationIdAndKmId coordinate.organizationId coordinate.entityId Nothing
-    else findPackageByCoordinate coordinate
+    then findLatestPackageByOrganizationIdAndKmId coordinate.organizationId coordinate.entityId Nothing mWorkspaceUuid
+    else findPackageByCoordinate coordinate mWorkspaceUuid

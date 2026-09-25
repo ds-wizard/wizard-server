@@ -17,6 +17,7 @@ data TenantDetailDTO = TenantDetailDTO
   , clientUrl :: String
   , state :: TenantState
   , enabled :: Bool
+  , multiWorkspace :: Bool
   , logoUrl :: Maybe String
   , primaryColor :: Maybe String
   , usage :: WizardUsageDTO

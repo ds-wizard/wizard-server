@@ -17,7 +17,7 @@ validateChangeDto reqDto dt = do
   let newCoordinate = Coordinate dt.organizationId reqDto.templateId reqDto.version
   when
     (reqDto.templateId /= dt.templateId || reqDto.version /= dt.version)
-    (validateDocumentTemplateIdUniqueness newCoordinate)
+    (validateDocumentTemplateIdUniqueness newCoordinate dt.workspaceUuid)
   validatePhase dt.uuid reqDto.phase
 
 validatePhase :: WizardRequestContextC s m => U.UUID -> DocumentTemplatePhase -> m ()

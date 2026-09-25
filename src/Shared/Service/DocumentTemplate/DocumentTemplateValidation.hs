@@ -1,7 +1,8 @@
 module Shared.Service.DocumentTemplate.DocumentTemplateValidation where
 
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Control.Monad.Except (throwError)
+import Data.Maybe (maybeToList)
 import qualified Data.UUID as U
 import GHC.Records
 
@@ -21,7 +22,7 @@ import Shared.Model.Error.Error
 
 validateNewDocumentTemplate :: WizardRequestContextC s m => DocumentTemplate -> Bool -> m ()
 validateNewDocumentTemplate dt shouldValidateMetamodelVersion = do
-  validateDocumentTemplateIdUniqueness (createCoordinate dt)
+  validateDocumentTemplateIdUniqueness (createCoordinate dt) dt.workspaceUuid
   when shouldValidateMetamodelVersion (validateMetamodelVersion dt)
 
 validateChangeDto :: WizardRequestContextC s m => U.UUID -> DocumentTemplateChangeDTO -> m ()
@@ -33,12 +34,13 @@ validatePhase uuid newPhase = do
     (newPhase == DraftDocumentTemplatePhase)
     (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_UNSUPPORTED_STATE (U.toString uuid) (show newPhase))
 
-validateDocumentTemplateIdUniqueness :: WizardRequestContextC s m => Coordinate -> m ()
-validateDocumentTemplateIdUniqueness coordinate = do
-  mDt <- findDocumentTemplateByCoordinate' coordinate
-  case mDt of
-    Nothing -> return ()
-    Just _ -> throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate)
+validateDocumentTemplateIdUniqueness :: WizardRequestContextC s m => Coordinate -> Maybe U.UUID -> m ()
+validateDocumentTemplateIdUniqueness coordinate mWorkspaceUuid = do
+  dts <-
+    case mWorkspaceUuid of
+      Just _ -> maybeToList <$> findDocumentTemplateByCoordinate' coordinate mWorkspaceUuid
+      Nothing -> findDocumentTemplatesFiltered [("organization_id", coordinate.organizationId), ("template_id", coordinate.entityId), ("version", coordinate.version)]
+  unless (null dts) (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate))
 
 validateDocumentTemplateDeletion :: WizardRequestContextC s m => U.UUID -> m ()
 validateDocumentTemplateDeletion dtUuid = do

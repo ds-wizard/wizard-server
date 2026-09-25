@@ -43,9 +43,9 @@ enhanceProjectPerm projectPerm =
       userGroup <- findUserGroupByUuid projectPerm.memberUuid
       return $ toUserGroupProjectPermDTO projectPerm userGroup
 
-getKnowledgeModelProjectState :: WizardRequestContextC s m => KnowledgeModelPackage -> m KnowledgeModelProjectState
-getKnowledgeModelProjectState pkg = do
-  mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' pkg.organizationId pkg.kmId (Just ReleasedKnowledgeModelPackagePhase)
+getKnowledgeModelProjectState :: WizardRequestContextC s m => KnowledgeModelPackage -> Maybe U.UUID -> m KnowledgeModelProjectState
+getKnowledgeModelProjectState pkg mWorkspaceUuid = do
+  mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' pkg.organizationId pkg.kmId (Just ReleasedKnowledgeModelPackagePhase) mWorkspaceUuid
   case mLatestPkg of
     Just latestPkg ->
       if latestPkg.uuid == pkg.uuid
@@ -53,13 +53,13 @@ getKnowledgeModelProjectState pkg = do
         else return OutdatedKnowledgeModelProjectState
     Nothing -> return UpToDateKnowledgeModelProjectState
 
-getDocumentTemplateProjectState :: WizardRequestContextC s m => Maybe U.UUID -> m (Maybe DocumentTemplateProjectState)
-getDocumentTemplateProjectState mDocumentTemplateUuid =
+getDocumentTemplateProjectState :: WizardRequestContextC s m => Maybe U.UUID -> Maybe U.UUID -> m (Maybe DocumentTemplateProjectState)
+getDocumentTemplateProjectState mDocumentTemplateUuid mWorkspaceUuid =
   case mDocumentTemplateUuid of
     Nothing -> return Nothing
     Just documentTemplateUuid -> do
       documentTemplate <- findDocumentTemplateByUuid documentTemplateUuid
-      templates <- findDocumentTemplatesByOrganizationIdAndKmId documentTemplate.organizationId documentTemplate.templateId
+      templates <- findDocumentTemplatesByOrganizationIdAndKmId documentTemplate.organizationId documentTemplate.templateId mWorkspaceUuid
       let releasedTemplates = filter (\t -> t.phase == ReleasedDocumentTemplatePhase) templates
       case releasedTemplates of
         [] -> return (Just UpToDateDocumentTemplateProjectState)

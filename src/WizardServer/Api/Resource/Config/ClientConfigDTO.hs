@@ -35,6 +35,7 @@ data ClientConfigDTO
       , pluginSettings :: M.Map U.UUID A.Value
       , signalBridge :: ClientConfigSignalBridgeDTO
       , modules :: [ClientConfigModuleDTO]
+      , multiWorkspace :: Bool
       }
   deriving (Show, Eq, Generic)
 

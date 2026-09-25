@@ -34,6 +34,7 @@ import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService
 import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishMapper
 import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishValidation
 import Shared.Service.KnowledgeModel.Squash.Squasher
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 
 publishPackageFromKnowledgeModelEditor :: WizardRequestContextC s m => PackagePublishEditorDTO -> m KnowledgeModelPackageSimpleDTO
@@ -99,7 +100,8 @@ doPublishPackage version kmEditor kmEvents description readme mForkOfPkgId mMerg
   validateNewPackageVersion version kmEditor tcOrganization
   uuid <- liftIO generateUuid
   now <- liftIO getCurrentTime
-  let (pkg, pkgEvents) = fromPackage kmEditor uuid mForkOfPkgId mMergeCheckpointPkgId tcOrganization version description readme squashedKmEvents now
+  workspaceUuid <- planeOfWorkspace kmEditor.workspaceUuid
+  let (pkg, pkgEvents) = fromPackage kmEditor uuid workspaceUuid mForkOfPkgId mMergeCheckpointPkgId tcOrganization version description readme squashedKmEvents now
   createdPkg <- createPackage (pkg, pkgEvents)
   copyLocalesForPublishedPackage mLocaleUuids kmEditor.previousPackageUuid pkg.uuid
   let updatedKmEditor = kmEditor {previousPackageUuid = Just pkg.uuid, updatedAt = now} :: KnowledgeModelEditor
