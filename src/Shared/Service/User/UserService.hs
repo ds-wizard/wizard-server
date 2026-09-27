@@ -45,6 +45,7 @@ import Shared.Service.Mail.Mailer
 import Shared.Service.Tenant.Config.ConfigService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
+import Shared.Service.User.RoleAcl
 import Shared.Service.User.UserAudit
 import qualified Shared.Service.User.UserOpenIdIdentityMapper as UserOpenIdIdentityMapper
 import Shared.Service.User.UserValidation
@@ -330,7 +331,10 @@ getRoleForUser roleUuid = do
   getRoleForUserInTenant tenantUuid roleUuid
 
 getRoleForUserInTenant :: WizardRequestContextC s m => U.UUID -> U.UUID -> m Role
-getRoleForUserInTenant tenantUuid roleUuid = findRoleByUuidAndTenant roleUuid tenantUuid
+getRoleForUserInTenant tenantUuid roleUuid = do
+  role <- findRoleByUuidAndTenant roleUuid tenantUuid
+  checkOrganizationRole role
+  return role
 
 generatePasswordHash :: WizardRequestContextC s m => String -> m String
 generatePasswordHash password = do

@@ -9,5 +9,6 @@ data WorkspaceMembership = WorkspaceMembership
   , userUuid :: U.UUID
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
+  , roleUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

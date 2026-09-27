@@ -13,13 +13,13 @@ import qualified Data.UUID as U
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.WizardCommon
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.KnowledgeModelLenses
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Service.KnowledgeModel.KnowledgeModelService
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
 import Shared.Util.Gettext
@@ -28,7 +28,7 @@ import Shared.Util.String (f', trim)
 getTemporaryFileWithTranslationTemplate :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getTemporaryFileWithTranslationTemplate pkgUuid =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToPackage pkgUuid
     pkg <- findPackageByUuid pkgUuid
     knowledgeModel <- compileKnowledgeModel [] (Just pkgUuid) []
     now <- liftIO getCurrentTime

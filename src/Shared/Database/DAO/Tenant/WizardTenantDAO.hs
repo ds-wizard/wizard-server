@@ -1,5 +1,6 @@
 module Shared.Database.DAO.Tenant.WizardTenantDAO where
 
+import Control.Monad (void)
 import Control.Monad.Reader (liftIO)
 import qualified Data.List as L
 import Data.String
@@ -25,6 +26,14 @@ pageLabel = "tenants"
 
 findTenants :: WizardRequestContextC s m => m [Tenant]
 findTenants = createFindEntitiesFn entityName
+
+lockTenantByUuid :: WizardRequestContextC s m => U.UUID -> m ()
+lockTenantByUuid uuid = do
+  let sql = fromString "SELECT uuid FROM tenant WHERE uuid = ? FOR UPDATE"
+  let params = [toField uuid]
+  logQuery sql params
+  let action conn = query conn sql params :: IO [Only U.UUID]
+  void (runDB action)
 
 findTenantsPage :: WizardRequestContextC s m => Maybe String -> Maybe [TenantState] -> Maybe Bool -> Pageable -> [Sort] -> m (Page Tenant)
 findTenantsPage mQuery mStates mEnabled pageable sort = do

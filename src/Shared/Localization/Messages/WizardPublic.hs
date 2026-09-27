@@ -197,5 +197,17 @@ _ERROR_VALIDATION__USER_ROLE_IN_USE =
 _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT =
   LocaleRecord "error.validation.role_is_default" "The role cannot be deleted because it is configured as the default role for new users" []
 
+_ERROR_VALIDATION__USER_ROLE_NOT_FOUND roleUuid =
+  LocaleRecord "error.validation.role_not_found" "Role '%s' does not exist" [roleUuid]
+
+_ERROR_VALIDATION__USER_ROLE_NOT_IN_WORKSPACE =
+  LocaleRecord "error.validation.role_not_in_workspace" "The role does not belong to the workspace" []
+
+_ERROR_VALIDATION__USER_ROLE_NOT_ORGANIZATION =
+  LocaleRecord "error.validation.role_not_organization" "A user can only be assigned an organization role" []
+
+_ERROR_VALIDATION__USER_ROLE_ORGANIZATION_ONLY_PERMISSION perm =
+  LocaleRecord "error.validation.role_organization_only_permission" "Permission '%s' can only be granted on an organization role" [perm]
+
 _ERROR_VALIDATION__USER_ROLE_INVALID_PERMISSION perm =
   LocaleRecord "error.validation.role_invalid_permission" "Permission '%s' is not a valid assignable permission" [perm]

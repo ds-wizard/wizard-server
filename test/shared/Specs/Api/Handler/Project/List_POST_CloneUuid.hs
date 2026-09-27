@@ -15,6 +15,7 @@ import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Project.ProjectCreateJM ()
 import Shared.Api.Resource.Project.ProjectDTO
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.User.UserDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
@@ -22,6 +23,7 @@ import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Localization.Messages.Public
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
+import Shared.Model.User.RolePermission
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -91,8 +93,31 @@ test_401 requestContext = createAuthTest reqMethod (reqUrlT project3.uuid) [] re
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext =
+test_403 requestContext = do
   create_test_403 "HTTP 403 FORBIDDEN (Non-Owner, Private)" requestContext project1 "View Project"
+  create_test_403_create requestContext
+
+create_test_403_create requestContext =
+  it "HTTP 403 FORBIDDEN (no projects.create in the project's workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project3.uuid
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 403
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _PROJECTS_CREATE_ROLE_PERMISSION))
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      runInContextIO (updateUserByUuid (userWithoutPerm requestContext.serverConfig _PROJECTS_CREATE_ROLE_PERMISSION)) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
 
 create_test_403 title requestContext project reason =
   it title $

@@ -18,6 +18,7 @@ import Shared.Model.Common.Sort
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
+import Shared.Model.User.RolePermission
 import Shared.Util.Logger
 
 entityName = "document_template"
@@ -34,7 +35,7 @@ findDraftsPage mQuery pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    workspaceCondition <- tenantOrWorkspaceCondition "workspace_uuid"
+    workspaceCondition <- tenantOrWorkspaceCondition (Just _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION) "workspace_uuid"
     let condition = "WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ?" ++ workspaceCondition
     let conditionParams = [regexM mQuery, regexM mQuery, U.toString tenantUuid]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable

@@ -39,8 +39,8 @@ toDTO user =
     , emailPending = user.emailPending
     }
 
-toUserProfile :: UserDTO -> [U.UUID] -> M.Map U.UUID A.Value -> UserProfile
-toUserProfile user userGroupUuids pluginSettings =
+toUserProfile :: UserDTO -> [U.UUID] -> M.Map U.UUID A.Value -> M.Map U.UUID RoleSimple -> UserProfile
+toUserProfile user userGroupUuids pluginSettings workspaceRoles =
   UserProfile
     { uuid = user.uuid
     , firstName = user.firstName
@@ -48,7 +48,8 @@ toUserProfile user userGroupUuids pluginSettings =
     , email = user.email
     , affiliation = user.affiliation
     , imageUrl = user.imageUrl
-    , role = user.role
+    , organizationRole = user.role
+    , workspaceRoles = workspaceRoles
     , lastSeenNewsId = user.lastSeenNewsId
     , userGroupUuids = userGroupUuids
     , pluginSettings = pluginSettings

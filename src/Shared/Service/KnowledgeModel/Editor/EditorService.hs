@@ -32,6 +32,7 @@ import Shared.Model.KnowledgeModel.Event.KnowledgeModel.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import Shared.Service.KnowledgeModel.Editor.EditorMapper
 import Shared.Service.KnowledgeModel.Editor.EditorUtil
 import Shared.Service.KnowledgeModel.Editor.EditorValidation
@@ -61,16 +62,16 @@ createEditor reqDto =
 createEditorWithParams :: WizardRequestContextC s m => U.UUID -> UTCTime -> UserDTO -> KnowledgeModelEditorCreateDTO -> m KnowledgeModelEditorList
 createEditorWithParams uuid now currentUser reqDto =
   runInTransaction $ do
+    workspaceUuid <- requireWorkspaceScope
     checkKnowledgeModelEditorLimit
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionInWorkspace _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION (Just workspaceUuid)
     validateCreateDto reqDto
     tenantUuid <- asks (.tenantUuid')
-    workspaceUuid <- requireWorkspaceScope
     mPreviousPkg <-
       case reqDto.previousPackageUuid of
         Just previousPackageUuid -> do
           previousPkg <- findPackageByUuid previousPackageUuid
-          checkPackagePlane workspaceUuid previousPkg.workspaceUuid
+          checkPackageWorkspace workspaceUuid previousPkg.workspaceUuid
           when
             previousPkg.nonEditable
             (throwError . UserError $ _ERROR_SERVICE_PKG__NON_EDITABLE_PKG)
@@ -102,7 +103,7 @@ createEditorWithParams uuid now currentUser reqDto =
 
 getEditorByUuid :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelEditorDetailDTO
 getEditorByUuid kmEditorUuid = do
-  checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+  checkPermissionToEditor kmEditorUuid
   editor <- findKnowledgeModelEditorByUuid kmEditorUuid
   editorEvents <- findKnowledgeModelEventsByEditorUuid kmEditorUuid
   editorReplies <- findKnowledgeModelRepliesByEditorUuid kmEditorUuid
@@ -121,7 +122,7 @@ getEditorByUuid kmEditorUuid = do
 modifyEditor :: WizardRequestContextC s m => U.UUID -> KnowledgeModelEditorChangeDTO -> m KnowledgeModelEditorDetailDTO
 modifyEditor kmEditorUuid reqDto =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor kmEditorUuid
     editorFromDB <- findKnowledgeModelEditorByUuid kmEditorUuid
     validateChangeDto reqDto
     now <- liftIO getCurrentTime
@@ -149,7 +150,6 @@ modifyEditor kmEditorUuid reqDto =
 deleteEditor :: WizardRequestContextC s m => U.UUID -> m ()
 deleteEditor kmEditorUuid =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
-    _ <- findKnowledgeModelEditorByUuid kmEditorUuid
+    checkPermissionToEditor kmEditorUuid
     deleteKnowledgeModelEditorByUuid kmEditorUuid
     void $ logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged kmEditorUuid

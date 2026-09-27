@@ -6,9 +6,9 @@
 *Wizard Server is the core application of the Data Stewardship Wizard: knowledge models,
 projects, document generation, user and tenant management and real-time collaboration.*
 
-Every tenant holds exactly one workspace, the boundary the shared schema and API scope projects,
-documents, editors and user groups to; the open-source server never creates a second one and its
-client never shows it.
+Every tenant holds exactly one workspace (with its seeded `Admin` and `User` roles), the boundary the shared
+schema and API scope projects, documents, editors and user groups to; the open-source server never creates a
+second one, its client never shows it and manages organization roles only (`GET /roles?tenant=true`).
 
 This repository is a read-only distribution: the sources are generated from the development
 repository and pushed here, so pull requests cannot be merged directly. Discuss changes in an

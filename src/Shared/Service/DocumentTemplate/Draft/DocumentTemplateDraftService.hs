@@ -36,6 +36,7 @@ import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetService
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation hiding (validateChangeDto)
 import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftMapper
@@ -54,15 +55,16 @@ getDraftsPage mQuery pageable sort = do
 createDraft :: WizardRequestContextC s m => DocumentTemplateDraftCreateDTO -> m DocumentTemplateSimple
 createDraft reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkPermissionInWorkspace _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION workspaceUuid
     checkDocumentTemplateDraftLimit
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     tcOrganization <- findTenantConfigOrganization
-    workspaceUuid <- requirePlaneScope
     case reqDto.basedOn of
       Just dtUuid -> do
         tml <- findDocumentTemplateByUuid dtUuid
+        checkTemplateInWorkspace workspaceUuid tml.workspaceUuid
         formats <- findDocumentTemplateFormats dtUuid
         when
           tml.nonEditable
@@ -88,7 +90,7 @@ createDraft reqDto =
 
 getDraft :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateDraftDetail
 getDraft dtUuid = do
-  checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+  checkEditorPermissionToDocumentTemplate dtUuid
   draft <- findDraftByUuid dtUuid
   formats <- findDocumentTemplateFormats draft.uuid
   draftData <- findDraftDataByUuid dtUuid
@@ -105,7 +107,7 @@ getDraft dtUuid = do
 modifyDraft :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftChangeDTO -> m DocumentTemplateDraftDetail
 modifyDraft dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate dtUuid
     -- Update draft
     now <- liftIO getCurrentTime
     draft <- findDraftByUuid dtUuid
@@ -129,7 +131,7 @@ modifyDraft dtUuid reqDto =
 modifyDraftData :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftDataChangeDTO -> m DocumentTemplateDraftDataDTO
 modifyDraftData dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate dtUuid
     draftData <- findDraftDataByUuid dtUuid
     let updatedDraftData = fromDraftDataChangeDTO draftData reqDto
     updateDraftDataById updatedDraftData
@@ -146,6 +148,6 @@ modifyDraftData dtUuid reqDto =
 deleteDraft :: WizardRequestContextC s m => U.UUID -> m ()
 deleteDraft uuid =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate uuid
     draft <- findDraftByUuid uuid
     void $ deleteDraftByUuid uuid

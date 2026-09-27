@@ -1,7 +1,8 @@
 module WizardServer.Api.Handler.Common where
 
 import Control.Monad.Except (catchError, throwError)
-import Control.Monad.Reader (ask, liftIO, local)
+import Control.Monad.Reader (ask, asks, liftIO, local)
+import qualified Data.Map.Strict as M
 import Data.Maybe (fromMaybe)
 import qualified Data.UUID as U
 import Shared.Api.Handler.Common
@@ -11,6 +12,7 @@ import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleJM 
 import Shared.Api.Resource.User.UserDTO
 import Shared.Constant.Tenant
 import Shared.Database.DAO.Tenant.WizardTenantDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.UserToken.Public
@@ -52,7 +54,9 @@ instance WizardHandlerC ServerContext ServerContextM RequestContext RequestConte
 withScope :: Maybe U.UUID -> Maybe Bool -> RequestContextM a -> RequestContextM a
 withScope mW mTenant function = do
   scope <- resolveScope mW mTenant
-  local (\context -> context {scope = scope}) function
+  mCurrentUser <- asks currentUser
+  workspaceRoles <- maybe (return M.empty) (findWorkspaceRolesByUserUuid . (.uuid)) mCurrentUser
+  local (\context -> context {scope = scope, workspaceRoles = workspaceRoles}) function
 
 runWithSystemUser :: RequestContextM a -> ServerContextM a
 runWithSystemUser function = do

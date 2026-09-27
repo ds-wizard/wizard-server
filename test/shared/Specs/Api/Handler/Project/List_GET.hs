@@ -24,8 +24,10 @@ import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
+import Shared.Model.Error.Error
 import Shared.Model.User.User
 import Shared.Model.User.UserGroup
 import Shared.Model.Workspace.Workspace
@@ -43,6 +45,7 @@ list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
   describe "GET /api/projects" $ do
     test_200 requestContext
+    test_400 requestContext
     test_401 requestContext
 
 -- ----------------------------------------------------
@@ -247,24 +250,35 @@ test_200 requestContext = do
   create_test_200_workspace
     "HTTP 200 OK (Admin - w)"
     requestContext
+    insertSecondWorkspace
     (BS.pack $ "/api/projects?sort=uuid,asc&w=" ++ U.toString secondWorkspace.uuid)
     reqAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project16Dto])
   create_test_200_workspace
     "HTTP 200 OK (Admin - all workspaces of the caller)"
     requestContext
+    insertSecondWorkspace
     "/api/projects?sort=uuid,asc"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 7 1 0) [project3Dto, project16Dto, project14Dto, project1Dto, project15Dto, project2Dto, project12Dto])
   create_test_200_workspace
-    "HTTP 200 OK (Admin - not a member of w)"
+    "HTTP 200 OK (Admin - workspace of another tenant)"
     requestContext
+    insertSecondWorkspace
     (BS.pack $ "/api/projects?sort=uuid,asc&w=" ++ U.toString differentWorkspaceUuid)
+    reqAuthHeader
+    (Page "projects" (PageMetadata 20 0 0 0) ([] :: [ProjectDTO]))
+  create_test_200_workspace
+    "HTTP 200 OK (not a member of w)"
+    requestContext
+    insertSecondWorkspaceWithoutCaller
+    (BS.pack $ "/api/projects?sort=uuid,asc&w=" ++ U.toString secondWorkspaceUuid)
     reqAuthHeader
     (Page "projects" (PageMetadata 20 0 0 0) ([] :: [ProjectDTO]))
   create_test_200_workspace
     "HTTP 200 OK (Non-Admin - only the workspaces the caller is a member of)"
     requestContext
+    insertSecondWorkspace
     "/api/projects?sort=uuid,asc"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 5 1 0) [project3Dto, project14Dto, project15Dto, project2Dto, project12Dto])
@@ -296,9 +310,32 @@ create_test_200 title requestContext reqUrl reqAuthHeader expDto =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
+test_400 requestContext =
+  it "HTTP 400 BAD REQUEST (tenant=true on a workspace-only entity)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED)
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod "/api/projects?tenant=true" reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
 test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 
-create_test_200_workspace title requestContext reqUrl reqAuthHeader expDto =
+create_test_200_workspace title requestContext prepareWorkspace reqUrl reqAuthHeader expDto =
   it title $
     -- GIVEN: Prepare request
     do
@@ -312,7 +349,8 @@ create_test_200_workspace title requestContext reqUrl reqAuthHeader expDto =
       runInContextIO TML.runMigration requestContext
       runInContextIO PRJ.runMigration requestContext
       runInContextIO (insertPackage amsterdamKmPackage) requestContext
-      insertSecondWorkspace requestContext
+      demoteToResearcher requestContext userNikola
+      prepareWorkspace requestContext
       runInContextIO (insertProject project12) requestContext
       runInContextIO (insertProject project14) requestContext
       runInContextIO (insertProject project15) requestContext

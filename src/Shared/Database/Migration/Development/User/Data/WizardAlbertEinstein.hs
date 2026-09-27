@@ -9,12 +9,14 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserPasswordDTO
 import Shared.Api.Resource.User.UserProfileChangeDTO
 import Shared.Api.Resource.User.UserStateDTO
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.Locale.Data.Locales
 import Shared.Database.Migration.Development.Plugin.Data.PluginSettings
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.AlbertEinstein
+import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Model.Common.SensitiveData
 import Shared.Model.Locale.Locale
@@ -32,6 +34,7 @@ import Shared.Model.User.UserSubmissionPropEM ()
 import Shared.Model.User.UserSubmissionPropList
 import Shared.Model.User.UserSuggestion
 import Shared.Model.User.UserTour
+import Shared.Service.User.RoleMapper (toRoleSimple)
 import Shared.Service.User.WizardUserMapper
 import Shared.Util.Date
 
@@ -62,7 +65,7 @@ userAlbertDto :: UserDTO
 userAlbertDto = toDTO userAlbert
 
 userAlbertProfile :: UserProfile
-userAlbertProfile = toUserProfile (toDTO userAlbert) [bioGroup.uuid] plugin1Dict
+userAlbertProfile = toUserProfile (toDTO userAlbert) [bioGroup.uuid] plugin1Dict (M.singleton defaultWorkspaceUuid (toRoleSimple defaultWorkspaceUserRole))
 
 userAlbertEditedChange :: UserProfileChangeDTO
 userAlbertEditedChange =

@@ -6,12 +6,12 @@ import Servant.Swagger.Tags
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Handler.Workspace.Detail_DELETE
 import Shared.Api.Handler.Workspace.Detail_GET
+import Shared.Api.Handler.Workspace.Detail_Members_DELETE
+import Shared.Api.Handler.Workspace.Detail_Members_GET
+import Shared.Api.Handler.Workspace.Detail_Members_PUT
 import Shared.Api.Handler.Workspace.Detail_PUT
 import Shared.Api.Handler.Workspace.List_GET
 import Shared.Api.Handler.Workspace.List_POST
-import Shared.Api.Handler.Workspace.Member_DELETE
-import Shared.Api.Handler.Workspace.Member_PUT
-import Shared.Api.Handler.Workspace.Members_GET
 
 type WorkspaceAPI =
   Tags "Workspace"
@@ -20,9 +20,9 @@ type WorkspaceAPI =
            :<|> Detail_GET
            :<|> Detail_PUT
            :<|> Detail_DELETE
-           :<|> Members_GET
-           :<|> Member_PUT
-           :<|> Member_DELETE
+           :<|> Detail_Members_GET
+           :<|> Detail_Members_PUT
+           :<|> Detail_Members_DELETE
        )
 
 workspaceApi :: Proxy WorkspaceAPI
@@ -35,6 +35,6 @@ workspaceServer =
     :<|> detail_GET
     :<|> detail_PUT
     :<|> detail_DELETE
-    :<|> members_GET
-    :<|> member_PUT
-    :<|> member_DELETE
+    :<|> detail_members_GET
+    :<|> detail_members_PUT
+    :<|> detail_members_DELETE

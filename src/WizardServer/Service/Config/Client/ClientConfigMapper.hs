@@ -13,6 +13,7 @@ import Shared.Model.Tenant.Config.TenantConfig
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Model.Tenant.Module.TenantModule
 import Shared.Model.Tenant.Tenant
+import Shared.Model.User.RoleSimple
 import Shared.Model.User.UserProfile
 import Shared.Service.Tenant.TenantMapper (tenantServerUrl)
 import WizardServer.Api.Resource.Config.ClientConfigDTO
@@ -41,7 +42,7 @@ toClientConfigDTO serverConfig tcOrganization tcAuthentication openIdClients tcP
         if serverConfig.admin.enabled
           then case mUserProfile of
             Just userProfile ->
-              let perms = userProfile.role.permissions
+              let perms = userProfile.organizationRole.permissions ++ concatMap (.permissions) (M.elems userProfile.workspaceRoles)
                in [toModuleDTO m | m <- tenantModules, m.enabled, maybe True (`elem` perms) m.requiredPermission]
             Nothing -> []
           else []

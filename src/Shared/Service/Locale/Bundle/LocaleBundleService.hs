@@ -41,7 +41,7 @@ getTemporaryFileWithBundle uuid =
 exportBundle :: WizardRequestContextC s m => U.UUID -> m (Coordinate, BSL.ByteString)
 exportBundle uuid =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findLocaleByUuid uuid
     wizardTranslation <- retrieveLocale locale.uuid "wizard.json"
     mailTranslation <- retrieveLocale locale.uuid "mail.po"
@@ -50,7 +50,7 @@ exportBundle uuid =
 pullBundleFromRegistry :: WizardRequestContextC s m => Coordinate -> m LocaleSimple
 pullBundleFromRegistry coordinate =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     lb <- catchError (retrieveLocaleBundleByCoordinate coordinate) handleError
     importBundle lb True
   where

@@ -43,14 +43,14 @@ findDocumentTemplatesFiltered queryParams = do
 findDocumentTemplatesByOrganizationIdAndKmId :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [DocumentTemplate]
 findDocumentTemplatesByOrganizationIdAndKmId organizationId templateId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND %s" [entityName, workspacePlaneCondition]
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND %s" [entityName, workspaceVisibleCondition]
   let params = [toField tenantUuid, toField organizationId, toField templateId, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
 
-findDocumentTemplatesByOrganizationIdAndKmIdInPlane :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [DocumentTemplate]
-findDocumentTemplatesByOrganizationIdAndKmIdInPlane organizationId templateId mWorkspaceUuid = do
+findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [DocumentTemplate]
+findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace organizationId templateId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
   let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND %s" [entityName, workspaceExactCondition]
   let params = [toField tenantUuid, toField organizationId, toField templateId, toField mWorkspaceUuid]
@@ -58,11 +58,20 @@ findDocumentTemplatesByOrganizationIdAndKmIdInPlane organizationId templateId mW
   let action conn = query conn sql params
   runDB action
 
-findDocumentTemplatesFilteredInPlane :: RequestContextC s sc m => [(String, String)] -> Maybe U.UUID -> m [DocumentTemplate]
-findDocumentTemplatesFilteredInPlane queryParams mWorkspaceUuid = do
+findDocumentTemplatesFilteredInWorkspace :: RequestContextC s sc m => [(String, String)] -> Maybe U.UUID -> m [DocumentTemplate]
+findDocumentTemplatesFilteredInWorkspace queryParams mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
   let sql = fromString $ f' "SELECT * FROM %s WHERE %s AND %s" [entityName, mapToDBQuerySql (tenantQueryUuid tenantUuid : queryParams), workspaceExactCondition]
   let params = fmap (toField . snd) (tenantQueryUuid tenantUuid : queryParams) ++ [toField mWorkspaceUuid]
+  logQuery sql params
+  let action conn = query conn sql params
+  runDB action
+
+findDocumentTemplatesInWorkspace :: RequestContextC s sc m => Maybe U.UUID -> m [DocumentTemplate]
+findDocumentTemplatesInWorkspace mWorkspaceUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND %s" [entityName, workspaceVisibleCondition]
+  let params = [toField tenantUuid, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
@@ -96,7 +105,7 @@ createFindDocumentTemplateByCoordinateAction coordinate mWorkspaceUuid = do
         fromString $
           f'
             "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND version = ? AND %s ORDER BY workspace_uuid IS NOT NULL DESC LIMIT 1"
-            [entityName, workspacePlaneCondition]
+            [entityName, workspaceVisibleCondition]
   let params = [toField tenantUuid, toField coordinate.organizationId, toField coordinate.entityId, toField coordinate.version, toField mWorkspaceUuid]
   logQuery sql params
   return (\conn -> query conn sql params)
@@ -118,7 +127,7 @@ findLatestDocumentTemplateByOrganizationIdAndTemplateId orgId templateId mWorksp
             \        split_part(version, '.', 3)::int DESC, \
             \        workspace_uuid IS NOT NULL DESC \
             \LIMIT 1"
-            [entityName, workspacePlaneCondition]
+            [entityName, workspaceVisibleCondition]
   let params = [toField tenantUuid, toField orgId, toField templateId, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params

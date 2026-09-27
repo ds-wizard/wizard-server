@@ -33,4 +33,5 @@ instance ToSchema ProjectDetailPreview where
         , permissions = [project1AlbertEditProjectPermDto]
         , format = Just . DocumentTemplateMapper.toFormatSimple $ formatJson
         , fileCount = 0
+        , workspaceUuid = project1.workspaceUuid
         }

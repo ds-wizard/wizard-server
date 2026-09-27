@@ -21,6 +21,7 @@ type List_GET =
     :> Header "Host" String
     :> "projects"
     :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> QueryParam "q" String
     :> QueryParam "isTemplate" Bool
     :> QueryParam "projectTags" String
@@ -41,6 +42,7 @@ list_GET
   => Maybe String
   -> Maybe String
   -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> Maybe Bool
   -> Maybe String
@@ -55,8 +57,8 @@ list_GET
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page ProjectDTO))
-list_GET mTokenHeader mServerUrl mW mQuery mIsTemplate mProjectTagsL mProjectTagsOp mUserUuids mUserUuidsOp mUserGroupUuids mUserGroupUuidsOp mKnowledgeModelPackageCoordinates mKnowledgeModelPackageCoordinatesOp mPage mSize mSort =
-  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW Nothing $ \runInAuthService ->
+list_GET mTokenHeader mServerUrl mW mTenant mQuery mIsTemplate mProjectTagsL mProjectTagsOp mUserUuids mUserUuidsOp mUserGroupUuids mUserGroupUuidsOp mKnowledgeModelPackageCoordinates mKnowledgeModelPackageCoordinatesOp mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< do
         let mProjectTags = fmap (splitOn ",") mProjectTagsL

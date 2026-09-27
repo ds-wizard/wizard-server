@@ -19,6 +19,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.File.ProjectFileList
 import Shared.Model.Project.File.ProjectFileSimple
+import Shared.Model.User.RolePermission
 import Shared.Util.String
 
 entityName = "project_file"
@@ -34,7 +35,7 @@ findProjectFilesPage mQuery mProjectUuid pageable sort = do
           case mQuery of
             Nothing -> ("", [])
             Just query -> (" AND file_name ~* ?", [query])
-    workspaceCondition <- workspaceOnlyCondition "project.workspace_uuid"
+    workspaceCondition <- workspaceOnlyCondition (Just _PROJECTS_EDIT_ROLE_PERMISSION) "project.workspace_uuid"
     let projectUuidCondition =
           case mProjectUuid of
             Nothing -> workspaceCondition
@@ -104,6 +105,11 @@ findProjectFilesSimpleByProject :: WizardRequestContextC s m => U.UUID -> m [Pro
 findProjectFilesSimpleByProject projectUuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesWithFieldsByFn "uuid, file_name, content_type, file_size" entityName [tenantQueryUuid tenantUuid, ("project_uuid", U.toString projectUuid)]
+
+findProjectFileByProjectUuidAndUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ProjectFile
+findProjectFileByProjectUuidAndUuid projectUuid uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("project_uuid", U.toString projectUuid), ("uuid", U.toString uuid)]
 
 findProjectFileByUuid :: WizardRequestContextC s m => U.UUID -> m ProjectFile
 findProjectFileByUuid uuid = do

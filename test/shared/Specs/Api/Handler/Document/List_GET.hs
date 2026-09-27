@@ -2,7 +2,6 @@ module Specs.Api.Handler.Document.List_GET (
   list_GET,
 ) where
 
-import Control.Monad (void)
 import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.UUID as U
@@ -18,8 +17,6 @@ import Shared.Constant.Workspace
 import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
-import Shared.Database.DAO.Workspace.WorkspaceDAO
-import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.Document.DocumentMigration as DOC_Migration
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
@@ -28,10 +25,10 @@ import qualified Shared.Database.Migration.Development.DocumentTemplate.Document
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
-import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Error.Error
@@ -52,6 +49,7 @@ list_GET requestContext =
   describe "GET /api/documents" $ do
     test_200 requestContext
     test_200_workspace requestContext
+    test_400 requestContext
     test_401 requestContext
     test_403 requestContext
 
@@ -151,10 +149,16 @@ test_200_workspace requestContext = do
     (BS.pack $ "/api/documents?w=" ++ U.toString secondWorkspace.uuid)
     (Page "documents" (PageMetadata 20 1 1 0) [secondWorkspaceDocDto])
   create_test_200_workspace
-    "HTTP 200 OK (not a member of w)"
+    "HTTP 200 OK (workspace of another tenant)"
     requestContext
     insertSecondWorkspace
     (BS.pack $ "/api/documents?w=" ++ U.toString differentWorkspaceUuid)
+    (Page "documents" (PageMetadata 20 0 0 0) ([] :: [DocumentDTO]))
+  create_test_200_workspace
+    "HTTP 200 OK (not a member of w)"
+    requestContext
+    insertSecondWorkspaceWithoutCaller
+    (BS.pack $ "/api/documents?w=" ++ U.toString secondWorkspaceUuid)
     (Page "documents" (PageMetadata 20 0 0 0) ([] :: [DocumentDTO]))
   create_test_200_workspace
     "HTTP 200 OK (only the workspaces the caller is a member of)"
@@ -195,12 +199,32 @@ create_test_200_workspace title requestContext prepareWorkspace reqUrl expDto =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
 
-insertSecondWorkspaceWithoutCaller requestContext = do
-  runInContextIO (insertWorkspace secondWorkspace) requestContext
-  void $ runInContextIO (insertWorkspaceMembership (secondWorkspaceMembership userSystem)) requestContext
-
 secondWorkspaceDocDto :: DocumentDTO
 secondWorkspaceDocDto = toDTOWithDocTemplate secondWorkspaceDoc project16 Nothing [] wizardDocumentTemplate formatJsonSimple
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_400 requestContext =
+  it "HTTP 400 BAD REQUEST (tenant=true on a workspace-only entity)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED)
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO DOC_Migration.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod "/api/documents?tenant=true" reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -218,7 +242,7 @@ test_403 requestContext =
       -- AND: Prepare expectation
       let expStatus = 403
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = ForbiddenError (_ERROR_VALIDATION__FORBIDDEN "Missing permission: ProjectsEditRolePermission")
+      let expDto = ForbiddenError (_ERROR_VALIDATION__FORBIDDEN "Missing permission: projects.edit")
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO U_Migration.runMigration requestContext

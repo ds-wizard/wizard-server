@@ -48,6 +48,7 @@ toDraftDetail draft formats draftData mProject mKmEditor =
     , knowledgeModelEditorUuid = draftData.knowledgeModelEditorUuid
     , knowledgeModelEditor = mKmEditor
     , formatUuid = draftData.formatUuid
+    , workspaceUuid = draft.workspaceUuid
     , createdAt = draft.createdAt
     , updatedAt = draft.updatedAt
     }
@@ -70,6 +71,7 @@ toDraftDetail' draft formats =
     , knowledgeModelEditorUuid = Nothing
     , knowledgeModelEditor = Nothing
     , formatUuid = Nothing
+    , workspaceUuid = draft.workspaceUuid
     , createdAt = draft.createdAt
     , updatedAt = draft.updatedAt
     }

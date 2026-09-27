@@ -105,4 +105,5 @@ instance FromRow ProjectDetailSettings where
     knowledgeModelState <- field
     documentTemplateState <- field
     fileCount <- field
+    workspaceUuid <- field
     return $ ProjectDetailSettings {..}

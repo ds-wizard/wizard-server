@@ -74,6 +74,7 @@ import qualified Shared.Database.Migration.Development.Workspace.WorkspaceSchema
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Tenant.Config.TenantConfig
 import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Workspace.Workspace
 import WizardServer.Model.Context.RequestContext
 
 import Specs.Common
@@ -183,8 +184,8 @@ resetDBContent requestContext = do
   runInContext (insertPlugin differentPlugin1) requestContext
   runInContext (insertLimitBundle defaultTenantLimitBundle) requestContext
   runInContext (insertTenant differentTenant) requestContext
-  runInContext (insertWorkspace defaultWorkspace) requestContext
-  runInContext (insertWorkspace differentWorkspace) requestContext
+  runInContext (insertWorkspace (defaultWorkspace {defaultRoleUuid = Nothing} :: Workspace)) requestContext
+  runInContext (insertWorkspace (differentWorkspace {defaultRoleUuid = Nothing} :: Workspace)) requestContext
   runInContext (insertLimitBundle differentTenantLimitBundle) requestContext
   runInContext (insertTenantConfigOrganization defaultOrganization) requestContext
   runInContext (insertTenantConfigAuthentication defaultAuthenticationEncrypted) requestContext
@@ -206,11 +207,18 @@ resetDBContent requestContext = do
   runInContext (insertRole differentAdminRole) requestContext
   runInContext (insertRole differentDataStewardRole) requestContext
   runInContext (insertRole differentResearcherRole) requestContext
+  runInContext (insertRole defaultWorkspaceAdminRole) requestContext
+  runInContext (insertRole defaultWorkspaceUserRole) requestContext
+  runInContext (insertRole differentWorkspaceAdminRole) requestContext
+  runInContext (insertRole differentWorkspaceUserRole) requestContext
+  runInContext (updateWorkspaceByUuid defaultWorkspace) requestContext
+  runInContext (updateWorkspaceByUuid differentWorkspace) requestContext
   runInContext (insertUser userSystem) requestContext
   runInContext (insertUser userAlbert) requestContext
   runInContext (insertUserToken albertToken) requestContext
   runInContext (insertUser userCharles) requestContext
   runInContext (insertWorkspaceMembership (defaultWorkspaceMembership userSystem)) requestContext
+  runInContext (insertWorkspaceMembership (differentWorkspaceMembership userSystem)) requestContext
   runInContext (insertWorkspaceMembership (defaultWorkspaceMembership userAlbert)) requestContext
   runInContext (insertWorkspaceMembership (differentWorkspaceMembership userCharles)) requestContext
   runInContext (insertPackage globalKmPackageEmpty) requestContext
@@ -274,9 +282,9 @@ deleteAllEntitiesSql =
     , "user_openid_identity"
     , "user_tour"
     , "user_entity"
-    , "role"
     , "user_group"
     , "workspace"
+    , "role"
     , "locale"
     , "tenant_limit_bundle"
     , "plugin"

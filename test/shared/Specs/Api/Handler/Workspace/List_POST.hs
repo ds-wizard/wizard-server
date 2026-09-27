@@ -3,7 +3,9 @@ module Specs.Api.Handler.Workspace.List_POST (
 ) where
 
 import Data.Aeson (encode)
+import Data.List (find)
 import qualified Data.Map.Strict as M
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -14,6 +16,7 @@ import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Workspace.WorkspaceChangeDTO
 import Shared.Api.Resource.Workspace.WorkspaceChangeJM ()
 import Shared.Api.Resource.Workspace.WorkspaceJM ()
+import Shared.Database.DAO.User.RoleDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.User.Data.WizardUsers
@@ -21,8 +24,11 @@ import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Error.Error
+import Shared.Model.User.Role
+import Shared.Model.User.RolePermission
 import Shared.Model.User.User
 import Shared.Model.Workspace.Workspace
+import Shared.Model.Workspace.WorkspaceMembership
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -76,6 +82,22 @@ test_201 requestContext =
     assertCountInDB findWorkspaces requestContext 2
     assertCountInDB (findWorkspaceMembershipsByUserUuid userAlbert.uuid) requestContext 2
     assertCountInDB (findWorkspaceMembershipsByUserUuid userSystem.uuid) requestContext 2
+    -- AND: The workspace has its Admin and User roles
+    roles <- getOneFromDB (findRolesOfWorkspace resBody.uuid) requestContext
+    liftIO $ length roles `shouldBe` 2
+    let mAdminRole = find (\role -> role.name == "Admin") roles
+    let mUserRole = find (\role -> role.name == "User") roles
+    liftIO $ fmap (\role -> (role.permissions, role.isAdmin)) mAdminRole `shouldBe` Just (workspaceRolePermissions, False)
+    liftIO $ fmap (.permissions) mUserRole `shouldBe` Just []
+    liftIO $ resBody.defaultRoleUuid `shouldBe` fmap (.uuid) mUserRole
+    -- AND: The creator is Admin, the system user is User
+    albertMembership <- getOneFromDB (findWorkspaceMembership resBody.uuid userAlbert.uuid) requestContext
+    liftIO $ Just albertMembership.roleUuid `shouldBe` fmap (.uuid) mAdminRole
+    systemMembership <- getOneFromDB (findWorkspaceMembership resBody.uuid userSystem.uuid) requestContext
+    liftIO $ Just systemMembership.roleUuid `shouldBe` fmap (.uuid) mUserRole
+
+findRolesOfWorkspace :: U.UUID -> RequestContextM [Role]
+findRolesOfWorkspace workspaceUuid = filter (\role -> role.workspaceUuid == Just workspaceUuid) <$> findRoles
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -123,4 +145,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "UsersManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "workspaces.manage"

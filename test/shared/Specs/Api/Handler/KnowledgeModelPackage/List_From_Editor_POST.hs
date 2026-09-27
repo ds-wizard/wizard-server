@@ -176,7 +176,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

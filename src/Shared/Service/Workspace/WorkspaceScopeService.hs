@@ -3,10 +3,12 @@ module Shared.Service.Workspace.WorkspaceScopeService where
 import Control.Monad (unless, when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks)
-import Data.Maybe (isJust)
+import qualified Data.Map.Strict as M
+import Data.Maybe (isJust, isNothing)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserDTO
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
@@ -14,8 +16,11 @@ import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
 import Shared.Model.Tenant.Tenant
+import Shared.Model.User.RolePermission
+import Shared.Model.User.RoleSimple
 import Shared.Model.Workspace.Workspace
 
 resolveScope :: WizardRequestContextC s m => Maybe U.UUID -> Maybe Bool -> m Scope
@@ -32,22 +37,25 @@ requireWorkspaceScope = do
     TenantScope -> throwError $ UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED
     WorkspaceScope workspaceUuid -> do
       unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_NOT_ACCEPTED)
-      checkWorkspaceMembership workspaceUuid
+      checkWorkspaceReachable workspaceUuid
       return workspaceUuid
     NoScope ->
       if multiWorkspace
         then throwError $ UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_REQUIRED
-        else getOnlyWorkspaceUuid
+        else do
+          workspaceUuid <- getOnlyWorkspaceUuid
+          checkWorkspaceReachable workspaceUuid
+          return workspaceUuid
 
-requirePlaneScope :: WizardRequestContextC s m => m (Maybe U.UUID)
-requirePlaneScope = do
+requireTenantOrWorkspaceScope :: WizardRequestContextC s m => m (Maybe U.UUID)
+requireTenantOrWorkspaceScope = do
   scope <- asks (.scope')
   multiWorkspace <- asks (.tenantMultiWorkspace')
   case scope of
     TenantScope -> return Nothing
     WorkspaceScope workspaceUuid -> do
       unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_NOT_ACCEPTED)
-      checkWorkspaceMembership workspaceUuid
+      checkWorkspaceReachable workspaceUuid
       return $ Just workspaceUuid
     NoScope ->
       if multiWorkspace
@@ -70,25 +78,46 @@ getOnlyWorkspaceUuid = do
     [] -> throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "workspace")
     _ -> throwError $ UserError _ERROR_SERVICE_WORKSPACE__MULTIPLE_WORKSPACES
 
-checkWorkspaceMembership :: WizardRequestContextC s m => U.UUID -> m ()
-checkWorkspaceMembership workspaceUuid = do
-  mCurrentUser <- asks (.currentUser')
-  isMember <-
-    case mCurrentUser of
-      Just user -> isJust <$> findWorkspaceMembership' workspaceUuid user.uuid
-      Nothing -> isJust <$> findWorkspaceByUuid' workspaceUuid
-  unless isMember (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "workspace"))
+checkWorkspaceReachable :: WizardRequestContextC s m => U.UUID -> m ()
+checkWorkspaceReachable workspaceUuid = do
+  reachable <- isWorkspaceReachable workspaceUuid
+  mWorkspace <- findWorkspaceByUuid' workspaceUuid
+  unless (isJust mWorkspace && reachable) (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "workspace"))
 
-planeOfWorkspace :: WizardRequestContextC s m => U.UUID -> m (Maybe U.UUID)
-planeOfWorkspace workspaceUuid = do
+isWorkspaceReachable :: WizardRequestContextC s m => U.UUID -> m Bool
+isWorkspaceReachable workspaceUuid = do
+  mCurrentUser <- asks (.currentUser')
+  workspaceRoles <- asks (.workspaceRoles')
+  case mCurrentUser of
+    Nothing -> return True
+    Just user
+      | M.member workspaceUuid workspaceRoles || any (`elem` user.role.permissions) workspaceReachRolePermissions -> return True
+      | otherwise -> isWorkspaceMember workspaceUuid user.uuid
+
+ownerWorkspaceUuid :: WizardRequestContextC s m => U.UUID -> m (Maybe U.UUID)
+ownerWorkspaceUuid workspaceUuid = do
   multiWorkspace <- asks (.tenantMultiWorkspace')
   return $ if multiWorkspace then Just workspaceUuid else Nothing
 
-checkPackagePlane :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m ()
-checkPackagePlane workspaceUuid mPackageWorkspaceUuid =
+checkPackageWorkspace :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m ()
+checkPackageWorkspace = checkWorkspaceMatch "knowledge_model_package"
+
+checkTemplateWorkspace :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m ()
+checkTemplateWorkspace = checkWorkspaceMatch "document_template"
+
+checkTemplateInWorkspace :: WizardRequestContextC s m => Maybe U.UUID -> Maybe U.UUID -> m ()
+checkTemplateInWorkspace (Just workspaceUuid) mTemplateWorkspaceUuid = checkTemplateWorkspace workspaceUuid mTemplateWorkspaceUuid
+checkTemplateInWorkspace Nothing mTemplateWorkspaceUuid =
+  unless (isNothing mTemplateWorkspaceUuid) (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "document_template"))
+
+checkTemplateWorkspaceByUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
+checkTemplateWorkspaceByUuid workspaceUuid dtUuid = findDocumentTemplateByUuid dtUuid >>= checkTemplateWorkspace workspaceUuid . (.workspaceUuid)
+
+checkWorkspaceMatch :: WizardRequestContextC s m => String -> U.UUID -> Maybe U.UUID -> m ()
+checkWorkspaceMatch entityName workspaceUuid mEntityWorkspaceUuid =
   unless
-    (maybe True (== workspaceUuid) mPackageWorkspaceUuid)
-    (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "knowledge_model_package"))
+    (maybe True (== workspaceUuid) mEntityWorkspaceUuid)
+    (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE entityName))
 
 isWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m Bool
 isWorkspaceMember workspaceUuid userUuid = isJust <$> findWorkspaceMembership' workspaceUuid userUuid

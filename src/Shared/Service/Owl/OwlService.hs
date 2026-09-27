@@ -15,6 +15,7 @@ import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigOwlDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.Public
+import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.Error.Error
@@ -22,6 +23,7 @@ import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundleFile
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Service.Acl.LibraryAcl
 import Shared.Service.KnowledgeModel.Compiler.Compiler
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation
@@ -39,8 +41,9 @@ importOwl reqDto = do
   logInfoI _CMP_SERVICE "Importing OWL..."
   case (reqDto.rootElement, reqDto.name, reqDto.organizationId, reqDto.kmId, reqDto.version) of
     (Just rootElement, Just name, Just organizationId, Just kmId, Just version) -> do
+      workspaceUuid <- requireTenantOrWorkspaceScope
+      checkLibraryPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION workspaceUuid
       tenantUuid <- asks (.tenantUuid')
-      workspaceUuid <- requirePlaneScope
       validatePackageIdUniqueness (Coordinate organizationId kmId version) workspaceUuid
       checkPackageLimit organizationId kmId
       uuid <- liftIO generateUuid

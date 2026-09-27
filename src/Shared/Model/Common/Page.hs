@@ -1,9 +1,11 @@
 module Shared.Model.Common.Page where
 
 import qualified Data.List as L
+import Data.Maybe (fromMaybe)
 import GHC.Generics
 
 import Shared.Model.Common.PageMetadata
+import Shared.Model.Common.Pageable
 
 data Page entity = Page
   { name :: String
@@ -11,6 +13,9 @@ data Page entity = Page
   , entities :: [entity]
   }
   deriving (Show, Eq, Generic)
+
+emptyPage :: String -> Pageable -> Page entity
+emptyPage name pageable = Page name (PageMetadata (fromMaybe 20 pageable.size) 0 0 (fromMaybe 0 pageable.page)) []
 
 instance Functor Page where
   fmap _ (Page name page []) = Page name page []

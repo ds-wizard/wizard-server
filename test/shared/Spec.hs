@@ -4,6 +4,7 @@ import Control.Concurrent.MVar
 import Control.Monad ((>=>))
 import qualified Data.ByteString as BS
 import Data.IORef (newIORef)
+import qualified Data.Map.Strict as M
 import Data.Maybe (fromJust)
 import Data.Pool
 import qualified Data.UUID as U
@@ -66,10 +67,12 @@ import Specs.Api.Handler.UserGroup.ApiSpec
 import Specs.Api.Handler.Websocket.Common
 import Specs.Api.Handler.Workspace.ApiSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
+import Specs.Database.Migration.Production.PermissionMappingSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
 import Specs.Integration.Http.Common.SsrfProtectionSpec
 import Specs.Model.Common.PageSpec
 import Specs.Model.KnowledgeModel.KnowledgeModelAccessorsSpec
+import Specs.Service.Acl.AclServiceSpec
 import Specs.Service.Coordinate.CoordinateValidationSpec
 import Specs.Service.Document.DocumentServiceSpec
 import Specs.Service.DocumentTemplate.DocumentTemplateUtilSpec
@@ -87,6 +90,7 @@ import Specs.Service.KnowledgeModel.Squash.SquasherSpec
 import Specs.Service.PersistentCommand.PersistentCommandServiceSpec
 import Specs.Service.Project.Cache.ProjectCacheServiceSpec
 import Specs.Service.Project.Collaboration.ProjectCollaborationAclSpec
+import Specs.Service.Project.Comment.ProjectCommentServiceSpec
 import Specs.Service.Project.Compiler.ProjectCompilerServiceSpec
 import Specs.Service.Project.Event.ProjectEventServiceSpec
 import qualified Specs.Service.Project.Migration.Migrator.ChangeQTypeSanitizerSpec as PRJ_ChangeQTypeSanitizer
@@ -100,7 +104,7 @@ import Specs.Service.Tenant.Config.TenantConfigValidationSpec
 import Specs.Service.Tenant.TenantValidationSpec
 import Specs.Service.TypeHint.TypeHintServiceSpec
 import Specs.Service.User.UserServiceSpec
-import Specs.Service.Workspace.WorkspacePlaneSpec
+import Specs.Service.Workspace.CoordinateResolutionSpec
 import Specs.Service.Workspace.WorkspaceScopeServiceSpec
 import Specs.Util.GettextSpec
 import Specs.Util.JinjaSpec
@@ -171,6 +175,7 @@ prepareWebApp runCallback =
                 , cache = cache
                 , scope = NoScope
                 , tenantMultiWorkspace = False
+                , workspaceRoles = M.empty
                 }
         putStrLn "DB: start creating schema"
         buildSchema requestContext
@@ -183,6 +188,7 @@ main =
     ( \serverContext requestContext ->
         hspec $ do
           describe "UNIT TESTING" $ do
+            describe "DATABASE" permissionMappingSpec
             describe "INTEGRATION" $
               describe "Http" $ do
                 describe "Common" commonResponseMapperSpec
@@ -191,6 +197,7 @@ main =
               pageSpec
               knowledgeModelAccessorsSpec
             describe "SERVICE" $ do
+              aclServiceSpec
               describe "Coordinate" coordinateValidationSpec
               describe "Document Template" documentTemplateUtilSpec
               describe "KnowledgeModel" $ do
@@ -284,10 +291,11 @@ main =
                 projectAclSpec requestContext
                 projectCacheServiceSpec requestContext
                 projectCollaborationAclSpec requestContext
+                projectCommentServiceSpec requestContext
                 projectServiceSpec requestContext
               userServiceIntegrationSpec requestContext
               describe "Workspace" $ do
-                workspacePlaneSpec requestContext
+                coordinateResolutionSpec requestContext
                 workspaceScopeServiceSpec requestContext
             describe "WEBSOCKET" $ do
               knowledgeModelEditorWebsocketAPI requestContext

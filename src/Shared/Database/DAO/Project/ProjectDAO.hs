@@ -53,16 +53,7 @@ pageLabel = "projects"
 findProjects :: WizardRequestContextC s m => m [Project]
 findProjects = do
   tenantUuid <- asks (.tenantUuid')
-  currentUser <- getCurrentUser
-  hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-  if hasPermission
-    then createFindEntitiesBySortedFn entityName [tenantQueryUuid tenantUuid] [Sort "name" Ascending] >>= traverse enhance
-    else do
-      let sql = f' (projectSelectSql (U.toString tenantUuid) (U.toString currentUser.uuid) "['VIEW']") [""] ++ " ORDER BY project.name ASC"
-      logInfoI _CMP_DATABASE sql
-      let action conn = query_ conn (fromString sql)
-      entities <- runDB action
-      traverse enhance entities
+  createFindEntitiesBySortedFn entityName [tenantQueryUuid tenantUuid] [Sort "name" Ascending] >>= traverse enhance
 
 findProjectsForCurrentUserPage :: WizardRequestContextC s m => Maybe String -> Maybe Bool -> Maybe [String] -> Maybe String -> Maybe [U.UUID] -> Maybe String -> Maybe [U.UUID] -> Maybe String -> Maybe [Coordinate] -> Maybe String -> Pageable -> [Sort] -> m (Page ProjectList)
 findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mUserUuids mUserUuidsOp mUserGroupUuids mUserGroupUuidsOp mKnowledgeModelPackageCoordinates mKnowledgeModelPackageCoordinatesOp pageable sort =
@@ -144,12 +135,13 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
                   , f' " AND (%s)" [L.intercalate operator . fmap (\c -> if c.version == "all" then " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ?)" else " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ? AND knowledge_model_package.version = ?)") $ kmpCoordinates]
                   , concatMap (\c -> if c.version == "all" then [c.organizationId, c.entityId] else [c.organizationId, c.entityId, c.version]) kmpCoordinates
                   )
-    hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-    workspaceCondition <- workspaceOnlyCondition "project.workspace_uuid"
+    viewAccess <- workspaceAccess (Just _PROJECTS_VIEW_ROLE_PERMISSION)
+    memberAccess <- workspaceAccess Nothing
+    workspaceCondition <- workspaceScopeCondition "project.workspace_uuid"
     let (aclJoins, aclCondition) =
-          if hasPermission
-            then (userUuidsJoin ++ userGroupUuidsJoin, "")
-            else
+          case viewAccess of
+            UnrestrictedWorkspaceAccess -> (userUuidsJoin ++ userGroupUuidsJoin, "")
+            _ ->
               ( f''
                   "LEFT JOIN project_perm_user ON project.uuid = project_perm_user.project_uuid AND project_perm_user.tenant_uuid = '${tenantUuid}' \
                   \LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project_perm_group.tenant_uuid = '${tenantUuid}' \
@@ -158,13 +150,13 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
                   , ("tenantUuid", U.toString tenantUuid)
                   ]
               , f'
-                  "AND (visibility = 'VisibleEditProjectVisibility' \
+                  "AND (%s OR (%s AND (visibility = 'VisibleEditProjectVisibility' \
                   \  OR visibility = 'VisibleCommentProjectVisibility' \
                   \  OR visibility = 'VisibleViewProjectVisibility' \
                   \  OR (visibility = 'PrivateProjectVisibility' AND project_perm_user.user_uuid = '%s' AND project_perm_user.perms @> ARRAY %s) \
                   \  OR (visibility = 'PrivateProjectVisibility' AND project_perm_group.user_group_uuid = ugm.user_group_uuid AND project_perm_group.perms @> ARRAY %s) \
-                  \)"
-                  [U.toString currentUser.uuid, "['VIEW']", "['VIEW']"]
+                  \)))"
+                  [workspaceAccessSql "project.workspace_uuid" viewAccess, workspaceAccessSql "project.workspace_uuid" memberAccess, U.toString currentUser.uuid, "['VIEW']", "['VIEW']"]
               )
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
@@ -295,39 +287,10 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
             }
     return $ Page pageLabel metadata entities
 
-findProjectsByKnowledgeModelPackageUuid :: WizardRequestContextC s m => U.UUID -> m [Project]
-findProjectsByKnowledgeModelPackageUuid pkgUuid = do
-  tenantUuid <- asks (.tenantUuid')
-  currentUser <- getCurrentUser
-  hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-  if hasPermission
-    then createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("knowledge_model_package_uuid", U.toString pkgUuid)] >>= traverse enhance
-    else do
-      let sql =
-            fromString $
-              f' (projectSelectSql (U.toString tenantUuid) (U.toString currentUser.uuid) "['VIEW']") ["AND knowledge_model_package_uuid = ?"]
-      let params = [U.toString pkgUuid]
-      logQuery sql params
-      let action conn = query conn sql params
-      entities <- runDB action
-      traverse enhance entities
-
 findProjectsByDocumentTemplateUuid :: WizardRequestContextC s m => U.UUID -> m [Project]
 findProjectsByDocumentTemplateUuid documentTemplateUuid = do
   tenantUuid <- asks (.tenantUuid')
-  currentUser <- getCurrentUser
-  hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-  if hasPermission
-    then createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid)] >>= traverse enhance
-    else do
-      let sql =
-            fromString $
-              f' (projectSelectSql (U.toString tenantUuid) (U.toString currentUser.uuid) "['VIEW']") ["AND document_template_uuid = ?"]
-      let params = [documentTemplateUuid]
-      logQuery sql params
-      let action conn = query conn sql params
-      entities <- runDB action
-      traverse enhance entities
+  createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid)] >>= traverse enhance
 
 findProjectUuidsByWorkspaceUuid :: WizardRequestContextC s m => U.UUID -> m [U.UUID]
 findProjectUuidsByWorkspaceUuid workspaceUuid = do
@@ -348,6 +311,7 @@ findProjectsWithZeroAcl = do
           \LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid \
           \WHERE project_perm_user.user_uuid IS NULL \
           \AND project_perm_group.user_group_uuid IS NULL \
+          \AND NOT EXISTS (SELECT 1 FROM user_entity WHERE user_entity.uuid = project.created_by) \
           \AND project.updated_at < now() - INTERVAL '30 days'"
           [entityName]
   logInfoI _CMP_DATABASE (trim sql)
@@ -357,29 +321,44 @@ findProjectsWithZeroAcl = do
 findProjectsSimpleWithPermByUserGroupUuid :: WizardRequestContextC s m => U.UUID -> m [ProjectSimpleWithPerm]
 findProjectsSimpleWithPermByUserGroupUuid userGroupUuid = do
   tenantUuid <- asks (.tenantUuid')
+  findProjectsSimpleWithPerm
+    "LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project.tenant_uuid = project_perm_group.tenant_uuid \
+    \WHERE project_perm_group.user_group_uuid = ? AND project_perm_group.tenant_uuid = ?"
+    [toField userGroupUuid, toField tenantUuid]
+
+findProjectsSimpleWithPermByWorkspaceUuidAndUserUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m [ProjectSimpleWithPerm]
+findProjectsSimpleWithPermByWorkspaceUuidAndUserUuid workspaceUuid userUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  findProjectsSimpleWithPerm
+    "LEFT JOIN project_perm_user ON project.uuid = project_perm_user.project_uuid AND project.tenant_uuid = project_perm_user.tenant_uuid \
+    \WHERE project_perm_user.user_uuid = ? AND project.workspace_uuid = ? AND project.tenant_uuid = ?"
+    [toField userUuid, toField workspaceUuid, toField tenantUuid]
+
+findProjectsSimpleWithPerm :: WizardRequestContextC s m => String -> [Action] -> m [ProjectSimpleWithPerm]
+findProjectsSimpleWithPerm condition params = do
   let sql =
-        fromString
-          "SELECT \
-          \  nested_project.*, \
-          \  ( \
-          \    SELECT array_agg(CONCAT(user_uuid, '::', perms)) \
-          \    FROM project_perm_user \
-          \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
-          \    GROUP BY project_uuid \
-          \  ) as user_permissions, \
-          \  ( \
-          \    SELECT array_agg(CONCAT(user_group_uuid, '::', perms)) \
-          \    FROM project_perm_group \
-          \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
-          \    GROUP BY project_uuid \
-          \  ) as group_permissions \
-          \FROM ( \
-          \  SELECT project.uuid, project.visibility, project.sharing, project.tenant_uuid \
-          \  FROM project \
-          \  LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project.tenant_uuid = project_perm_group.tenant_uuid \
-          \  WHERE project_perm_group.user_group_uuid = ? AND project_perm_group.tenant_uuid = ? \
-          \) nested_project"
-  let params = [toField userGroupUuid, toField tenantUuid]
+        fromString $
+          f'
+            "SELECT \
+            \  nested_project.*, \
+            \  ( \
+            \    SELECT array_agg(CONCAT(user_uuid, '::', perms)) \
+            \    FROM project_perm_user \
+            \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
+            \    GROUP BY project_uuid \
+            \  ) as user_permissions, \
+            \  ( \
+            \    SELECT array_agg(CONCAT(user_group_uuid, '::', perms)) \
+            \    FROM project_perm_group \
+            \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
+            \    GROUP BY project_uuid \
+            \  ) as group_permissions \
+            \FROM ( \
+            \  SELECT project.uuid, project.visibility, project.sharing, project.tenant_uuid, project.workspace_uuid \
+            \  FROM project \
+            \  %s \
+            \) nested_project"
+            [condition]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
@@ -477,7 +456,8 @@ findProjectDetailQuestionnaire uuid = do
             \                        )) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as files \
+            \       ) as files, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND project.tenant_uuid = knowledge_model_package.tenant_uuid \
             \WHERE project.tenant_uuid = ? AND project.uuid = ?"
@@ -517,7 +497,8 @@ findProjectDetailPreview uuid = do
             \        SELECT count(*) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as file_count \
+            \       ) as file_count, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND project.tenant_uuid = knowledge_model_package.tenant_uuid \
             \LEFT JOIN document_template dt ON project.document_template_uuid = dt.uuid AND project.tenant_uuid = dt.tenant_uuid \
@@ -608,7 +589,8 @@ findProjectDetailSettings uuid = do
             \        SELECT count(*) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as file_count \
+            \       ) as file_count, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package pkg ON project.knowledge_model_package_uuid = pkg.uuid AND project.tenant_uuid = pkg.tenant_uuid \
             \LEFT JOIN document_template dt ON project.document_template_uuid = dt.uuid AND project.tenant_uuid = dt.tenant_uuid \

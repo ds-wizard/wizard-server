@@ -26,6 +26,11 @@ findAssetsByDocumentTemplateUuidAndFileName documentTemplateUuid fileName = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid), ("file_name", fileName)]
 
+findAssetByDocumentTemplateUuidAndUuid :: RequestContextC s sc m => U.UUID -> U.UUID -> m DocumentTemplateAsset
+findAssetByDocumentTemplateUuidAndUuid documentTemplateUuid uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid), ("uuid", U.toString uuid)]
+
 findAssetById :: RequestContextC s sc m => U.UUID -> m DocumentTemplateAsset
 findAssetById uuid = do
   tenantUuid <- asks (.tenantUuid')

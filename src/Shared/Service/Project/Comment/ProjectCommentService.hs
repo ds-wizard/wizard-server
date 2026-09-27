@@ -38,8 +38,8 @@ getProjectCommentThreadsPage mQuery mProjectUuid resolved pageable sort = do
 getProjectCommentsByProjectUuid :: WizardRequestContextC s m => U.UUID -> Maybe String -> Maybe Bool -> m (M.Map String [ProjectCommentThreadList])
 getProjectCommentsByProjectUuid projectUuid mPath mResolved = do
   project <- findProjectByUuid projectUuid
-  checkCommentPermissionToProject project.visibility project.sharing project.permissions
-  editor <- catchError (hasEditPermissionToProject project.visibility project.sharing project.permissions) (\_ -> return False)
+  checkCommentPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
+  editor <- catchError (hasEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions) (\_ -> return False)
   threads <- findProjectCommentThreadsForProject project.uuid mPath mResolved editor
   return . toCommentThreadsMap $ threads
 

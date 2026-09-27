@@ -36,7 +36,7 @@ getProjectFilesPage mQuery mProjectUuid pageable sort = do
   case mProjectUuid of
     Just projectUuid -> do
       project <- findProjectByUuid projectUuid
-      checkViewPermissionToProject project.visibility project.sharing project.permissions
+      checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     Nothing -> checkPermission _PROJECTS_EDIT_ROLE_PERMISSION
   findProjectFilesPage mQuery mProjectUuid pageable sort
 
@@ -44,7 +44,7 @@ createProjectFile :: WizardRequestContextC s m => U.UUID -> U.UUID -> FileCreate
 createProjectFile projectUuid questionUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkViewPermissionToProject project.visibility project.sharing project.permissions
+    checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     uuid <- liftIO generateUuid
     mCurrentUser <- asks (.currentUser')
     tenantUuid <- asks (.tenantUuid')
@@ -85,7 +85,7 @@ downloadProjectFile projectUuid fileUuid = do
 deleteProjectFile :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteProjectFile projectUuid fileUuid = do
   runInTransaction $ do
-    _ <- findProjectFileByUuid fileUuid
     checkEditPermissionToFile projectUuid
+    _ <- findProjectFileByProjectUuidAndUuid projectUuid fileUuid
     void $ deleteProjectFileByUuid fileUuid
     void $ deleteProjectCacheByProjectUuid projectUuid

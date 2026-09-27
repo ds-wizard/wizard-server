@@ -3,10 +3,14 @@ module WizardServer.Database.Migration.Production.Migration_5_0_0.Migration (
   meta,
   migrateShared,
   addWorkspaceColumn,
+  renamePermissionsSql,
+  renamePermissionSql,
+  runSql,
 ) where
 
 import Control.Monad.Logger
 import Control.Monad.Reader (liftIO)
+import qualified Data.List as L
 import Data.Pool (Pool, withResource)
 import Data.String (fromString)
 import Database.PostgreSQL.Migration.Entity
@@ -16,7 +20,7 @@ import Shared.Util.String (f')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships and the workspace column of the workspace-scoped tables"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles and the workspace column of the workspace-scoped tables"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -25,6 +29,7 @@ migrate dbPool = do
 
 migrateShared :: Pool Connection -> LoggingT IO ()
 migrateShared dbPool = do
+  assertNoDuplicateDocumentTemplates dbPool
   createWorkspaceTables dbPool
   addTenantMultiWorkspace dbPool
   insertWorkspaces dbPool
@@ -40,6 +45,23 @@ migrateShared dbPool = do
   addNullableWorkspaceColumn dbPool "role"
   createUniqueConstraints dbPool
   createFunctions dbPool
+  addRoleColumns dbPool
+  renamePermissions dbPool
+  seedWorkspaceRoles dbPool
+
+assertNoDuplicateDocumentTemplates :: Pool Connection -> LoggingT IO ()
+assertNoDuplicateDocumentTemplates dbPool =
+  runSql
+    dbPool
+    "DO $$ \
+    \DECLARE duplicates text; \
+    \BEGIN \
+    \    SELECT string_agg(concat_ws(':', organization_id, template_id, version, tenant_uuid), ', ') INTO duplicates \
+    \    FROM (SELECT organization_id, template_id, version, tenant_uuid FROM document_template GROUP BY 1, 2, 3, 4 HAVING count(*) > 1) d; \
+    \    IF duplicates IS NOT NULL THEN \
+    \        RAISE EXCEPTION 'document_template holds duplicate coordinates, resolve them before upgrading: %', duplicates; \
+    \    END IF; \
+    \END $$;"
 
 createWorkspaceTables :: Pool Connection -> LoggingT IO ()
 createWorkspaceTables dbPool = do
@@ -192,6 +214,94 @@ createFunctions dbPool =
     \    RETURN state; \
     \END; \
     \$$;"
+
+addRoleColumns :: Pool Connection -> LoggingT IO ()
+addRoleColumns dbPool =
+  runSql
+    dbPool
+    "ALTER TABLE workspace ADD COLUMN default_role_uuid uuid; \
+    \ALTER TABLE workspace ADD CONSTRAINT workspace_default_role_uuid_fk FOREIGN KEY (default_role_uuid) REFERENCES role (uuid); \
+    \ALTER TABLE workspace_membership ADD COLUMN role_uuid uuid; \
+    \ALTER TABLE workspace_membership ADD CONSTRAINT workspace_membership_role_uuid_fk FOREIGN KEY (role_uuid) REFERENCES role (uuid); \
+    \CREATE INDEX workspace_membership_role_uuid_index ON workspace_membership (role_uuid);"
+
+renamePermissions :: Pool Connection -> LoggingT IO ()
+renamePermissions dbPool =
+  runSql dbPool . fromString $
+    f'
+      "UPDATE role SET permissions = %s; \
+      \UPDATE user_entity SET role_permissions = %s; \
+      \UPDATE role SET permissions = ARRAY(SELECT DISTINCT unnest(permissions || ARRAY['workspaces.manage', 'organizationLibrary.manage']))::varchar[] WHERE is_admin = true; \
+      \UPDATE user_entity SET role_permissions = ARRAY(SELECT DISTINCT unnest(role_permissions || ARRAY['workspaces.manage', 'organizationLibrary.manage']))::varchar[] WHERE role_uuid IN (SELECT uuid FROM role WHERE is_admin = true);"
+      [renamePermissionsSql "permissions", renamePermissionsSql "role_permissions"]
+
+renamePermissionsSql :: String -> String
+renamePermissionsSql column =
+  f'
+    "ARRAY(SELECT DISTINCT np FROM unnest(%s || ARRAY['projects.create']) AS p, unnest(CASE p %s ELSE ARRAY[p] END) AS np)::varchar[]"
+    [column, unwords (fmap toCase permissionMapping)]
+  where
+    toCase (old, new) = f' "WHEN '%s' THEN ARRAY[%s]" [old, L.intercalate ", " (fmap (\n -> f' "'%s'" [n]) new)]
+
+renamePermissionSql :: String -> String
+renamePermissionSql column =
+  f' "CASE %s %s ELSE %s END" [column, unwords (fmap toCase permissionMapping), column]
+  where
+    toCase (old, new) = f' "WHEN '%s' THEN '%s'" [old, head new]
+
+permissionMapping :: [(String, [String])]
+permissionMapping =
+  [ ("DevUseRolePermission", ["dev.use"])
+  , ("TenantsManageRolePermission", ["tenants.manage"])
+  , ("HubspotUseRolePermission", ["hubspot.use"])
+  , ("SettingsManageRolePermission", ["organizationSettings.manage", "settings.manage", "roles.manage"])
+  , ("UsersManageRolePermission", ["users.manage", "members.manage", "userGroups.manage"])
+  , ("DocumentTemplateEditorsUseRolePermission", ["documentTemplates.useEditor"])
+  , ("DocumentTemplatesManageRolePermission", ["documentTemplates.manage"])
+  , ("KnowledgeModelEditorsUseRolePermission", ["knowledgeModels.useEditor"])
+  , ("KnowledgeModelsManageRolePermission", ["knowledgeModels.manage"])
+  , ("ProjectTemplatesManageRolePermission", ["projects.manageTemplates"])
+  , ("ProjectsCommentRolePermission", ["projects.comment"])
+  , ("ProjectsEditRolePermission", ["projects.edit"])
+  , ("ProjectsManageRolePermission", ["projects.manage"])
+  , ("ProjectsViewRolePermission", ["projects.view"])
+  , ("AnalyticsUseRolePermission", ["analytics.use"])
+  , ("AuditLogUseRolePermission", ["auditLog.use"])
+  , ("AutomationsManageRolePermission", ["automations.manage"])
+  , ("IntegrationHubUseRolePermission", ["knowledgeModels.manage"])
+  , ("McpUseRolePermission", ["mcp.connect"])
+  ]
+
+seedWorkspaceRoles :: Pool Connection -> LoggingT IO ()
+seedWorkspaceRoles dbPool =
+  runSql dbPool . fromString $
+    f'
+      "INSERT INTO role (uuid, name, permissions, is_admin, tenant_uuid, created_at, updated_at, workspace_uuid) \
+      \SELECT gen_random_uuid(), 'Admin', ARRAY[%s]::varchar[], false, tenant_uuid, now(), now(), uuid FROM workspace; \
+      \INSERT INTO role (uuid, name, permissions, is_admin, tenant_uuid, created_at, updated_at, workspace_uuid) \
+      \SELECT gen_random_uuid(), 'User', ARRAY[]::varchar[], false, tenant_uuid, now(), now(), uuid FROM workspace; \
+      \UPDATE workspace SET default_role_uuid = role.uuid FROM role WHERE role.workspace_uuid = workspace.uuid AND role.name = 'User'; \
+      \UPDATE workspace_membership SET role_uuid = workspace.default_role_uuid FROM workspace WHERE workspace.uuid = workspace_membership.workspace_uuid; \
+      \ALTER TABLE workspace_membership ALTER COLUMN role_uuid SET NOT NULL;"
+      [L.intercalate ", " (fmap (\p -> f' "'%s'" [p]) workspaceAdminPermissions)]
+
+workspaceAdminPermissions :: [String]
+workspaceAdminPermissions =
+  [ "projects.view"
+  , "projects.comment"
+  , "projects.edit"
+  , "projects.manage"
+  , "projects.create"
+  , "projects.manageTemplates"
+  , "knowledgeModels.useEditor"
+  , "knowledgeModels.manage"
+  , "documentTemplates.useEditor"
+  , "documentTemplates.manage"
+  , "members.manage"
+  , "roles.manage"
+  , "userGroups.manage"
+  , "settings.manage"
+  ]
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

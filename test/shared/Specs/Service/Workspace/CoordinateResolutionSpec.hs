@@ -1,4 +1,4 @@
-module Specs.Service.Workspace.WorkspacePlaneSpec where
+module Specs.Service.Workspace.CoordinateResolutionSpec where
 
 import Test.Hspec
 
@@ -11,7 +11,7 @@ import Shared.Util.Uuid
 
 import Specs.Common
 
-workspacePlaneSpec requestContext =
+coordinateResolutionSpec requestContext =
   describe "Coordinate resolution across planes" $ do
     it "the tenant row is found without a workspace" $ do
       result <- runInContext (findPackageByCoordinate' (createCoordinate netherlandsKmPackage) Nothing) requestContext

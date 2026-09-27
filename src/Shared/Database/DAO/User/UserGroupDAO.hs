@@ -22,24 +22,19 @@ entityName = "user_group"
 
 pageLabel = "userGroups"
 
-createFindUserGroupPage :: (WizardRequestContextC s m, FromRow userGroup) => String -> U.UUID -> Bool -> Maybe String -> String -> Pageable -> [Sort] -> m (Page userGroup)
-createFindUserGroupPage fields currentUserUuid isAdmin mQuery additionalCondition pageable sort =
+createFindUserGroupPage :: (WizardRequestContextC s m, FromRow userGroup) => String -> U.UUID -> String -> Maybe String -> String -> Pageable -> [Sort] -> m (Page userGroup)
+createFindUserGroupPage fields currentUserUuid manageCondition mQuery additionalCondition pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    workspaceCondition <- workspaceOnlyCondition "ug.workspace_uuid"
+    workspaceCondition <- workspaceOnlyCondition Nothing "ug.workspace_uuid"
     let membershipTable = "user_group_membership"
     let (nameCondition, nameRegex) =
           case mQuery of
             Just query -> (" AND ug.name ~* ?", [regex query])
             Nothing -> ("", [])
-    let (aclJoins, aclCondition) =
-          if isAdmin
-            then ("", "")
-            else
-              ( f' "LEFT JOIN %s ugm ON ugm.user_group_uuid = ug.uuid AND ugm.tenant_uuid = ug.tenant_uuid" [membershipTable]
-              , f' "AND (ug.private IS FALSE OR ugm.user_uuid = '${userUuid}')" [U.toString currentUserUuid]
-              )
+    let aclJoins = f' "LEFT JOIN %s ugm ON ugm.user_group_uuid = ug.uuid AND ugm.tenant_uuid = ug.tenant_uuid" [membershipTable]
+    let aclCondition = f' "AND (ug.private IS FALSE OR ugm.user_uuid = '%s' OR %s)" [U.toString currentUserUuid, manageCondition]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
     let countSql =

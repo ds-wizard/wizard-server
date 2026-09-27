@@ -230,6 +230,7 @@ sendProjectInvitationMail oldProject newProject =
                         , ("inviteeLastName", A.string user.lastName)
                         , ("inviteeEmail", A.string user.email)
                         , ("projectUuid", A.uuid newProject.uuid)
+                        , ("workspaceUuid", A.uuid newProject.workspaceUuid)
                         , ("projectName", A.string newProject.name)
                         , ("ownerUuid", A.uuid currentUser.uuid)
                         , ("ownerFirstName", A.string currentUser.firstName)

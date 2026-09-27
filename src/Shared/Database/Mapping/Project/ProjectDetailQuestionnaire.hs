@@ -29,6 +29,7 @@ instance FromRow ProjectDetailQuestionnaire where
     isTemplate <- field
     permissions <- loadPermissions uuid
     mFiles <- fieldWith (optionalField fromField)
+    workspaceUuid <- field
     let files =
           case mFiles of
             Just files -> fmap parseFile . fromPGArray $ files

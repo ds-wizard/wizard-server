@@ -94,7 +94,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "DocumentTemplateEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "documentTemplates.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -105,5 +105,5 @@ test_404 requestContext =
     "/api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd/documents/preview/settings"
     (reqHeadersT reqAuthHeader)
     reqBody
-    "document_template_draft_data"
-    [("document_template_uuid", "3db4265e-8ba2-433d-97fb-6cc504866bbd")]
+    "document_template"
+    [("uuid", "3db4265e-8ba2-433d-97fb-6cc504866bbd")]

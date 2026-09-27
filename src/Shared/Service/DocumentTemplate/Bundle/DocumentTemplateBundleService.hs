@@ -28,8 +28,10 @@ import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
+import Shared.Service.Acl.LibraryAcl
 import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleAudit
 import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleMapper
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
@@ -51,6 +53,7 @@ getTemporaryFileWithBundle dtUuid =
 exportBundle :: WizardRequestContextC s m => U.UUID -> m (Coordinate, BSL.ByteString)
 exportBundle dtUuid =
   runInTransaction $ do
+    checkManagePermissionToDocumentTemplate dtUuid
     dt <- findDocumentTemplateByUuid dtUuid
     when
       dt.nonEditable
@@ -65,8 +68,8 @@ exportBundle dtUuid =
 pullBundleFromRegistry :: WizardRequestContextC s m => Coordinate -> m DocumentTemplateSimple
 pullBundleFromRegistry coordinate =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-    workspaceUuid <- requirePlaneScope
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
     checkDocumentTemplateLimit coordinate.organizationId coordinate.entityId
     tb <- catchError (retrieveDocumentTemplateBundleByCoordinate coordinate) handleError
     importAndConvertBundle tb True
@@ -80,8 +83,8 @@ importAndConvertBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool ->
 importAndConvertBundle contentS fromRegistry =
   runInTransaction $ case fromDocumentTemplateArchive contentS of
     Right (bundle, assetContents) -> do
-      checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-      workspaceUuid <- requirePlaneScope
+      workspaceUuid <- requireTenantOrWorkspaceScope
+      checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
       checkDocumentTemplateLimit bundle.organizationId bundle.templateId
       let assetSize = foldl (\acc (_, content) -> acc + (fromIntegral . BS.length $ content)) 0 assetContents
       checkStorageSize assetSize

@@ -10,9 +10,9 @@ import Shared.Service.Project.ProjectAcl
 checkViewPermissionToFile :: WizardRequestContextC s m => U.UUID -> m ()
 checkViewPermissionToFile projectUuid = do
   project <- findProjectByUuid projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
 
 checkEditPermissionToFile :: WizardRequestContextC s m => U.UUID -> m ()
 checkEditPermissionToFile projectUuid = do
   project <- findProjectByUuid projectUuid
-  checkEditPermissionToProject project.visibility project.sharing project.permissions
+  checkEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions

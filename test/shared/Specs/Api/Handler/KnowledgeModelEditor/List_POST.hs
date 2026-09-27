@@ -53,6 +53,7 @@ list_POST requestContext =
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
+    test_404_workspace requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -205,7 +206,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -227,6 +228,25 @@ test_404 requestContext =
       runInContextIO (insertPackage secondWorkspaceKmPackage) requestContext
       -- WHEN: Call API
       response <- request reqMethod (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findKnowledgeModelEditors requestContext 0
+
+test_404_workspace requestContext =
+  it "HTTP 404 NOT FOUND when the caller is not a member of w" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError (_ERROR_VALIDATION__ABSENCE "workspace")
+      let expBody = encode expDto
+      -- AND: Run migrations
+      insertSecondWorkspaceWithoutCaller requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9") reqHeaders reqBody
       -- THEN: Compare response with expectation
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}

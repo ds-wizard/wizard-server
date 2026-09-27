@@ -10,9 +10,12 @@ import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.Workspace.WorkspaceChangeDTO
+import Shared.Api.Resource.Workspace.WorkspaceMemberChangeDTO
 import Shared.Constant.User
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.Tenant.WizardTenantDAO
+import Shared.Database.DAO.User.RoleDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Database.DAO.Workspace.WorkspaceDAO
@@ -26,6 +29,8 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
+import Shared.Model.Tenant.Tenant
+import Shared.Model.User.Role
 import Shared.Model.Workspace.Workspace
 import Shared.Model.Workspace.WorkspaceMember
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
@@ -38,38 +43,52 @@ import Shared.Util.Uuid
 
 getWorkspacesPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page Workspace)
 getWorkspacesPage mQuery pageable sort = do
-  currentUser <- getCurrentUser
-  findWorkspacesPage currentUser.uuid mQuery pageable sort
+  _ <- getCurrentUser
+  managesWorkspaces <- hasPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
+  accessCondition <- if managesWorkspaces then return "" else workspaceOnlyCondition Nothing "uuid"
+  findWorkspacesPage accessCondition mQuery pageable sort
 
 createWorkspace :: WizardRequestContextC s m => WorkspaceChangeDTO -> m Workspace
 createWorkspace reqDto =
   runInTransaction $ do
-    checkPermission _USERS_MANAGE_ROLE_PERMISSION
+    checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
     validateChangeDto reqDto
-    multiWorkspace <- asks (.tenantMultiWorkspace')
-    unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SINGLE_WORKSPACE_TENANT)
+    tenantUuid <- asks (.tenantUuid')
+    lockTenantByUuid tenantUuid
+    tenant <- findTenantByUuid tenantUuid
+    unless tenant.multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SINGLE_WORKSPACE_TENANT)
     currentUser <- getCurrentUser
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
-    tenantUuid <- asks (.tenantUuid')
-    workspace <- insertWorkspaceWithSystemUser (fromChangeDTO reqDto uuid tenantUuid now)
-    addWorkspaceMembership workspace.uuid currentUser.uuid tenantUuid now
+    (workspace, adminRole) <- createWorkspaceWithRoles (fromChangeDTO reqDto uuid tenantUuid now)
+    addWorkspaceMembership workspace currentUser.uuid (Just adminRole.uuid) now
     return workspace
 
 createDefaultWorkspace :: WizardRequestContextC s m => U.UUID -> String -> UTCTime -> m Workspace
 createDefaultWorkspace tenantUuid name now = do
   uuid <- liftIO generateUuid
-  insertWorkspaceWithSystemUser (fromChangeDTO (WorkspaceChangeDTO {name = name, description = Nothing}) uuid tenantUuid now)
+  fst <$> createWorkspaceWithRoles (fromChangeDTO (WorkspaceChangeDTO {name = name, description = Nothing}) uuid tenantUuid now)
 
 getWorkspaceByUuid :: WizardRequestContextC s m => U.UUID -> m Workspace
 getWorkspaceByUuid uuid = do
-  checkWorkspaceMembership uuid
-  findWorkspaceByUuid uuid
+  managesWorkspaces <- hasPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
+  unless managesWorkspaces (checkWorkspaceReachable uuid)
+  mWorkspace <- findWorkspaceByUuid' uuid
+  maybe (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "workspace")) return mWorkspace
+
+switchToSingleWorkspace :: WizardRequestContextC s m => U.UUID -> m ()
+switchToSingleWorkspace tenantUuid = do
+  workspaceUuids <- findWorkspaceUuidsByTenantUuid tenantUuid
+  case workspaceUuids of
+    [workspaceUuid] -> do
+      moveWorkspaceRowsToTenant tenantUuid
+      addAllUsersToWorkspace workspaceUuid tenantUuid
+    _ -> throwError $ UserError _ERROR_SERVICE_WORKSPACE__MULTIPLE_WORKSPACES
 
 modifyWorkspace :: WizardRequestContextC s m => U.UUID -> WorkspaceChangeDTO -> m Workspace
 modifyWorkspace uuid reqDto =
   runInTransaction $ do
-    checkPermission _USERS_MANAGE_ROLE_PERMISSION
+    checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
     validateChangeDto reqDto
     workspace <- findWorkspaceByUuid uuid
     now <- liftIO getCurrentTime
@@ -80,7 +99,7 @@ modifyWorkspace uuid reqDto =
 deleteWorkspace :: WizardRequestContextC s m => U.UUID -> m ()
 deleteWorkspace uuid =
   runInTransaction $ do
-    checkPermission _USERS_MANAGE_ROLE_PERMISSION
+    checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
     _ <- findWorkspaceByUuid uuid
     workspaceUuids <- findWorkspaceUuidsForUpdate
     when (length workspaceUuids < 2) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__LAST_WORKSPACE)
@@ -92,31 +111,42 @@ deleteWorkspace uuid =
 
 getWorkspaceMembersPage :: WizardRequestContextC s m => U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page WorkspaceMember)
 getWorkspaceMembersPage uuid mQuery pageable sort = do
-  checkWorkspaceMembership uuid
+  checkWorkspaceReachable uuid
   findWorkspaceMembersPage uuid mQuery pageable sort
 
-addWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
-addWorkspaceMember uuid userUuid =
+addWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> WorkspaceMemberChangeDTO -> m ()
+addWorkspaceMember uuid userUuid reqDto =
   runInTransaction $ do
-    checkPermission _USERS_MANAGE_ROLE_PERMISSION
+    checkPermissionInWorkspace _MEMBERS_MANAGE_ROLE_PERMISSION (Just uuid)
+    when (userUuid == systemUserUuid) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SYSTEM_USER)
     workspace <- findWorkspaceByUuid uuid
     _ <- findUserByUuid userUuid
     now <- liftIO getCurrentTime
-    addWorkspaceMembership workspace.uuid userUuid workspace.tenantUuid now
+    addWorkspaceMembership workspace userUuid reqDto.roleUuid now
 
 removeWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 removeWorkspaceMember uuid userUuid =
   runInTransaction $ do
-    checkPermission _USERS_MANAGE_ROLE_PERMISSION
+    checkPermissionInWorkspace _MEMBERS_MANAGE_ROLE_PERMISSION (Just uuid)
     when (userUuid == systemUserUuid) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SYSTEM_USER)
     _ <- findWorkspaceByUuid uuid
+    multiWorkspace <- asks (.tenantMultiWorkspace')
+    unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SINGLE_WORKSPACE_TENANT)
     removeWorkspaceMembership uuid userUuid
 
-insertWorkspaceWithSystemUser :: WizardRequestContextC s m => Workspace -> m Workspace
-insertWorkspaceWithSystemUser workspace = do
+createWorkspaceWithRoles :: WizardRequestContextC s m => Workspace -> m (Workspace, Role)
+createWorkspaceWithRoles workspace = do
   insertWorkspace workspace
-  addWorkspaceMembership workspace.uuid systemUserUuid workspace.tenantUuid workspace.createdAt
-  return workspace
+  adminRoleUuid <- liftIO generateUuid
+  userRoleUuid <- liftIO generateUuid
+  let adminRole = toWorkspaceRole adminRoleUuid "Admin" workspaceRolePermissions workspace
+  let userRole = toWorkspaceRole userRoleUuid "User" [] workspace
+  insertRole adminRole
+  insertRole userRole
+  let workspaceWithDefault = workspace {defaultRoleUuid = Just userRole.uuid}
+  updateWorkspaceByUuid workspaceWithDefault
+  addWorkspaceMembership workspaceWithDefault systemUserUuid Nothing workspace.createdAt
+  return (workspaceWithDefault, adminRole)
 
 validateChangeDto :: WizardRequestContextC s m => WorkspaceChangeDTO -> m ()
 validateChangeDto reqDto =

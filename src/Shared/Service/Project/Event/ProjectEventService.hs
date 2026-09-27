@@ -28,7 +28,7 @@ addEventToProject :: WizardRequestContextC s m => U.UUID -> ProjectEventChangeDT
 addEventToProject projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkEditPermissionToProject project.visibility project.sharing project.permissions
+    checkEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     mCurrentUser <- asks (.currentUser')
     let mCreatedBy = fmap toSuggestion' mCurrentUser
     addEvent projectUuid EditorWebsocketPerm mCreatedBy reqDto

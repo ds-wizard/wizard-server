@@ -55,6 +55,7 @@ import Shared.Service.Document.DocumentUtil
 import Shared.Service.DocumentTemplate.DocumentTemplateService
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleValidation
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import qualified Shared.Service.KnowledgeModel.Editor.EditorMapper as EditorMapper
 import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.ProjectAcl
@@ -85,7 +86,7 @@ createDocument reqDto =
     checkDocumentLimit
     checkStorageSize 0
     project <- findProjectByUuid reqDto.projectUuid
-    tml <- getDocumentTemplateByUuidAndPackageId reqDto.documentTemplateUuid project.knowledgeModelPackageUuid
+    tml <- getDocumentTemplateByUuidAndPackageId reqDto.documentTemplateUuid project.knowledgeModelPackageUuid project.workspaceUuid
     format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid reqDto.documentTemplateUuid reqDto.formatUuid
     validateMetamodelVersion tml
     validateLanguageAvailability tml reqDto.language
@@ -130,10 +131,10 @@ createDocumentPreviewForProject :: WizardRequestContextC s m => U.UUID -> m (Doc
 createDocumentPreviewForProject projectUuid =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkViewPermissionToProject project.visibility project.sharing project.permissions
+    checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     case (project.documentTemplateUuid, project.formatUuid) of
       (Just dtUuid, Just formatUuid) -> do
-        tml <- getDocumentTemplateByUuidAndPackageId dtUuid project.knowledgeModelPackageUuid
+        tml <- getDocumentTemplateByUuidAndPackageId dtUuid project.knowledgeModelPackageUuid project.workspaceUuid
         pkg <- findPackageByUuid project.knowledgeModelPackageUuid
         projectEvents <- findProjectEventListsByProjectUuid projectUuid
         let projectEventUuid = fmap getUuid (lastSafe projectEvents)
@@ -151,7 +152,7 @@ createDocumentPreviewForDocTmlDraft dtUuid =
         draft <- findDraftByUuid dtUuid
         project <- findProjectByUuid projectUuid
         pkg <- findPackageByUuid project.knowledgeModelPackageUuid
-        checkViewPermissionToProject project.visibility project.sharing project.permissions
+        checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
         projectEvents <- findProjectEventListsByProjectUuid project.uuid
         let projectEventUuid = fmap getUuid (lastSafe projectEvents)
         let projectContent = compileProjectEvents projectEvents
@@ -165,7 +166,7 @@ createDocumentPreviewForDocTmlDraft dtUuid =
         let kmEvents = fmap EditorMapper.toKnowledgeModelEvent kmEditorEvents
         kmEditorReplies <- findKnowledgeModelRepliesByEditorUuid kmEditorUuid
         let replies = EditorMapper.toReplies kmEditorReplies
-        checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+        checkPermissionToEditor kmEditorUuid
         mCurrentUser <- asks (.currentUser')
         let project = toTemporaryProject editor pkg mCurrentUser
         let projectEventUuid = Nothing

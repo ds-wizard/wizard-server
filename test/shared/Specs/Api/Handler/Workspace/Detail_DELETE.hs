@@ -4,6 +4,7 @@ module Specs.Api.Handler.Workspace.Detail_DELETE (
 
 import Data.Aeson (encode)
 import Data.Either (isLeft)
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -15,6 +16,7 @@ import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.User.RoleDAO
 import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Database.Migration.Development.Document.Data.Documents
@@ -30,6 +32,7 @@ import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Error.Error
+import Shared.Model.User.Role
 import Shared.Model.User.UserGroup
 import Shared.Model.Workspace.Workspace
 import Shared.Util.Uuid
@@ -87,6 +90,7 @@ test_204 requestContext =
     assertCountInDB findProjects requestContext 4
     assertCountInDB findDocuments requestContext 4
     assertCountInDB findKnowledgeModelEditors requestContext 2
+    assertCountInDB (findRolesOfWorkspace secondWorkspace.uuid) requestContext 2
     -- WHEN: Call API
     response <- request reqMethod reqUrl reqHeaders reqBody
     -- THEN: Compare response with expectation
@@ -100,6 +104,10 @@ test_204 requestContext =
     assertCountInDB findKnowledgeModelEditors requestContext 1
     eGroup <- runInContextIO (findUserGroupByUuid secondWorkspaceGroup.uuid) requestContext
     liftIO $ isLeft eGroup `shouldBe` True
+    assertCountInDB (findRolesOfWorkspace secondWorkspace.uuid) requestContext 0
+
+findRolesOfWorkspace :: U.UUID -> RequestContextM [Role]
+findRolesOfWorkspace workspaceUuid = filter (\role -> role.workspaceUuid == Just workspaceUuid) <$> findRoles
 
 secondWorkspaceGroup :: UserGroup
 secondWorkspaceGroup =
@@ -136,7 +144,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "UsersManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "workspaces.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

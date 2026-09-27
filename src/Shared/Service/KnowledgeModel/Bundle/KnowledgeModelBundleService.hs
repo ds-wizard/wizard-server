@@ -40,9 +40,11 @@ import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundlePackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageEvent
 import Shared.Model.Localization.LocaleRecord
+import Shared.Service.Acl.LibraryAcl
 import Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleAudit
 import Shared.Service.KnowledgeModel.KnowledgeModelValidation
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
 import qualified Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper as KnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation (
@@ -67,7 +69,7 @@ getTemporaryFileWithBundle uuid =
 exportBundle :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelBundle
 exportBundle uuid =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToPackage uuid
     packages <- findSeriesOfPackagesRecursiveByUuid uuid
     case lastSafe packages of
       Just newestPackage -> do
@@ -91,7 +93,8 @@ exportBundle uuid =
 pullBundleFromRegistry :: WizardRequestContextC s m => String -> m KnowledgeModelPackageSimpleDTO
 pullBundleFromRegistry pkgId =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION workspaceUuid
     pb <- catchError (retrieveKnowledgeModelBundleById pkgId) handleError
     importAndConvertBundle pb True
   where
@@ -103,7 +106,8 @@ pullBundleFromRegistry pkgId =
 importAndConvertBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool -> m KnowledgeModelPackageSimpleDTO
 importAndConvertBundle contentS fromRegistry =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION workspaceUuid
     case eitherDecode contentS of
       Right content -> do
         encodedPb <- migrateKnowledgeModelBundle content
@@ -112,7 +116,7 @@ importAndConvertBundle contentS fromRegistry =
             if fromRegistry
               then auditKnowledgeModelBundlePullFromRegistry (show pb.bundleId)
               else auditKnowledgeModelBundleImportFromFile (show pb.bundleId)
-            importBundle pb
+            importBundle pb workspaceUuid
           Left error -> do
             logWarnI _CMP_SERVICE ("Could not deserialize migrated Knowledge Model Bundle content (" ++ show error ++ ")")
             throwError . UserError $ _ERROR_API_COMMON__CANT_DESERIALIZE_OBJ
@@ -120,11 +124,10 @@ importAndConvertBundle contentS fromRegistry =
         logWarnI _CMP_SERVICE ("Could not deserialize Knowledge Model Bundle content (" ++ show error ++ ")")
         throwError . UserError $ _ERROR_API_COMMON__CANT_DESERIALIZE_OBJ
 
-importBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> m KnowledgeModelPackageSimpleDTO
-importBundle pb =
+importBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> Maybe U.UUID -> m KnowledgeModelPackageSimpleDTO
+importBundle pb workspaceUuid =
   runInTransaction $ do
     pkg <- extractMainPackage pb
-    workspaceUuid <- requirePlaneScope
     validatePackageIdUniqueness (createCoordinate pkg) workspaceUuid
     pkgs <- forM pb.packages (importPackage workspaceUuid)
     case lastSafe . catMaybes $ pkgs of

@@ -87,5 +87,5 @@ test_404 requestContext =
     (BS.pack $ "/api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")
     reqHeaders
     reqBody
-    "document_template_locale"
-    [("document_template_uuid", show wizardDocumentTemplate.uuid), ("uuid", "78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")]
+    "document_template"
+    [("uuid", show wizardDocumentTemplate.uuid)]

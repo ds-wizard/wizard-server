@@ -3,71 +3,116 @@ module Shared.Database.DAO.WizardCommon (
   runInTransaction,
   createFindEntitiesGroupByCoordinatePageableQuerySortFn,
   createCountGroupByCoordinateFn,
+  WorkspaceAccess (..),
+  workspaceAccess,
+  workspaceAccessSql,
+  workspaceScopeCondition,
   workspaceOnlyCondition,
   tenantOrWorkspaceCondition,
 ) where
 
+import Control.Monad (when)
+import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks)
+import qualified Data.List as L
+import qualified Data.Map.Strict as M
 import Data.Maybe (maybeToList)
 import Data.String (fromString)
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
 
-import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.Common hiding (runInTransaction)
 import qualified Shared.Database.DAO.Common as S
 import Shared.Database.Mapping.KnowledgeModel.Package.KnowledgeModelPackage ()
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.Error.Error
+import Shared.Model.User.RolePermission
+import Shared.Model.User.RoleSimple
+import Shared.Service.Acl.AclService (permissionsInWorkspace)
 import Shared.Util.Logger
 import Shared.Util.String
 
 runInTransaction :: WizardRequestContextC s m => m a -> m a
 runInTransaction = S.runInTransaction logInfoI logWarnI
 
-planeGroupSql :: String -> Bool -> (String, String)
-planeGroupSql entityName True = (f' ", ':', %s.workspace_uuid" [entityName], f' ", %s.workspace_uuid" [entityName])
-planeGroupSql _ False = ("", "")
+workspaceGroupSql :: String -> Bool -> (String, String)
+workspaceGroupSql entityName True = (f' ", ':', %s.workspace_uuid" [entityName], f' ", %s.workspace_uuid" [entityName])
+workspaceGroupSql _ False = ("", "")
 
-workspaceOnlyCondition :: WizardRequestContextC s m => String -> m String
-workspaceOnlyCondition column = do
+data WorkspaceAccess
+  = UnrestrictedWorkspaceAccess
+  | RestrictedWorkspaceAccess [U.UUID]
+
+workspaceAccess :: WizardRequestContextC s m => Maybe String -> m WorkspaceAccess
+workspaceAccess mPermission = do
   mCurrentUser <- asks (.currentUser')
+  workspaceRoles <- asks (.workspaceRoles')
+  multiWorkspace <- asks (.tenantMultiWorkspace')
+  return $
+    case mCurrentUser of
+      Nothing -> UnrestrictedWorkspaceAccess
+      Just user
+        | any (`elem` permissionsInWorkspace user workspaceRoles multiWorkspace Nothing) (maybe workspaceReachRolePermissions (: []) mPermission) -> UnrestrictedWorkspaceAccess
+        | otherwise -> RestrictedWorkspaceAccess [workspaceUuid | (workspaceUuid, role) <- M.toList workspaceRoles, maybe True (`elem` role.permissions) mPermission]
+
+isWorkspaceAccessible :: WorkspaceAccess -> U.UUID -> Bool
+isWorkspaceAccessible UnrestrictedWorkspaceAccess _ = True
+isWorkspaceAccessible (RestrictedWorkspaceAccess workspaceUuids) workspaceUuid = workspaceUuid `elem` workspaceUuids
+
+workspaceAccessSql :: String -> WorkspaceAccess -> String
+workspaceAccessSql _ UnrestrictedWorkspaceAccess = "TRUE"
+workspaceAccessSql _ (RestrictedWorkspaceAccess []) = "FALSE"
+workspaceAccessSql column (RestrictedWorkspaceAccess workspaceUuids) = f' "%s IN (%s)" [column, L.intercalate ", " (fmap (\u -> f' "'%s'" [U.toString u]) workspaceUuids)]
+
+workspaceScopeCondition :: WizardRequestContextC s m => String -> m String
+workspaceScopeCondition column = do
   scope <- asks (.scope')
-  let floor =
-        case mCurrentUser of
-          Just user -> f' " AND %s" [workspaceMembershipCondition column user.uuid]
-          Nothing -> ""
+  when (scope == TenantScope) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED)
   return $
     case scope of
-      WorkspaceScope workspaceUuid -> f' "%s AND %s = '%s'" [floor, column, U.toString workspaceUuid]
-      _ -> floor
+      WorkspaceScope workspaceUuid -> f' " AND %s = '%s'" [column, U.toString workspaceUuid]
+      _ -> ""
 
-tenantOrWorkspaceCondition :: WizardRequestContextC s m => String -> m String
-tenantOrWorkspaceCondition column = do
-  mCurrentUser <- asks (.currentUser')
+workspaceOnlyCondition :: WizardRequestContextC s m => Maybe String -> String -> m String
+workspaceOnlyCondition mPermission column = do
+  access <- workspaceAccess mPermission
   scope <- asks (.scope')
-  let floor =
-        case mCurrentUser of
-          Just user -> f' " AND (%s IS NULL OR %s)" [column, workspaceMembershipCondition column user.uuid]
-          Nothing -> ""
-  let requested workspaceUuid =
-        case mCurrentUser of
-          Just user -> f' " AND %s" [workspaceMembershipCondition (f' "'%s'::uuid" [U.toString workspaceUuid]) user.uuid]
-          Nothing -> ""
+  when (scope == TenantScope) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED)
   return $
-    case scope of
-      TenantScope -> f' "%s AND %s IS NULL" [floor, column]
-      WorkspaceScope workspaceUuid -> f' "%s%s AND (%s IS NULL OR %s = '%s')" [floor, requested workspaceUuid, column, column, U.toString workspaceUuid]
-      NoScope -> floor
+    case (scope, access) of
+      (WorkspaceScope workspaceUuid, _)
+        | isWorkspaceAccessible access workspaceUuid -> f' " AND %s = '%s'" [column, U.toString workspaceUuid]
+        | otherwise -> " AND FALSE"
+      (_, UnrestrictedWorkspaceAccess) -> ""
+      (_, _) -> f' " AND %s" [workspaceAccessSql column access]
 
-createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntityName pageLabel pageable sort fields entityId mQuery mEnabled mOrganizationId mEntityId mOutdated outdatedCondition planeAware scopeCondition =
+tenantOrWorkspaceCondition :: WizardRequestContextC s m => Maybe String -> String -> m String
+tenantOrWorkspaceCondition mPermission column = do
+  access <- workspaceAccess mPermission
+  scope <- asks (.scope')
+  let tenantRows =
+        case (mPermission, access) of
+          (Just _, RestrictedWorkspaceAccess _) -> "FALSE"
+          _ -> f' "%s IS NULL" [column]
+  return $
+    case (scope, access) of
+      (TenantScope, _) -> f' " AND %s" [tenantRows]
+      (WorkspaceScope workspaceUuid, _)
+        | isWorkspaceAccessible access workspaceUuid -> f' " AND (%s OR %s = '%s')" [tenantRows, column, U.toString workspaceUuid]
+        | otherwise -> " AND FALSE"
+      (NoScope, UnrestrictedWorkspaceAccess) -> ""
+      (NoScope, _) -> f' " AND (%s OR %s)" [tenantRows, workspaceAccessSql column access]
+
+createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntityName pageLabel pageable sort fields entityId mQuery mEnabled mOrganizationId mEntityId mOutdated outdatedCondition workspaceAware scopeCondition =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    let (planeKey, planeGroup) = planeGroupSql entityName planeAware
+    let (workspaceKey, workspaceGroup) = workspaceGroupSql entityName workspaceAware
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     let enabledCondition =
           case mEnabled of
@@ -86,7 +131,7 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
         mEntityId
         mOutdated
         outdatedCondition
-        planeAware
+        workspaceAware
         scopeCondition
     -- 3. Get entities
     let sql =
@@ -95,13 +140,13 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
             \FROM ${entityName} \
             \LEFT JOIN ${registryEntityName} ON ${entityName}.organization_id = ${registryEntityName}.organization_id AND ${entityName}.${entityId} = ${registryEntityName}.${entityId} \
             \LEFT JOIN registry_organization ON ${entityName}.organization_id = registry_organization.organization_id \
-            \WHERE tenant_uuid = ? AND concat(${entityName}.organization_id, ':', ${entityName}.${entityId}, ':', ${entityName}.version${planeKey}) IN ( \
+            \WHERE tenant_uuid = ? AND concat(${entityName}.organization_id, ':', ${entityName}.${entityId}, ':', ${entityName}.version${workspaceKey}) IN ( \
             \    SELECT CONCAT(organization_id, ':', ${entityId}, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
             \                                                          (max(string_to_array(version, '.')::int[]))[2] || '.' || \
-            \                                                          (max(string_to_array(version, '.')::int[]))[3]${planeKey}) \
+            \                                                          (max(string_to_array(version, '.')::int[]))[3]${workspaceKey}) \
             \    FROM ${entityName} \
             \    WHERE ${enabledCondition} tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR ${entityId} ~* ? OR version ~* ?) ${coordinateSql} ${scopeCondition} \
-            \    GROUP BY organization_id, ${entityId}${planeGroup} \
+            \    GROUP BY organization_id, ${entityId}${workspaceGroup} \
             \) \
             \${outdatedCondition} \
             \${sort} \
@@ -115,8 +160,8 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
             , ("coordinateSql", mapToDBCoordinatesSql entityName entityId mOrganizationId mEntityId)
             , ("outdatedCondition", outdatedCondition)
             , ("scopeCondition", scopeCondition)
-            , ("planeKey", planeKey)
-            , ("planeGroup", planeGroup)
+            , ("workspaceKey", workspaceKey)
+            , ("workspaceGroup", workspaceGroup)
             , ("sort", mapSort sort)
             , ("offset", show skip)
             , ("limit", show sizeI)
@@ -160,24 +205,24 @@ createCountGroupByCoordinateFn
   -> Bool
   -> String
   -> m Int
-createCountGroupByCoordinateFn entityName registryEntityName entityId mQuery enabledCondition mOrganizationId mEntityId mOutdated outdatedCondition planeAware scopeCondition = do
+createCountGroupByCoordinateFn entityName registryEntityName entityId mQuery enabledCondition mOrganizationId mEntityId mOutdated outdatedCondition workspaceAware scopeCondition = do
   tenantUuid <- asks (.tenantUuid')
-  let (planeKey, planeGroup) = planeGroupSql entityName planeAware
+  let (workspaceKey, workspaceGroup) = workspaceGroupSql entityName workspaceAware
   let sql =
         f''
           "SELECT count(*) \
           \FROM ${entityName} \
           \LEFT JOIN ${registryEntityName} ON ${entityName}.organization_id = ${registryEntityName}.organization_id AND ${entityName}.${entityId} = ${registryEntityName}.${entityId} \
           \WHERE ${enabledCondition} tenant_uuid = ? AND (name ~* ? OR ${entityName}.organization_id ~* ? OR ${entityName}.${entityId} ~* ? OR ${entityName}.version ~* ?) ${coordinateSql} ${outdatedCondition} \
-          \  AND concat(${entityName}.organization_id, ':', ${entityName}.${entityId}, ':', ${entityName}.version${planeKey}) IN \
+          \  AND concat(${entityName}.organization_id, ':', ${entityName}.${entityId}, ':', ${entityName}.version${workspaceKey}) IN \
           \      (SELECT CONCAT(organization_id, ':', ${entityId}, ':', \
           \                     (max(string_to_array(version, '.')::int[]))[1] || '.' || \
           \                     (max(string_to_array(version, '.')::int[]))[2] || '.' || \
-          \                     (max(string_to_array(version, '.')::int[]))[3]${planeKey}) \
+          \                     (max(string_to_array(version, '.')::int[]))[3]${workspaceKey}) \
           \             FROM ${entityName} \
           \             WHERE tenant_uuid = ? \
           \               AND (name ~* ? OR ${entityName}.organization_id ~* ? OR ${entityName}.${entityId} ~* ? OR ${entityName}.version ~* ?) ${scopeCondition} \
-          \             GROUP BY ${entityName}.organization_id, ${entityName}.${entityId}${planeGroup})"
+          \             GROUP BY ${entityName}.organization_id, ${entityName}.${entityId}${workspaceGroup})"
           [ ("entityName", entityName)
           , ("registryEntityName", registryEntityName)
           , ("entityId", entityId)
@@ -185,8 +230,8 @@ createCountGroupByCoordinateFn entityName registryEntityName entityId mQuery ena
           , ("coordinateSql", mapToDBCoordinatesSql entityName entityId mOrganizationId mEntityId)
           , ("outdatedCondition", outdatedCondition)
           , ("scopeCondition", scopeCondition)
-          , ("planeKey", planeKey)
-          , ("planeGroup", planeGroup)
+          , ("workspaceKey", workspaceKey)
+          , ("workspaceGroup", workspaceGroup)
           ]
   logInfo _CMP_DATABASE sql
   let action conn =

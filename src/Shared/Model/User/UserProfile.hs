@@ -18,7 +18,8 @@ data UserProfile = UserProfile
   , email :: String
   , affiliation :: Maybe String
   , imageUrl :: Maybe String
-  , role :: RoleSimple
+  , organizationRole :: RoleSimple
+  , workspaceRoles :: M.Map U.UUID RoleSimple
   , lastSeenNewsId :: Maybe String
   , userGroupUuids :: [U.UUID]
   , pluginSettings :: M.Map U.UUID A.Value

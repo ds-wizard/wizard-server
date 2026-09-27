@@ -14,15 +14,18 @@ import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftCreateDTO
 import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftCreateJM ()
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.Workspace
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDAO
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateDrafts
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as DT_Migration
+import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
 import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -40,6 +43,7 @@ list_POST requestContext =
     test_400 requestContext
     test_401 requestContext
     test_403 requestContext
+    test_404 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -59,6 +63,27 @@ test_201 requestContext = do
   create_test_201 "HTTP 201 CREATED (without extending)" requestContext reqUrl False reqAuthHeader (wizardDocumentTemplateDraftCreateDTO {basedOn = Nothing} :: DocumentTemplateDraftCreateDTO) wizardDocumentTemplateNlDraft Nothing
   create_test_201 "HTTP 201 CREATED (tenant=true)" requestContext (reqUrl <> "?tenant=true") True reqAuthHeader (wizardDocumentTemplateDraftCreateDTO {basedOn = Nothing} :: DocumentTemplateDraftCreateDTO) wizardDocumentTemplateNlDraft Nothing
   create_test_201 "HTTP 201 CREATED (workspace plane)" requestContext (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") True reqAuthHeader (wizardDocumentTemplateDraftCreateDTO {basedOn = Nothing} :: DocumentTemplateDraftCreateDTO) wizardDocumentTemplateNlDraft (Just defaultWorkspaceUuid)
+  it "HTTP 404 NOT FOUND (tenant=true, based on a template of a workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      let reqBody = reqBodyT (wizardDocumentTemplateDraftCreateDTO {basedOn = Just secondWorkspaceDocumentTemplate.uuid} :: DocumentTemplateDraftCreateDTO)
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (NotExistsError (_ERROR_VALIDATION__ABSENCE "document_template"))
+      -- AND: Run migrations
+      runInContextIO DT_Migration.runMigration requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertDocumentTemplate secondWorkspaceDocumentTemplate) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?tenant=true") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findDrafts requestContext 1
 
 -- create_test_201 "HTTP 201 CREATED (with extending)" requestContext reqAuthHeader wizardDocumentTemplateDraftCreateDTO
 
@@ -117,4 +142,37 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] (reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] (reqBodyT wizardDocumentTemplateDraftCreateDTO) "DocumentTemplateEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] (reqBodyT wizardDocumentTemplateDraftCreateDTO) "documentTemplates.useEditor"
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_404 requestContext =
+  it "HTTP 404 NOT FOUND (based on a template of another workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      let reqBody = reqBodyT (wizardDocumentTemplateDraftCreateDTO {basedOn = Just secondWorkspaceDocumentTemplate.uuid} :: DocumentTemplateDraftCreateDTO)
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (NotExistsError (_ERROR_VALIDATION__ABSENCE "document_template"))
+      -- AND: Run migrations
+      runInContextIO DT_Migration.runMigration requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertDocumentTemplate secondWorkspaceDocumentTemplate) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findDrafts requestContext 1
+
+secondWorkspaceDocumentTemplate :: DocumentTemplate
+secondWorkspaceDocumentTemplate =
+  wizardDocumentTemplate
+    { uuid = u' "6b5a4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d"
+    , workspaceUuid = Just secondWorkspaceUuid
+    }

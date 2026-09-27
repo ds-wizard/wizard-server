@@ -35,7 +35,9 @@ import Shared.Model.DocumentTemplate.DocumentTemplateSuggestion
 import Shared.Model.Error.Error
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
+import Shared.Service.Acl.LibraryAcl
 import Shared.Service.Document.DocumentCleanService
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import qualified Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMapper as DocumentTemplateLocaleMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
@@ -81,9 +83,9 @@ getDocumentTemplatesDto queryParams = do
     )
     dts
 
-getDocumentTemplateByUuidAndPackageId :: WizardRequestContextC s m => U.UUID -> U.UUID -> m DocumentTemplate
-getDocumentTemplateByUuidAndPackageId documentTemplateUuid pkgUuid = do
-  templates <- findDocumentTemplatesFiltered []
+getDocumentTemplateByUuidAndPackageId :: WizardRequestContextC s m => U.UUID -> U.UUID -> U.UUID -> m DocumentTemplate
+getDocumentTemplateByUuidAndPackageId documentTemplateUuid pkgUuid workspaceUuid = do
+  templates <- findDocumentTemplatesInWorkspace (Just workspaceUuid)
   pkg <- findPackageByUuid pkgUuid
   let dts = filterDocumentTemplates (Just . createCoordinate $ pkg) templates
   case L.find (\dt -> dt.uuid == documentTemplateUuid) dts of
@@ -107,7 +109,7 @@ getDocumentTemplateByUuidDto uuid = do
 modifyDocumentTemplate :: WizardRequestContextC s m => U.UUID -> DocumentTemplateChangeDTO -> m DocumentTemplateDetailDTO
 modifyDocumentTemplate uuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToDocumentTemplate uuid
     validateChangeDto uuid reqDto
     tml <- findDocumentTemplateByUuid uuid
     let templateUpdated = fromChangeDTO reqDto tml
@@ -118,15 +120,15 @@ modifyDocumentTemplate uuid reqDto =
 deleteDocumentTemplatesByQueryParams :: WizardRequestContextC s m => [(String, String)] -> m ()
 deleteDocumentTemplatesByQueryParams queryParams =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-    workspaceUuid <- requirePlaneScope
-    dts <- findDocumentTemplatesFilteredInPlane queryParams workspaceUuid
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
+    dts <- findDocumentTemplatesFilteredInWorkspace queryParams workspaceUuid
     traverse_ (\dt -> deleteDocumentTemplate dt.uuid) dts
 
 deleteDocumentTemplate :: WizardRequestContextC s m => U.UUID -> m ()
 deleteDocumentTemplate uuid =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToDocumentTemplate uuid
     tml <- findDocumentTemplateByUuid uuid
     assets <- findAssetsByDocumentTemplateUuid uuid
     validateDocumentTemplateDeletion uuid
@@ -140,5 +142,5 @@ deleteDocumentTemplate uuid =
 -- --------------------------------
 getDocumentTemplateVersions :: WizardRequestContextC s m => DocumentTemplate -> m [(U.UUID, String)]
 getDocumentTemplateVersions tml = do
-  allTmls <- findDocumentTemplatesByOrganizationIdAndKmIdInPlane tml.organizationId tml.templateId tml.workspaceUuid
+  allTmls <- findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace tml.organizationId tml.templateId tml.workspaceUuid
   return . fmap (\t -> (t.uuid, t.version)) . filter (\t -> t.phase == ReleasedDocumentTemplatePhase || t.phase == DeprecatedDocumentTemplatePhase) $ allTmls

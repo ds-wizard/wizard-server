@@ -155,4 +155,4 @@ create_test_403_project title requestContext reqDto project authHeader reason =
     response `shouldRespondWith` responseMatcher
 
 create_test_403_knowledge_model_editor requestContext reqDto =
-  createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] (encode reqDto) "KnowledgeModelEditorsUseRolePermission"
+  createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] (encode reqDto) "knowledgeModels.useEditor"

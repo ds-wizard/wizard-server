@@ -18,6 +18,7 @@ import Specs.Api.Handler.Project.Detail_Settings_GET
 import Specs.Api.Handler.Project.Detail_Settings_PUT
 import Specs.Api.Handler.Project.Detail_Share_PUT
 import Specs.Api.Handler.Project.Event.ApiSpec
+import Specs.Api.Handler.Project.File.ApiSpec
 import Specs.Api.Handler.Project.List_GET
 import Specs.Api.Handler.Project.List_POST
 import Specs.Api.Handler.Project.List_POST_CloneUuid
@@ -48,6 +49,7 @@ projectAPI serverContext requestContext =
       detail_revert_preview_POST requestContext
       projectCommentAPI requestContext
       projectEventAPI requestContext
+      projectFileAPI requestContext
       projectMigrationAPI requestContext
       projectTagAPI requestContext
       projectUserAPI requestContext

@@ -11,5 +11,6 @@ data Workspace = Workspace
   , description :: Maybe String
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , defaultRoleUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

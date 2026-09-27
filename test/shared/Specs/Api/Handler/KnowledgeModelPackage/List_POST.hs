@@ -48,11 +48,11 @@ list_POST requestContext =
     test_201_req_no_db_all requestContext
     test_201_req_one_db_rest requestContext
     test_201_without_readme requestContext
-    test_201_workspace_plane requestContext
+    test_201_workspace requestContext
     test_400 requestContext
     test_400_main_package_duplication requestContext
-    test_400_workspace_duplicates_tenant_plane requestContext
-    test_400_tenant_plane_duplicates_workspace requestContext
+    test_400_workspace_duplicates_tenant requestContext
+    test_400_tenant_duplicates_workspace requestContext
     test_400_missing_previous_package requestContext
     test_401 requestContext
     test_403 requestContext
@@ -216,7 +216,7 @@ test_201_without_readme requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_201_workspace_plane requestContext =
+test_201_workspace requestContext =
   it "HTTP 201 CREATED - Into a workspace of a multi-workspace tenant" $
     -- GIVEN: Prepare expectation
     do
@@ -235,8 +235,8 @@ test_201_workspace_plane requestContext =
       comparePackageDtos resBody expDto
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findPackages requestContext 3
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInPlane "org.nl" "core-nl" Nothing) requestContext 0
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInPlane "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 2
+      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" Nothing) requestContext 0
+      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 2
       ePackages <- runInContextIO findPackages requestContext
       liftIO $ fmap (fmap (.workspaceUuid)) ePackages `shouldBe` Right (replicate 3 (Just defaultWorkspaceUuid))
 
@@ -284,7 +284,7 @@ test_400_main_package_duplication requestContext =
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findPackages requestContext 3
 
-test_400_workspace_duplicates_tenant_plane requestContext =
+test_400_workspace_duplicates_tenant requestContext =
   it "HTTP 400 BAD REQUEST when the tenant plane already has the main package" $
     -- GIVEN: Prepare expectation
     do
@@ -307,7 +307,7 @@ test_400_workspace_duplicates_tenant_plane requestContext =
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findPackages requestContext 3
 
-test_400_tenant_plane_duplicates_workspace requestContext =
+test_400_tenant_duplicates_workspace requestContext =
   it "HTTP 400 BAD REQUEST when a workspace already has the main package" $
     -- GIVEN: Prepare expectation
     do

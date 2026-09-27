@@ -14,7 +14,6 @@ import Shared.Constant.Api
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Tenant.Tenant
-import Shared.Model.Tenant.TenantSuggestion
 import Shared.Model.User.User
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
 import Shared.Util.String
@@ -27,7 +26,7 @@ toDTO tenant mLogoUrl mPrimaryColor =
     , name = tenant.name
     , serverDomain = tenant.serverDomain
     , serverUrl = tenantServerUrl tenant
-    , clientUrl = tenantClientUrl tenant
+    , clientUrl = tenant.clientUrl
     , state = tenant.state
     , enabled = tenant.enabled
     , multiWorkspace = tenant.multiWorkspace
@@ -45,7 +44,7 @@ toDetailDTO tenant mLogoUrl mPrimaryColor usage users =
     , name = tenant.name
     , serverDomain = tenant.serverDomain
     , serverUrl = tenantServerUrl tenant
-    , clientUrl = tenantClientUrl tenant
+    , clientUrl = tenant.clientUrl
     , state = tenant.state
     , enabled = tenant.enabled
     , multiWorkspace = tenant.multiWorkspace
@@ -114,14 +113,8 @@ fromChangeDTO tenant reqDto serverConfig =
         , multiWorkspace = tenant.multiWorkspace
         }
 
-toSuggestionUrls :: TenantSuggestion -> TenantSuggestion
-toSuggestionUrls suggestion = suggestion {clientUrl = tenantClientUrl suggestion}
-
 tenantServerUrl :: HasField "serverUrl" entity String => entity -> String
 tenantServerUrl entity = f' "%s%s" [entity.serverUrl, apiPrefix]
-
-tenantClientUrl :: HasField "clientUrl" entity String => entity -> String
-tenantClientUrl entity = entity.clientUrl
 
 createServerDomain :: ServerConfig -> String -> String
 createServerDomain serverConfig tenantId = f' "%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]

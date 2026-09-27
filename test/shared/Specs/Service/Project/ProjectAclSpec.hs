@@ -3,6 +3,7 @@ module Specs.Service.Project.ProjectAclSpec where
 import Data.Foldable (traverse_)
 import Test.Hspec
 
+import Shared.Constant.Workspace
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
@@ -10,11 +11,13 @@ import Shared.Database.DAO.Project.ProjectPermDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Database.DAO.User.UserGroupMembershipDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
 import Shared.Model.User.User
@@ -76,7 +79,7 @@ projectAclSpec requestContext =
       let fn1 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject PrivateProjectVisibility RestrictedProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility RestrictedProjectSharing permissions
       shouldSucceed adminCtx (fn1 [])
       shouldSucceed ownerCtx (fn1 [])
       shouldSucceed editorCtx (fn1 [])
@@ -89,7 +92,7 @@ projectAclSpec requestContext =
       let fn2 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject VisibleViewProjectVisibility RestrictedProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility RestrictedProjectSharing permissions
       shouldSucceed adminCtx (fn2 [])
       shouldSucceed ownerCtx (fn2 [])
       shouldSucceed editorCtx (fn2 [])
@@ -102,7 +105,7 @@ projectAclSpec requestContext =
       let fn3 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject VisibleEditProjectVisibility RestrictedProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility RestrictedProjectSharing permissions
       shouldSucceed adminCtx (fn3 [])
       shouldSucceed ownerCtx (fn3 [])
       shouldSucceed editorCtx (fn3 [])
@@ -116,7 +119,7 @@ projectAclSpec requestContext =
       let fn4 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject PrivateProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility AnyoneWithLinkViewProjectSharing permissions
       shouldSucceed adminCtx (fn4 [])
       shouldSucceed ownerCtx (fn4 [])
       shouldSucceed editorCtx (fn4 [])
@@ -129,7 +132,7 @@ projectAclSpec requestContext =
       let fn5 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing permissions
       shouldSucceed adminCtx (fn5 [])
       shouldSucceed ownerCtx (fn5 [])
       shouldSucceed editorCtx (fn5 [])
@@ -142,7 +145,7 @@ projectAclSpec requestContext =
       let fn6 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions
       shouldSucceed adminCtx (fn6 [])
       shouldSucceed ownerCtx (fn6 [])
       shouldSucceed editorCtx (fn6 [])
@@ -156,7 +159,7 @@ projectAclSpec requestContext =
       let fn7 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject PrivateProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility AnyoneWithLinkEditProjectSharing permissions
       shouldSucceed adminCtx (fn7 [])
       shouldSucceed ownerCtx (fn7 [])
       shouldSucceed editorCtx (fn7 [])
@@ -169,7 +172,7 @@ projectAclSpec requestContext =
       let fn8 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing permissions
       shouldSucceed adminCtx (fn8 [])
       shouldSucceed ownerCtx (fn8 [])
       shouldSucceed editorCtx (fn8 [])
@@ -182,7 +185,7 @@ projectAclSpec requestContext =
       let fn9 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkViewPermissionToProject VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+            checkViewPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing permissions
       shouldSucceed adminCtx (fn9 [])
       shouldSucceed ownerCtx (fn9 [])
       shouldSucceed editorCtx (fn9 [])
@@ -197,7 +200,7 @@ projectAclSpec requestContext =
       let fn1 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkOwnerPermissionToProject PrivateProjectVisibility permissions
+            checkOwnerPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility permissions
       shouldSucceed adminCtx (fn1 [])
       shouldSucceed ownerCtx (fn1 [])
       shouldFailed editorCtx (fn1 [])
@@ -210,7 +213,7 @@ projectAclSpec requestContext =
       let fn2 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkOwnerPermissionToProject VisibleViewProjectVisibility permissions
+            checkOwnerPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility permissions
       shouldSucceed adminCtx (fn2 [])
       shouldSucceed ownerCtx (fn2 [])
       shouldFailed editorCtx (fn2 [])
@@ -223,7 +226,7 @@ projectAclSpec requestContext =
       let fn3 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkOwnerPermissionToProject VisibleEditProjectVisibility permissions
+            checkOwnerPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility permissions
       shouldSucceed adminCtx (fn3 [])
       shouldSucceed ownerCtx (fn3 [])
       shouldFailed editorCtx (fn3 [])
@@ -238,7 +241,7 @@ projectAclSpec requestContext =
       let fn1 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject PrivateProjectVisibility RestrictedProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility RestrictedProjectSharing permissions
       shouldSucceed adminCtx (fn1 [])
       shouldSucceed ownerCtx (fn1 [])
       shouldSucceed editorCtx (fn1 [])
@@ -251,7 +254,7 @@ projectAclSpec requestContext =
       let fn2 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject VisibleViewProjectVisibility RestrictedProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility RestrictedProjectSharing permissions
       shouldSucceed adminCtx (fn2 [])
       shouldSucceed ownerCtx (fn2 [])
       shouldSucceed editorCtx (fn2 [])
@@ -264,7 +267,7 @@ projectAclSpec requestContext =
       let fn3 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject VisibleEditProjectVisibility RestrictedProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility RestrictedProjectSharing permissions
       shouldSucceed adminCtx (fn3 [])
       shouldSucceed ownerCtx (fn3 [])
       shouldSucceed editorCtx (fn3 [])
@@ -278,7 +281,7 @@ projectAclSpec requestContext =
       let fn4 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject PrivateProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility AnyoneWithLinkViewProjectSharing permissions
       shouldSucceed adminCtx (fn4 [])
       shouldSucceed ownerCtx (fn4 [])
       shouldSucceed editorCtx (fn4 [])
@@ -291,7 +294,7 @@ projectAclSpec requestContext =
       let fn5 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing permissions
       shouldSucceed adminCtx (fn5 [])
       shouldSucceed ownerCtx (fn5 [])
       shouldSucceed editorCtx (fn5 [])
@@ -304,7 +307,7 @@ projectAclSpec requestContext =
       let fn6 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions
       shouldSucceed adminCtx (fn6 [])
       shouldSucceed ownerCtx (fn6 [])
       shouldSucceed editorCtx (fn6 [])
@@ -318,7 +321,7 @@ projectAclSpec requestContext =
       let fn7 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject PrivateProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility AnyoneWithLinkEditProjectSharing permissions
       shouldSucceed adminCtx (fn7 [])
       shouldSucceed ownerCtx (fn7 [])
       shouldSucceed editorCtx (fn7 [])
@@ -331,7 +334,7 @@ projectAclSpec requestContext =
       let fn8 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing permissions
       shouldSucceed adminCtx (fn8 [])
       shouldSucceed ownerCtx (fn8 [])
       shouldSucceed editorCtx (fn8 [])
@@ -344,7 +347,7 @@ projectAclSpec requestContext =
       let fn9 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkEditPermissionToProject VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+            checkEditPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing permissions
       shouldSucceed adminCtx (fn9 [])
       shouldSucceed ownerCtx (fn9 [])
       shouldSucceed editorCtx (fn9 [])
@@ -359,7 +362,7 @@ projectAclSpec requestContext =
       let fn1 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkMigrationPermissionToProject PrivateProjectVisibility permissions
+            checkMigrationPermissionToProject defaultWorkspaceUuid PrivateProjectVisibility permissions
       shouldSucceed adminCtx (fn1 [])
       shouldSucceed ownerCtx (fn1 [])
       shouldSucceed editorCtx (fn1 [])
@@ -372,7 +375,7 @@ projectAclSpec requestContext =
       let fn2 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkMigrationPermissionToProject VisibleViewProjectVisibility permissions
+            checkMigrationPermissionToProject defaultWorkspaceUuid VisibleViewProjectVisibility permissions
       shouldSucceed adminCtx (fn2 [])
       shouldSucceed ownerCtx (fn2 [])
       shouldSucceed editorCtx (fn2 [])
@@ -385,7 +388,7 @@ projectAclSpec requestContext =
       let fn3 memberships = do
             deleteUserGroupMemberships
             traverse_ insertUserGroupMembership memberships
-            checkMigrationPermissionToProject VisibleEditProjectVisibility permissions
+            checkMigrationPermissionToProject defaultWorkspaceUuid VisibleEditProjectVisibility permissions
       shouldSucceed adminCtx (fn3 [])
       shouldSucceed ownerCtx (fn3 [])
       shouldSucceed editorCtx (fn3 [])
@@ -403,6 +406,10 @@ runLocalTestMigration requestContext = do
   runInContext (insertDocumentTemplate wizardDocumentTemplate) requestContext
   runInContext (insertProject project1) requestContext
   runInContext (insertUser userIsaac) requestContext
+  runInContext (insertUser userNikola) requestContext
+  runInContext (insertUser userNicolaus) requestContext
+  runInContext (insertUser userGalileo) requestContext
+  traverse_ (\user -> runInContext (insertWorkspaceMembership (defaultWorkspaceMembership user)) requestContext) [userIsaac, userNikola, userNicolaus, userGalileo]
   runInContext (insertUserGroup bioGroup) requestContext
   runInContext (insertUserGroup plantGroup) requestContext
   runInContext (insertUserGroup animalGroup) requestContext

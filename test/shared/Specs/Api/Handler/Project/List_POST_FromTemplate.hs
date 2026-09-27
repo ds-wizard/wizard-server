@@ -14,6 +14,7 @@ import Shared.Api.Resource.Project.ProjectCreateFromTemplateDTO
 import Shared.Api.Resource.Project.ProjectCreateJM ()
 import Shared.Api.Resource.Project.ProjectDTO
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.User.UserDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
@@ -22,6 +23,7 @@ import Shared.Localization.Messages.Public
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
 import Shared.Model.Tenant.Config.WizardTenantConfig hiding (request)
+import Shared.Model.User.RolePermission
 import Shared.Service.Tenant.Config.ConfigService
 import WizardServer.Model.Context.RequestContext
 
@@ -119,7 +121,33 @@ test_400 requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext =
+test_403 requestContext = do
+  test_403_not_template requestContext
+  test_403_create requestContext
+
+test_403_create requestContext =
+  it "HTTP 403 FORBIDDEN (no projects.create in the template's workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqBody = reqBodyT project1.uuid project11.name
+      -- AND: Prepare expectation
+      let expStatus = 403
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _PROJECTS_CREATE_ROLE_PERMISSION))
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO (updateUserByUuid (userWithoutPerm requestContext.serverConfig _PROJECTS_CREATE_ROLE_PERMISSION)) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+test_403_not_template requestContext =
   it "HTTP 403 FORBIDDEN (isTemplate: False)" $
     -- GIVEN: Prepare request
     do

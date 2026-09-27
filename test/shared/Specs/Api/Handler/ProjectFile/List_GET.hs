@@ -27,8 +27,10 @@ import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
+import Shared.Model.Error.Error
 import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.File.ProjectFileList
 import Shared.Model.Project.Project
@@ -51,6 +53,7 @@ list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
   describe "GET /api/project-files" $ do
     test_200 requestContext
+    test_400 requestContext
     test_401 requestContext
     test_403 requestContext
 
@@ -72,25 +75,35 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
+    insertSecondWorkspace
     "/api/project-files?sort=fileName,asc"
     (Page "projectFiles" (PageMetadata 20 2 1 0) [projectFileList, secondWorkspaceProjectFileList])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
+    insertSecondWorkspace
     "/api/project-files?q=second"
     (Page "projectFiles" (PageMetadata 20 1 1 0) [secondWorkspaceProjectFileList])
   create_test_200
     "HTTP 200 OK (w)"
     requestContext
+    insertSecondWorkspace
     (BS.pack $ "/api/project-files?w=" ++ U.toString secondWorkspace.uuid)
     (Page "projectFiles" (PageMetadata 20 1 1 0) [secondWorkspaceProjectFileList])
   create_test_200
-    "HTTP 200 OK (not a member of w)"
+    "HTTP 200 OK (workspace of another tenant)"
     requestContext
+    insertSecondWorkspace
     (BS.pack $ "/api/project-files?w=" ++ U.toString differentWorkspaceUuid)
     (Page "projectFiles" (PageMetadata 20 0 0 0) ([] :: [ProjectFileList]))
+  create_test_200
+    "HTTP 200 OK (not a member of w)"
+    requestContext
+    insertSecondWorkspaceWithoutCaller
+    (BS.pack $ "/api/project-files?w=" ++ U.toString secondWorkspaceUuid)
+    (Page "projectFiles" (PageMetadata 20 0 0 0) ([] :: [ProjectFileList]))
 
-create_test_200 title requestContext reqUrl expDto =
+create_test_200 title requestContext prepareWorkspace reqUrl expDto =
   it title $
     -- GIVEN: Prepare expectation
     do
@@ -102,7 +115,7 @@ create_test_200 title requestContext reqUrl expDto =
       runInContextIO TML.runMigration requestContext
       runInContextIO PRJ.runMigration requestContext
       runInContextIO (insertPackage amsterdamKmPackage) requestContext
-      insertSecondWorkspace requestContext
+      prepareWorkspace requestContext
       runInContextIO (insertProject project16) requestContext
       runInContextIO deleteProjectFiles requestContext
       runInContextIO (insertProjectFile projectFile1) requestContext
@@ -146,9 +159,30 @@ secondWorkspaceProjectFileList =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
+test_400 requestContext =
+  it "HTTP 400 BAD REQUEST (tenant=true on a workspace-only entity)" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED)
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod "/api/project-files?tenant=true" reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
 test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "ProjectsEditRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "projects.edit"

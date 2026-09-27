@@ -20,6 +20,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorSuggestion
+import Shared.Model.User.RolePermission
 import Shared.Util.Logger
 import Shared.Util.String (trim)
 
@@ -51,7 +52,7 @@ findKnowledgeModelEditorsPage mQuery pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    workspaceCondition <- workspaceOnlyCondition "knowledge_model_editor.workspace_uuid"
+    workspaceCondition <- workspaceOnlyCondition (Just _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION) "knowledge_model_editor.workspace_uuid"
     let condition = "WHERE (name ~* ? OR km_id ~* ?) AND tenant_uuid = ?" ++ workspaceCondition
     let conditionParams = [regexM mQuery, regexM mQuery, U.toString tenantUuid]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
@@ -121,13 +122,14 @@ findKnowledgeModelEditorByUuidForSquashingLocked editorUuid = createFindEntityWi
 findKnowledgeModelEditorSuggestionsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page KnowledgeModelEditorSuggestion)
 findKnowledgeModelEditorSuggestionsPage mQuery pageable sort = do
   tenantUuid <- asks (.tenantUuid')
+  workspaceCondition <- workspaceOnlyCondition (Just _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION) "workspace_uuid"
   createFindEntitiesPageableQuerySortFn
     entityName
     pageLabel
     pageable
     sort
     "uuid, name"
-    "WHERE name ~* ? AND tenant_uuid = ?"
+    (f' "WHERE name ~* ? AND tenant_uuid = ?%s" [workspaceCondition])
     [regexM mQuery, U.toString tenantUuid]
 
 findKnowledgeModelEditorByUuid :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelEditor

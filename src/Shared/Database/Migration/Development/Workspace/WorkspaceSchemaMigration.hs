@@ -28,6 +28,7 @@ createTables = do
         \    description varchar, \
         \    created_at  timestamptz NOT NULL, \
         \    updated_at  timestamptz NOT NULL, \
+        \    default_role_uuid uuid, \
         \    CONSTRAINT workspace_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT workspace_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
@@ -46,12 +47,16 @@ createMembershipTable = do
         \    user_uuid      uuid        NOT NULL, \
         \    tenant_uuid    uuid        NOT NULL, \
         \    created_at     timestamptz NOT NULL, \
+        \    role_uuid      uuid        NOT NULL, \
         \    CONSTRAINT workspace_membership_pk PRIMARY KEY (workspace_uuid, user_uuid), \
         \    CONSTRAINT workspace_membership_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT workspace_membership_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT workspace_membership_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT workspace_membership_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT workspace_membership_role_uuid_fk FOREIGN KEY (role_uuid) REFERENCES role (uuid) \
         \); \
         \ \
-        \CREATE INDEX workspace_membership_user_uuid_index ON workspace_membership (user_uuid, tenant_uuid);"
+        \CREATE INDEX workspace_membership_user_uuid_index ON workspace_membership (user_uuid, tenant_uuid); \
+        \CREATE INDEX workspace_membership_role_uuid_index ON workspace_membership (role_uuid); \
+        \ALTER TABLE workspace ADD CONSTRAINT workspace_default_role_uuid_fk FOREIGN KEY (default_role_uuid) REFERENCES role (uuid);"
   let action conn = execute_ conn sql
   runDB action

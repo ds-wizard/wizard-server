@@ -61,7 +61,7 @@ deleteUserGroup userGroupUuid =
     -- 1. Recompute all project permissions for websockets
     projects <- findProjectsSimpleWithPermByUserGroupUuid userGroupUuid
     let projectsWithoutUserGroup = fmap (\project -> project {permissions = filter (\projectPerm -> projectPerm.memberUuid /= userGroupUuid) project.permissions}) projects
-    traverse_ (\project -> updatePermsForOnlineUsers project.uuid project.visibility project.sharing project.permissions) projectsWithoutUserGroup
+    traverse_ (\project -> updatePermsForOnlineUsers project.uuid project.workspaceUuid project.visibility project.sharing project.permissions) projectsWithoutUserGroup
     -- 2. Delete project perm group
     deleteProjectCachesByUserGroupUuid userGroupUuid
     deleteProjectPermGroupByUserGroupUuid userGroupUuid

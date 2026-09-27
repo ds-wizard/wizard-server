@@ -72,7 +72,7 @@ dmp1 =
   DocumentContext
     { config =
         DocumentContextConfig
-          { clientUrl = "https://example.com/wizard"
+          { clientUrl = "https://example.com"
           , appTitle = Nothing
           , appTitleShort = Nothing
           , illustrationsColor = Nothing

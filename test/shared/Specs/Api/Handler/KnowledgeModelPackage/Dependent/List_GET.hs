@@ -39,6 +39,7 @@ list_GET requestContext =
   describe "GET /api/knowledge-model-packages/{uuid}/dependents" $ do
     test_200 requestContext
     test_401 requestContext
+    test_403 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -79,3 +80,8 @@ test_200 requestContext = do
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "knowledgeModels.manage"

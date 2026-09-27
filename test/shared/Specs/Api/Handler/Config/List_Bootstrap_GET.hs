@@ -3,7 +3,8 @@ module Specs.Api.Handler.Config.List_Bootstrap_GET (
 ) where
 
 import Control.Monad (when)
-import Data.Aeson (encode)
+import Data.Aeson (Value (..), encode)
+import qualified Data.Aeson.KeyMap as KM
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -34,7 +35,10 @@ import Specs.Common
 -- GET /api/configs/bootstrap
 -- ------------------------------------------------------------------------
 list_bootstrap_GET :: RequestContext -> SpecWith ((), Application)
-list_bootstrap_GET requestContext = describe "GET /api/configs/bootstrap" $ test_200 requestContext
+list_bootstrap_GET requestContext =
+  describe "GET /api/configs/bootstrap" $ do
+    test_200 requestContext
+    test_200_user_roles requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -78,3 +82,38 @@ create_test_200 title requestContext authHeaders mUserProfile tenant =
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+test_200_user_roles requestContext = do
+  create_test_200_user_roles "HTTP 200 OK (user carries organizationRole and workspaceRoles)" requestContext False 1
+  create_test_200_user_roles "HTTP 200 OK (workspaceRoles lists every membership)" requestContext True 2
+
+create_test_200_user_roles title requestContext withSecondWorkspace expWorkspaceRoleCount =
+  it title $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 200
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      when withSecondWorkspace (insertSecondWorkspace requestContext)
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl [reqAuthHeader] reqBody
+      -- THEN: Compare response with expectation
+      let (status, _, resBody) = destructResponse response :: (Int, ResponseHeaders, Value)
+      assertResStatus status expStatus
+      let mUser = userObject resBody
+      liftIO $ fmap (KM.member "organizationRole") mUser `shouldBe` Just True
+      liftIO $ fmap (KM.member "role") mUser `shouldBe` Just False
+      liftIO $ (workspaceRoleCount =<< mUser) `shouldBe` Just expWorkspaceRoleCount
+
+userObject :: Value -> Maybe (KM.KeyMap Value)
+userObject (Object body) =
+  case KM.lookup "user" body of
+    Just (Object user) -> Just user
+    _ -> Nothing
+userObject _ = Nothing
+
+workspaceRoleCount :: KM.KeyMap Value -> Maybe Int
+workspaceRoleCount user =
+  case KM.lookup "workspaceRoles" user of
+    Just (Object workspaceRoles) -> Just (KM.size workspaceRoles)
+    _ -> Nothing

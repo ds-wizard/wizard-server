@@ -87,7 +87,8 @@ getClientConfig mServerUrl mClientUrl = do
           Just currentUser -> do
             userGroupUuids <- findUserGroupUuidsForUserUuidAndTenantUuid currentUser.uuid tenant.uuid
             userPluginSettings <- findUserPluginSettingValuesByUserUuidAndTenantUuid currentUser.uuid tenant.uuid
-            return . Just $ toUserProfile currentUser userGroupUuids userPluginSettings
+            workspaceRoles <- asks (.workspaceRoles')
+            return . Just $ toUserProfile currentUser userGroupUuids userPluginSettings workspaceRoles
           Nothing -> return Nothing
       plugins <- findPlugins tenant.uuid
       pluginSettings <- findTenantPluginSettingValues tenant.uuid

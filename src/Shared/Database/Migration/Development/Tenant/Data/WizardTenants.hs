@@ -30,7 +30,7 @@ defaultTenantModules =
       , moduleKey = "analytics"
       , title = "Analytics"
       , url = "http://localhost:8080/analytics"
-      , requiredPermission = Just _SETTINGS_MANAGE_ROLE_PERMISSION
+      , requiredPermission = Just _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
       }
   ]
 

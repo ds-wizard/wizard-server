@@ -17,7 +17,7 @@ checkViewPermission :: (WizardRequestContextC s m, HasField "uuid" user U.UUID) 
 checkViewPermission userGroup users = do
   currentUser <- getCurrentUser
   let userUuids = fmap (.uuid) users
-  hasPermission <- hasPermission _USERS_MANAGE_ROLE_PERMISSION
+  hasPermission <- hasPermissionInWorkspace _USER_GROUPS_MANAGE_ROLE_PERMISSION (Just userGroup.workspaceUuid)
   unless
     (hasPermission || not userGroup.private || currentUser.uuid `elem` userUuids)
     (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "View UserGroup")

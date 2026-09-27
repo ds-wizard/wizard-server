@@ -20,6 +20,7 @@ instance FromRow ProjectSimpleWithPerm where
     visibility <- field
     sharing <- field
     tenantUuid <- field
+    workspaceUuid <- field
     mUserPermissions <- fieldWith (optionalField fromField)
     let userPermissions =
           case mUserPermissions of

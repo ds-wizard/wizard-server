@@ -75,7 +75,7 @@ projectCollaborationAclSpec requestContext =
     let (anonymous, anonymousRole, anonymousGroups) = (Nothing, [], [])
     describe "getPermission" $ do
       it "PrivateProjectVisibility RestrictedProjectSharing" $ do
-        let fn = getPermission PrivateProjectVisibility RestrictedProjectSharing permissions
+        let fn u r g = getPermission PrivateProjectVisibility RestrictedProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -86,7 +86,7 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` NoWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` NoWebsocketPerm
       it "VisibleViewProjectVisibility RestrictedProjectSharing" $ do
-        let fn = getPermission VisibleViewProjectVisibility RestrictedProjectSharing permissions
+        let fn u r g = getPermission VisibleViewProjectVisibility RestrictedProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -97,7 +97,7 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` ViewerWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` NoWebsocketPerm
       it "VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing" $ do
-        let fn = getPermission VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+        let fn u r g = getPermission VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -106,7 +106,7 @@ projectCollaborationAclSpec requestContext =
         fn anonymous anonymousRole anonymousGroups `shouldBe` ViewerWebsocketPerm
       -- --------------------
       it "PrivateProjectVisibility AnyoneWithLinkViewProjectSharing" $ do
-        let fn = getPermission PrivateProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+        let fn u r g = getPermission PrivateProjectVisibility AnyoneWithLinkViewProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -117,7 +117,7 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` ViewerWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` ViewerWebsocketPerm
       it "VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing" $ do
-        let fn = getPermission VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+        let fn u r g = getPermission VisibleViewProjectVisibility AnyoneWithLinkViewProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -128,7 +128,7 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` ViewerWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` ViewerWebsocketPerm
       it "VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing" $ do
-        let fn = getPermission VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions
+        let fn u r g = getPermission VisibleEditProjectVisibility AnyoneWithLinkViewProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -140,7 +140,7 @@ projectCollaborationAclSpec requestContext =
         fn anonymous anonymousRole anonymousGroups `shouldBe` ViewerWebsocketPerm
       -- --------------------
       it "PrivateProjectVisibility AnyoneWithLinkEditProjectSharing" $ do
-        let fn = getPermission PrivateProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+        let fn u r g = getPermission PrivateProjectVisibility AnyoneWithLinkEditProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -151,7 +151,7 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` EditorWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` EditorWebsocketPerm
       it "VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing" $ do
-        let fn = getPermission VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+        let fn u r g = getPermission VisibleViewProjectVisibility AnyoneWithLinkEditProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -162,7 +162,7 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` EditorWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` EditorWebsocketPerm
       it "VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing" $ do
-        let fn = getPermission VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing permissions
+        let fn u r g = getPermission VisibleEditProjectVisibility AnyoneWithLinkEditProjectSharing permissions u r g True
         fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm
         fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
         fn editor editorRole editorGroups `shouldBe` EditorWebsocketPerm
@@ -189,3 +189,8 @@ projectCollaborationAclSpec requestContext =
         shouldSucceed requestContext (checkEditPermission EditorWebsocketPerm)
         shouldFailed requestContext (checkEditPermission ViewerWebsocketPerm)
         shouldFailed requestContext (checkEditPermission NoWebsocketPerm)
+      it "a workspace the user can not reach ignores visibility" $ do
+        let fn u r g = getPermission VisibleEditProjectVisibility RestrictedProjectSharing permissions u r g False
+        fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` NoWebsocketPerm
+        fn owner ownerRole ownerGroups `shouldBe` EditorWebsocketPerm
+        fn admin adminRole adminGroups `shouldBe` EditorWebsocketPerm

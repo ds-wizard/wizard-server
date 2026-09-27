@@ -16,11 +16,11 @@ checkViewPermissionToDoc mProjectUuid = do
   case mProjectUuid of
     Just projectUuid -> do
       project <- findProjectByUuid projectUuid
-      checkViewPermissionToProject project.visibility project.sharing project.permissions
+      checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     Nothing -> throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Read Document"
 
 checkViewPermissionToDoc' :: WizardRequestContextC s m => Project -> m ()
-checkViewPermissionToDoc' project = checkViewPermissionToProject project.visibility project.sharing project.permissions
+checkViewPermissionToDoc' project = checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
 
 checkEditPermissionToDoc :: WizardRequestContextC s m => Maybe U.UUID -> m ()
 checkEditPermissionToDoc mProjectUuid = do
@@ -28,5 +28,5 @@ checkEditPermissionToDoc mProjectUuid = do
     Just projectUuid -> do
       _ <- getCurrentUser
       project <- findProjectByUuid projectUuid
-      checkEditPermissionToProject project.visibility project.sharing project.permissions
+      checkEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     Nothing -> throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Edit Document"

@@ -12,6 +12,7 @@ import Shared.Database.DAO.WizardCommon
 import Shared.Database.Mapping.KnowledgeModel.Secret.KnowledgeModelSecret ()
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
+import Shared.Model.User.RolePermission
 import Shared.Util.String
 
 entityName = "knowledge_model_secret"
@@ -19,17 +20,17 @@ entityName = "knowledge_model_secret"
 findKnowledgeModelSecrets :: WizardRequestContextC s m => m [KnowledgeModelSecret]
 findKnowledgeModelSecrets = do
   tenantUuid <- asks (.tenantUuid')
-  workspaceCondition <- tenantOrWorkspaceCondition "workspace_uuid"
+  workspaceCondition <- tenantOrWorkspaceCondition (Just _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION) "workspace_uuid"
   let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? %s ORDER BY workspace_uuid NULLS FIRST, name" [entityName, workspaceCondition]
   let params = [toField tenantUuid]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
 
-findKnowledgeModelSecretsForPlane :: WizardRequestContextC s m => Maybe U.UUID -> m [KnowledgeModelSecret]
-findKnowledgeModelSecretsForPlane mWorkspaceUuid = do
+findKnowledgeModelSecretsForWorkspace :: WizardRequestContextC s m => Maybe U.UUID -> m [KnowledgeModelSecret]
+findKnowledgeModelSecretsForWorkspace mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND %s ORDER BY workspace_uuid IS NOT NULL, name" [entityName, workspacePlaneCondition]
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND %s ORDER BY workspace_uuid IS NOT NULL, name" [entityName, workspaceVisibleCondition]
   let params = [toField tenantUuid, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params

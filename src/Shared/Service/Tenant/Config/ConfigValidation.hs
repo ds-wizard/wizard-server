@@ -4,19 +4,26 @@ import Control.Monad.Except (throwError)
 import Data.Foldable (forM_)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
+import qualified Data.UUID as U
 import Text.Regex (matchRegex, mkRegex)
 
 import Shared.Api.Resource.Tenant.Config.WizardTenantConfigChangeDTO
+import Shared.Database.DAO.User.RoleDAO
 import Shared.Localization.Messages.Coordinate.Public
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.Project.ProjectValidation
+import Shared.Service.User.RoleAcl
 
 validateTenantConfig :: WizardRequestContextC s m => TenantConfigChangeDTO -> m ()
 validateTenantConfig reqDto = do
   validateOrganization reqDto.organization
   validateProject reqDto.project
+  validateDefaultRole reqDto.authentication.defaultRoleUuid
+
+validateDefaultRole :: WizardRequestContextC s m => U.UUID -> m ()
+validateDefaultRole roleUuid = findRoleByUuid roleUuid >>= checkOrganizationRole
 
 validateOrganization :: WizardRequestContextC s m => TenantConfigOrganizationChangeDTO -> m ()
 validateOrganization config = forM_ (isValidOrganizationId config.organizationId) throwError

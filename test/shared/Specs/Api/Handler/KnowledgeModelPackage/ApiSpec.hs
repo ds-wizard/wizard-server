@@ -14,6 +14,7 @@ import Specs.Api.Handler.KnowledgeModelPackage.Detail_Locales_POST
 import Specs.Api.Handler.KnowledgeModelPackage.Detail_Locales_Template_GET
 import Specs.Api.Handler.KnowledgeModelPackage.Detail_PUT
 import Specs.Api.Handler.KnowledgeModelPackage.Detail_Pull_POST
+import Specs.Api.Handler.KnowledgeModelPackage.List_Bundle_POST
 import Specs.Api.Handler.KnowledgeModelPackage.List_From_Editor_POST
 import Specs.Api.Handler.KnowledgeModelPackage.List_GET
 import Specs.Api.Handler.KnowledgeModelPackage.List_POST
@@ -25,6 +26,7 @@ knowledgeModelPackageAPI serverContext requestContext =
       list_GET requestContext
       list_suggestions_GET requestContext
       list_POST requestContext
+      list_bundle_POST requestContext
       list_from_editor_POST requestContext
       detail_GET requestContext
       detail_PUT requestContext

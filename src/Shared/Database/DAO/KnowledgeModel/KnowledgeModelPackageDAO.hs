@@ -39,7 +39,7 @@ findPackagesPage
   -> [Sort]
   -> m (Page KnowledgeModelPackageList)
 findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort = do
-  workspaceCondition <- tenantOrWorkspaceCondition "knowledge_model_package.workspace_uuid"
+  workspaceCondition <- tenantOrWorkspaceCondition Nothing "knowledge_model_package.workspace_uuid"
   createFindEntitiesGroupByCoordinatePageableQuerySortFn
     entityName
     "registry_knowledge_model_package"
@@ -93,7 +93,7 @@ findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase 
           case mNonEditable of
             Just nonEditable -> f' "AND non_editable = '%s'" [show nonEditable]
             Nothing -> ""
-    workspaceCondition <- tenantOrWorkspaceCondition "workspace_uuid"
+    workspaceCondition <- tenantOrWorkspaceCondition Nothing "workspace_uuid"
     -- 2. Get total count
     count <- countPackageSuggestions mQuery selectCondition excludeCondition selectParams excludeParams phaseCondition (nonEditableCondition ++ workspaceCondition)
     -- 3. Get entities

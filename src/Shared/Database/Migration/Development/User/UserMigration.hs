@@ -25,6 +25,7 @@ runMigration = do
   insertUserGroup plantGroup
   insertUser userSystem
   insertWorkspaceMembership (defaultWorkspaceMembership userSystem)
+  insertWorkspaceMembership (differentWorkspaceMembership userSystem)
   insertUser userAlbert
   insertWorkspaceMembership (defaultWorkspaceMembership userAlbert)
   insertUserGroupMembership userAlbertBioGroupMembership

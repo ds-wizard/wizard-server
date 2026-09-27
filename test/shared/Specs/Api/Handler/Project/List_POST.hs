@@ -22,6 +22,7 @@ import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
+import Shared.Database.DAO.User.UserDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
@@ -33,6 +34,7 @@ import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
+import Shared.Model.User.RolePermission
 import Shared.Model.User.User
 import Shared.Model.Workspace.Workspace
 import Shared.Util.Uuid
@@ -53,6 +55,7 @@ list_POST requestContext =
     test_201 requestContext
     test_201_workspace requestContext
     test_400 requestContext
+    test_403 requestContext
     test_404 requestContext
 
 -- ----------------------------------------------------
@@ -220,19 +223,48 @@ create_test_201_workspace title requestContext anonymousSharingEnabled authHeade
 -- ----------------------------------------------------
 test_404 requestContext = do
   create_test_404
+    "HTTP 404 NOT FOUND - workspace of another tenant"
+    requestContext
+    insertSecondWorkspace
+    (reqUrl <> "?w=" <> BS.pack (U.toString differentWorkspaceUuid))
+    project1Create
+    "workspace"
+  create_test_404
     "HTTP 404 NOT FOUND - not a member of w"
     requestContext
-    (reqUrl <> "?w=" <> BS.pack (U.toString differentWorkspaceUuid))
+    insertSecondWorkspaceWithoutCaller
+    (reqUrl <> "?w=" <> BS.pack (U.toString secondWorkspaceUuid))
     project1Create
     "workspace"
   create_test_404
     "HTTP 404 NOT FOUND - package of another workspace"
     requestContext
+    insertSecondWorkspace
     (reqUrl <> "?w=" <> BS.pack (U.toString defaultWorkspaceUuid))
     (project1Create {knowledgeModelPackageUuid = secondWorkspaceKmPackage.uuid} :: ProjectCreateDTO)
     "knowledge_model_package"
 
-create_test_404 title requestContext reqUrl reqDto entityName =
+test_403 requestContext =
+  it "HTTP 403 FORBIDDEN (no projects.create)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqBody = reqBodyT project1Create
+      -- AND: Prepare expectation
+      let expStatus = 403
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _PROJECTS_CREATE_ROLE_PERMISSION))
+      -- AND: Run migrations
+      runInContextIO TML.runMigration requestContext
+      runInContextIO (updateUserByUuid (userWithoutPerm requestContext.serverConfig _PROJECTS_CREATE_ROLE_PERMISSION)) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+create_test_404 title requestContext prepareWorkspace reqUrl reqDto entityName =
   it title $
     -- GIVEN: Prepare request
     do
@@ -244,8 +276,7 @@ create_test_404 title requestContext reqUrl reqDto entityName =
       let expBody = encode (NotExistsError (_ERROR_VALIDATION__ABSENCE entityName))
       -- AND: Run migrations
       runInContextIO TML.runMigration requestContext
-      enableMultiWorkspace requestContext
-      insertSecondWorkspace requestContext
+      prepareWorkspace requestContext
       runInContextIO (insertPackage germanyKmPackage) requestContext
       runInContextIO (insertPackage secondWorkspaceKmPackage) requestContext
       -- WHEN: Call API

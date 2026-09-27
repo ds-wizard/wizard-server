@@ -25,7 +25,7 @@ import WizardServer.Api.Resource.User.UserProfileSM ()
 import WizardServer.Service.Config.Client.ClientConfigMapper
 
 instance ToSchema ClientConfigDTO where
-  declareNamedSchema = toSwaggerWithType "type" (toClientConfigDTO S.defaultConfig TC.defaultOrganization TC.defaultAuthentication [defaultOpenIdClientSimple] TC.defaultPrivacyAndSupport TC.defaultDashboardAndLoginScreen STC.defaultLookAndFeel TC.defaultRegistry TC.defaultProject TC.defaultSubmission STC.defaultFeatures TC.defaultOwl (Just $ toUserProfile (toDTO userAlbert) [] M.empty) [] [plugin1List] M.empty defaultTenantModules defaultTenant)
+  declareNamedSchema = toSwaggerWithType "type" (toClientConfigDTO S.defaultConfig TC.defaultOrganization TC.defaultAuthentication [defaultOpenIdClientSimple] TC.defaultPrivacyAndSupport TC.defaultDashboardAndLoginScreen STC.defaultLookAndFeel TC.defaultRegistry TC.defaultProject TC.defaultSubmission STC.defaultFeatures TC.defaultOwl (Just $ toUserProfile (toDTO userAlbert) [] M.empty M.empty) [] [plugin1List] M.empty defaultTenantModules defaultTenant)
 
 instance ToSchema ClientConfigAuthDTO where
   declareNamedSchema = toSwagger (toClientAuthDTO TC.defaultAuthentication [defaultOpenIdClientSimple])

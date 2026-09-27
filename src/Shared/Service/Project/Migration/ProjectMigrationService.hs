@@ -30,6 +30,7 @@ import Shared.Service.Project.Migration.ProjectMigrationAudit
 import Shared.Service.Project.Migration.ProjectMigrationMapper
 import Shared.Service.Project.ProjectAcl
 import Shared.Service.Project.ProjectService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
 import Shared.Util.Uuid
 
@@ -37,8 +38,9 @@ migrateProject :: WizardRequestContextC s m => U.UUID -> ProjectMigrationCreateD
 migrateProject projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkMigrationPermissionToProject project.visibility project.permissions
+    checkMigrationPermissionToProject project.workspaceUuid project.visibility project.permissions
     newPkg <- findPackageByUuid reqDto.targetKnowledgeModelPackageUuid
+    checkPackageWorkspace project.workspaceUuid newPkg.workspaceUuid
     oldKm <- compileKnowledgeModel [] (Just project.knowledgeModelPackageUuid) reqDto.targetTagUuids
     newKm <- compileKnowledgeModel [] (Just reqDto.targetKnowledgeModelPackageUuid) reqDto.targetTagUuids
     projectEvents <- findProjectEventListsByProjectUuid project.uuid

@@ -29,14 +29,14 @@ findPackagesFiltered queryParams = do
 findPackagesByOrganizationIdAndKmId :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [KnowledgeModelPackage]
 findPackagesByOrganizationIdAndKmId organizationId kmId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND km_id = ? AND %s" [entityName, workspacePlaneCondition]
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND km_id = ? AND %s" [entityName, workspaceVisibleCondition]
   let params = [toField tenantUuid, toField organizationId, toField kmId, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
 
-findPackagesByOrganizationIdAndKmIdInPlane :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [KnowledgeModelPackage]
-findPackagesByOrganizationIdAndKmIdInPlane organizationId kmId mWorkspaceUuid = do
+findPackagesByOrganizationIdAndKmIdInWorkspace :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [KnowledgeModelPackage]
+findPackagesByOrganizationIdAndKmIdInWorkspace organizationId kmId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
   let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND km_id = ? AND %s" [entityName, workspaceExactCondition]
   let params = [toField tenantUuid, toField organizationId, toField kmId, toField mWorkspaceUuid]
@@ -148,16 +148,6 @@ findUsablePackagesForDocumentTemplate dtUuid = do
   let action conn = query conn sql params
   runDB action
 
-findVersionsForPackage :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [String]
-findVersionsForPackage orgId kmId mWorkspaceUuid = do
-  tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT version FROM %s WHERE tenant_uuid = ? and organization_id = ? and km_id = ? AND %s" [entityName, workspacePlaneCondition]
-  let params = [toField tenantUuid, toField orgId, toField kmId, toField mWorkspaceUuid]
-  logQuery sql params
-  let action conn = query conn sql params
-  versions <- runDB action
-  return . fmap fromOnly $ versions
-
 findPackageByUuid :: RequestContextC s sc m => U.UUID -> m KnowledgeModelPackage
 findPackageByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
@@ -187,7 +177,7 @@ createFindPackageByCoordinateAction Coordinate {..} mWorkspaceUuid = do
         fromString $
           f'
             "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND km_id = ? AND version = ? AND %s ORDER BY workspace_uuid IS NOT NULL DESC LIMIT 1"
-            [entityName, workspacePlaneCondition]
+            [entityName, workspaceVisibleCondition]
   let params = [toField tenantUuid, toField organizationId, toField entityId, toField version, toField mWorkspaceUuid]
   logQuery sql params
   return (\conn -> query conn sql params)
@@ -225,7 +215,7 @@ createFindLatestPackageByOrganizationIdAndKmIdAction orgId kmId mPhase mWorkspac
             \        split_part(version, '.', 3)::int DESC, \
             \        workspace_uuid IS NOT NULL DESC \
             \LIMIT 1"
-            [("package", entityName), ("phaseCondition", phaseCondition), ("workspaceCondition", workspacePlaneCondition)]
+            [("package", entityName), ("phaseCondition", phaseCondition), ("workspaceCondition", workspaceVisibleCondition)]
   let params = [toField tenantUuid, toField orgId, toField kmId, toField mWorkspaceUuid]
   logQuery sql params
   return (\conn -> query conn sql params, phaseParams)

@@ -558,15 +558,11 @@ tenantQueryUuid tenantUuid = ("tenant_uuid", U.toString tenantUuid)
 tenantCondition :: String
 tenantCondition = "WHERE tenant_uuid = ?"
 
-workspacePlaneCondition :: String
-workspacePlaneCondition = "(workspace_uuid IS NULL OR workspace_uuid = ?)"
+workspaceVisibleCondition :: String
+workspaceVisibleCondition = "(workspace_uuid IS NULL OR workspace_uuid = ?)"
 
 workspaceExactCondition :: String
 workspaceExactCondition = "workspace_uuid IS NOT DISTINCT FROM ?"
-
-workspaceMembershipCondition :: String -> U.UUID -> String
-workspaceMembershipCondition column userUuid =
-  f' "%s IN (SELECT workspace_uuid FROM workspace_membership WHERE user_uuid = '%s')" [column, U.toString userUuid]
 
 showAction :: Action -> String
 showAction (Plain a) = BS.unpack . toByteString $ a

@@ -16,16 +16,23 @@ import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.WizardTenantJM ()
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
+import Shared.Database.DAO.User.RoleDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.UserEmailLink.UserEmailLinkDAO
+import Shared.Database.DAO.Workspace.WorkspaceDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Error.Error
 import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Model.Tenant.Tenant
+import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
+import Shared.Model.Workspace.Workspace
+import Shared.Model.Workspace.WorkspaceMembership
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -84,6 +91,18 @@ create_test_201 title requestContext reqDto authHeaders persistentCommandCount u
       liftIO $ user.active `shouldBe` userActive
       assertCountInDB (findUserEmailLinks :: RequestContextM [UserEmailLink U.UUID UserEmailLinkType]) updatedRequestContext 1
       assertCountInDB (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) updatedRequestContext persistentCommandCount
+      -- AND: The tenant has its default workspace with roles and memberships
+      (Right [workspace]) <- runInContextIO findWorkspaces updatedRequestContext
+      liftIO $ workspace.name `shouldBe` tenant.name
+      (Right roles) <- runInContextIO findRoles updatedRequestContext
+      let workspaceRoles = filter (\role -> role.workspaceUuid == Just workspace.uuid) roles
+      liftIO $ fmap (.name) workspaceRoles `shouldMatchList` ["Admin", "User"]
+      let userRoleUuids = fmap (.uuid) (filter (\role -> role.name == "User") workspaceRoles)
+      liftIO $ fmap (: []) workspace.defaultRoleUuid `shouldBe` Just userRoleUuids
+      (Right userMemberships) <- runInContextIO (findWorkspaceMembershipsByUserUuid user.uuid) updatedRequestContext
+      liftIO $ fmap (\membership -> (membership.workspaceUuid, Just membership.roleUuid)) userMemberships `shouldBe` [(workspace.uuid, workspace.defaultRoleUuid)]
+      (Right systemMemberships) <- runInContextIO (findWorkspaceMembershipsByUserUuid userSystem.uuid) updatedRequestContext
+      liftIO $ fmap (\membership -> (membership.workspaceUuid, Just membership.roleUuid)) systemMemberships `shouldBe` [(workspace.uuid, workspace.defaultRoleUuid)]
 
 create_test_201_trimmed_name requestContext =
   it "HTTP 201 CREATED (admin, tenant name with surrounding spaces)" $

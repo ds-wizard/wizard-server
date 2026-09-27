@@ -2,6 +2,7 @@ module Shared.Service.Project.ProjectUtil where
 
 import Control.Monad (when)
 import qualified Data.List as L
+import Data.Maybe (isJust)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Project.Acl.ProjectPermDTO
@@ -64,7 +65,7 @@ getDocumentTemplateProjectState mDocumentTemplateUuid mWorkspaceUuid =
       case releasedTemplates of
         [] -> return (Just UpToDateDocumentTemplateProjectState)
         _ ->
-          let latestTemplate = L.maximumBy (\t1 t2 -> compareVersion t1.version t2.version) releasedTemplates
+          let latestTemplate = L.maximumBy (\t1 t2 -> compareVersion t1.version t2.version <> compare (isJust t1.workspaceUuid) (isJust t2.workspaceUuid)) releasedTemplates
            in if latestTemplate.uuid == documentTemplate.uuid
                 then return (Just UpToDateDocumentTemplateProjectState)
                 else return (Just OutdatedDocumentTemplateProjectState)

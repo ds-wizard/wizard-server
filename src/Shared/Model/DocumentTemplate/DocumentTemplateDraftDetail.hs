@@ -25,6 +25,7 @@ data DocumentTemplateDraftDetail = DocumentTemplateDraftDetail
   , knowledgeModelEditorUuid :: Maybe U.UUID
   , knowledgeModelEditor :: Maybe KnowledgeModelEditorSuggestion
   , formatUuid :: Maybe U.UUID
+  , workspaceUuid :: Maybe U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
   }

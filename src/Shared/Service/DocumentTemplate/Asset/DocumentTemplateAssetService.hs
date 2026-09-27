@@ -17,13 +17,14 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetMapper
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Util.Uuid
 
 getAssets :: WizardRequestContextC s m => U.UUID -> m [DocumentTemplateAssetDTO]
 getAssets dtUuid = do
-  checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+  checkEditorPermissionToDocumentTemplate dtUuid
   assets <- findAssetsByDocumentTemplateUuid dtUuid
   now <- liftIO getCurrentTime
   traverse
@@ -39,6 +40,7 @@ getAsset :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateAssetDTO
 getAsset assetUuid = do
   checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
   asset <- findAssetById assetUuid
+  checkEditorPermissionToDocumentTemplate asset.documentTemplateUuid
   let expirationInSeconds = 60
   now <- liftIO getCurrentTime
   let urlExpiration = addUTCTime (realToFrac expirationInSeconds) now
@@ -47,14 +49,15 @@ getAsset assetUuid = do
 
 getAssetContent :: WizardRequestContextC s m => U.UUID -> U.UUID -> m (DocumentTemplateAsset, BS.ByteString)
 getAssetContent dtUuid assetUuid = do
-  asset <- findAssetById assetUuid
+  checkEditorPermissionToDocumentTemplate dtUuid
+  asset <- findAssetByDocumentTemplateUuidAndUuid dtUuid assetUuid
   content <- retrieveAsset dtUuid asset.uuid
   return (asset, content)
 
 createAsset :: WizardRequestContextC s m => U.UUID -> DocumentTemplateAssetCreateDTO -> m DocumentTemplateAssetDTO
 createAsset dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate dtUuid
     checkStorageSize (fromIntegral . BS.length $ reqDto.content)
     validateFileAndAssetUniqueness Nothing dtUuid reqDto.fileName
     aUuid <- liftIO generateUuid
@@ -77,6 +80,7 @@ modifyAsset assetUuid reqDto =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
     asset <- findAssetById assetUuid
+    checkEditorPermissionToDocumentTemplate asset.documentTemplateUuid
     validateFileAndAssetUniqueness (Just asset.uuid) asset.documentTemplateUuid reqDto.fileName
     now <- liftIO getCurrentTime
     let updatedAsset = fromChangeDTO asset reqDto now
@@ -89,9 +93,10 @@ modifyAssetContent :: WizardRequestContextC s m => U.UUID -> DocumentTemplateAss
 modifyAssetContent assetUuid reqDto =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    asset <- findAssetById assetUuid
+    checkEditorPermissionToDocumentTemplate asset.documentTemplateUuid
     checkStorageSize (fromIntegral . BS.length $ reqDto.content)
     now <- liftIO getCurrentTime
-    asset <- findAssetById assetUuid
     let fileSize = fromIntegral . BS.length $ reqDto.content
     let updatedAsset = fromChangeContentDTO asset reqDto.fileName reqDto.contentType fileSize now
     updateAssetById updatedAsset
@@ -114,8 +119,8 @@ duplicateAsset newDtUuid asset = do
 deleteAsset :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteAsset dtUuid assetUuid =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
-    asset <- findAssetById assetUuid
+    checkEditorPermissionToDocumentTemplate dtUuid
+    asset <- findAssetByDocumentTemplateUuidAndUuid dtUuid assetUuid
     deleteAssetById asset.uuid
     removeAsset dtUuid assetUuid
     touchDocumentTemplateByUuid dtUuid

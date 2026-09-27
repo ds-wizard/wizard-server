@@ -34,8 +34,8 @@ list_DELETE :: RequestContext -> SpecWith ((), Application)
 list_DELETE requestContext =
   describe "DELETE /api/document-templates" $ do
     test_204 requestContext
-    test_204_tenant_plane requestContext
-    test_204_workspace_plane requestContext
+    test_204_tenant requestContext
+    test_204_workspace requestContext
     test_400 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -72,7 +72,7 @@ test_204 requestContext =
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findDocumentTemplates requestContext 0
 
-test_204_tenant_plane requestContext =
+test_204_tenant requestContext =
   it "HTTP 204 NO CONTENT (tenant=true removes only the tenant plane)" $
     -- GIVEN: Prepare expectation
     do
@@ -94,7 +94,7 @@ test_204_tenant_plane requestContext =
       templateFromDb <- getOneFromDB (findDocumentTemplateByUuid workspaceDocumentTemplate.uuid) requestContext
       liftIO $ templateFromDb.workspaceUuid `shouldBe` Just defaultWorkspaceUuid
 
-test_204_workspace_plane requestContext =
+test_204_workspace requestContext =
   it "HTTP 204 NO CONTENT (w removes only the workspace plane)" $
     -- GIVEN: Prepare expectation
     do
@@ -160,4 +160,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "DocumentTemplatesManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "documentTemplates.manage"

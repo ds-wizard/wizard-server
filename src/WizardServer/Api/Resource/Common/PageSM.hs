@@ -74,6 +74,7 @@ import qualified Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPacka
 import Shared.Service.Project.Event.ProjectEventMapper
 import qualified Shared.Service.Project.ProjectMapper as PRJ_Mapper
 import qualified Shared.Service.Tenant.TenantMapper as TNT_Mapper
+import Shared.Service.User.RoleMapper (toRoleSimple)
 import qualified Shared.Service.User.RoleMapper as R_Mapper
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
 import qualified Shared.Service.Workspace.WorkspaceMapper as W_Mapper
@@ -92,7 +93,7 @@ instance ToSchema (Page Workspace) where
 
 instance ToSchema (Page WorkspaceMember) where
   declareNamedSchema =
-    toSwaggerWithDtoName "Page WorkspaceMember" (Page "members" pageMetadata [W_Mapper.toMember (defaultWorkspaceMembership userAlbert) userAlbert])
+    toSwaggerWithDtoName "Page WorkspaceMember" (Page "members" pageMetadata [W_Mapper.toMember (defaultWorkspaceMembership userAlbert) (toRoleSimple defaultWorkspaceUserRole) userAlbert])
 
 instance ToSchema (Page String) where
   declareNamedSchema = toSwaggerWithDtoName "Page String" (Page "projectTags" pageMetadata ["value1"])

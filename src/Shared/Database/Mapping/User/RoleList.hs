@@ -13,4 +13,5 @@ instance FromRow RoleList where
     permissions <- fromPGArray <$> field
     usersCount <- field
     isAdmin <- field
+    workspaceUuid <- field
     return $ RoleList {..}

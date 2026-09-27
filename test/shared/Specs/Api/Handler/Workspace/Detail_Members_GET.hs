@@ -1,5 +1,5 @@
-module Specs.Api.Handler.Workspace.Members_GET (
-  members_GET,
+module Specs.Api.Handler.Workspace.Detail_Members_GET (
+  detail_members_GET,
 ) where
 
 import Data.Aeson (encode)
@@ -11,6 +11,7 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Workspace.WorkspaceMemberJM ()
+import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
@@ -18,6 +19,7 @@ import Shared.Localization.Messages.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Error.Error
+import Shared.Service.User.RoleMapper (toRoleSimple)
 import Shared.Service.Workspace.WorkspaceMapper
 import WizardServer.Model.Context.RequestContext
 
@@ -29,8 +31,8 @@ import Specs.Common
 -- ------------------------------------------------------------------------
 -- GET /api/workspaces/{uuid}/members
 -- ------------------------------------------------------------------------
-members_GET :: RequestContext -> SpecWith ((), Application)
-members_GET requestContext =
+detail_members_GET :: RequestContext -> SpecWith ((), Application)
+detail_members_GET requestContext =
   describe "GET /api/workspaces/{uuid}/members" $ do
     test_200 requestContext
     test_401 requestContext
@@ -55,12 +57,17 @@ test_200 requestContext = do
     "HTTP 200 OK"
     requestContext
     (reqUrl <> "?sort=email,asc")
-    (Page "members" (PageMetadata 20 1 1 0) [toMember (defaultWorkspaceMembership userAlbert) userAlbert])
+    (Page "members" (PageMetadata 20 1 1 0) [toMember (defaultWorkspaceMembership userAlbert) (toRoleSimple defaultWorkspaceUserRole) userAlbert])
+  create_test_200
+    "HTTP 200 OK (sort by uuid)"
+    requestContext
+    (reqUrl <> "?sort=uuid,asc")
+    (Page "members" (PageMetadata 20 1 1 0) [toMember (defaultWorkspaceMembership userAlbert) (toRoleSimple defaultWorkspaceUserRole) userAlbert])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext
     (reqUrl <> "?q=Einstein")
-    (Page "members" (PageMetadata 20 1 1 0) [toMember (defaultWorkspaceMembership userAlbert) userAlbert])
+    (Page "members" (PageMetadata 20 1 1 0) [toMember (defaultWorkspaceMembership userAlbert) (toRoleSimple defaultWorkspaceUserRole) userAlbert])
 
 create_test_200 title requestContext reqUrl expDto =
   it title $ do
@@ -90,6 +97,7 @@ test_404 requestContext =
     let expHeaders = resCtHeader : resCorsHeaders
     -- AND: Run migrations
     runInContextIO U.runMigration requestContext
+    demoteToResearcher requestContext userNikola
     insertSecondWorkspace requestContext
     -- WHEN: Call API
     response <- request reqMethod "/api/workspaces/3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9/members" [reqNonAdminAuthHeader] reqBody

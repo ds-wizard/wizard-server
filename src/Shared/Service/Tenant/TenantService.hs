@@ -61,7 +61,7 @@ getTenantsPage mQuery mStates mEnabled pageable sort = do
 getTenantSuggestions :: WizardRequestContextC s m => Maybe String -> m [TenantSuggestion]
 getTenantSuggestions mQuery = do
   checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
-  fmap toSuggestionUrls <$> findTenantSuggestions mQuery
+  findTenantSuggestions mQuery
 
 registerOrCreateTenantByAdmin :: WizardRequestContextC s m => TenantCreateDTO -> m TenantDTO
 registerOrCreateTenantByAdmin reqDto = do
@@ -84,7 +84,7 @@ registerTenant reqDto = do
     createLimitBundle uuid now
     userUuid <- liftIO generateUuid
     let userCreate = U_Mapper.fromTenantCreateToUserCreateDTO reqDto adminRole.uuid
-    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid (tenantClientUrl tenant) True
+    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid tenant.clientUrl True
     createConfig uuid adminRole.uuid now
     createLocale uuid now
     return $ toDTO tenant Nothing Nothing
@@ -105,7 +105,7 @@ createTenantByAdmin reqDto = do
     userUuid <- liftIO generateUuid
     userPassword <- liftIO $ generateRandomString 25
     let userCreate = U_Mapper.fromTenantCreateToUserCreateDTO (reqDto {password = userPassword}) adminRole.uuid
-    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid (tenantClientUrl tenant) False
+    user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid tenant.clientUrl False
     createConfig uuid adminRole.uuid now
     createLocale uuid now
     return $ toDTO tenant Nothing Nothing

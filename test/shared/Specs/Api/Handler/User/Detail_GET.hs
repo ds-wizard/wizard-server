@@ -64,7 +64,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "UsersManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "users.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

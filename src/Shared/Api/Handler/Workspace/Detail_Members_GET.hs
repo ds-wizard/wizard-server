@@ -1,4 +1,4 @@
-module Shared.Api.Handler.Workspace.Members_GET where
+module Shared.Api.Handler.Workspace.Detail_Members_GET where
 
 import qualified Data.UUID as U
 import Servant
@@ -12,7 +12,7 @@ import Shared.Model.Context.TransactionState
 import Shared.Model.Workspace.WorkspaceMember
 import Shared.Service.Workspace.WorkspaceService
 
-type Members_GET =
+type Detail_Members_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "workspaces"
@@ -24,7 +24,7 @@ type Members_GET =
     :> QueryParam "sort" String
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] (Page WorkspaceMember))
 
-members_GET
+detail_members_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
@@ -34,7 +34,7 @@ members_GET
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page WorkspaceMember))
-members_GET mTokenHeader mServerUrl uuid mQuery mPage mSize mSort =
+detail_members_GET mTokenHeader mServerUrl uuid mQuery mPage mSize mSort =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< getWorkspaceMembersPage uuid mQuery (Pageable mPage mSize) (parseSortQuery mSort)

@@ -9,5 +9,6 @@ data RoleList = RoleList
   , permissions :: [String]
   , usersCount :: Int
   , isAdmin :: Bool
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

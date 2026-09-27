@@ -59,4 +59,5 @@ instance ToSchema ProjectDetailSettings where
         , formatUuid = Just . u' $ "ae3b9e68-e09e-4ad7-b476-67ab5626e873"
         , documentTemplateLanguage = Nothing
         , fileCount = 0
+        , workspaceUuid = project1.workspaceUuid
         }

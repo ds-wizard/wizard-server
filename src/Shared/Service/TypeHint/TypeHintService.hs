@@ -14,7 +14,6 @@ import Shared.Database.DAO.WizardCommon
 import Shared.Integration.Http.TypeHint.Runner
 import Shared.Integration.Resource.TypeHint.TypeHintIDTO
 import Shared.Localization.Messages.WizardPublic
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
@@ -23,6 +22,7 @@ import Shared.Model.KnowledgeModel.KnowledgeModelLenses
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Model.Project.Project
 import Shared.Service.Config.Integration.IntegrationConfigService
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import Shared.Service.KnowledgeModel.Editor.EditorMapper
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Project.ProjectAcl
@@ -31,7 +31,7 @@ import Shared.Util.Logger
 getTypeHints :: WizardRequestContextC s m => TypeHintRequestDTO -> m [TypeHintIDTO]
 getTypeHints (KnowledgeModelEditorIntegrationTypeHintRequest' reqDto) =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor reqDto.knowledgeModelEditorUuid
     kmEditor <- findKnowledgeModelEditorByUuid reqDto.knowledgeModelEditorUuid
     kmEditorEvents <- findKnowledgeModelEventsByEditorUuid reqDto.knowledgeModelEditorUuid
     let kmEvents = fmap toKnowledgeModelEvent kmEditorEvents
@@ -42,7 +42,7 @@ getTypeHints (KnowledgeModelEditorIntegrationTypeHintRequest' reqDto) =
       _ -> throwError . UserError $ _ERROR_SERVICE_TYPEHINT__BAD_TYPE_OF_INTEGRATION
 getTypeHints (KnowledgeModelEditorQuestionTypeHintRequest' reqDto) =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor reqDto.knowledgeModelEditorUuid
     kmEditor <- findKnowledgeModelEditorByUuid reqDto.knowledgeModelEditorUuid
     kmEditorEvents <- findKnowledgeModelEventsByEditorUuid reqDto.knowledgeModelEditorUuid
     let kmEvents = fmap toKnowledgeModelEvent kmEditorEvents
@@ -55,7 +55,7 @@ getTypeHints (KnowledgeModelEditorQuestionTypeHintRequest' reqDto) =
 getTypeHints (ProjectTypeHintRequest' reqDto) =
   runInTransaction $ do
     project <- findProjectByUuid reqDto.projectUuid
-    checkEditPermissionToProject project.visibility project.sharing project.permissions
+    checkEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     km <- compileKnowledgeModel [] (Just project.knowledgeModelPackageUuid) []
     question <- getQuestion km reqDto.questionUuid
     integration' <- getIntegration km question.integrationUuid
@@ -77,7 +77,7 @@ runApiIntegrationTypeHints mWorkspaceUuid integration variables q =
 testTypeHints :: WizardRequestContextC s m => TypeHintTestRequestDTO -> m TypeHintExchange
 testTypeHints reqDto =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor reqDto.knowledgeModelEditorUuid
     kmEditor <- findKnowledgeModelEditorByUuid reqDto.knowledgeModelEditorUuid
     kmEditorEvents <- findKnowledgeModelEventsByEditorUuid reqDto.knowledgeModelEditorUuid
     let kmEvents = fmap toKnowledgeModelEvent kmEditorEvents
@@ -105,6 +105,6 @@ getIntegration km integrationUuid =
 
 prepareSecrets :: WizardRequestContextC s m => Maybe U.UUID -> m (M.Map String String)
 prepareSecrets mWorkspaceUuid = do
-  kmSecrets <- fmap (M.fromList . fmap (\s -> (s.name, s.value))) (findKnowledgeModelSecretsForPlane mWorkspaceUuid)
+  kmSecrets <- fmap (M.fromList . fmap (\s -> (s.name, s.value))) (findKnowledgeModelSecretsForWorkspace mWorkspaceUuid)
   fileSecrets <- getFileIntegrationConfig "secrets"
   return $ M.union kmSecrets fileSecrets

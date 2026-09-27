@@ -41,14 +41,14 @@ import Shared.Util.Uuid
 getVersions :: WizardRequestContextC s m => U.UUID -> m [ProjectVersionList]
 getVersions projectUuid = do
   project <- findProjectByUuid projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   findProjectVersionListByProjectUuidAndCreatedAt projectUuid Nothing
 
 createVersion :: WizardRequestContextC s m => U.UUID -> ProjectVersionChangeDTO -> m ProjectVersionList
 createVersion projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkOwnerPermissionToProject project.visibility project.permissions
+    checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
     validateProjectVersionCreate projectUuid reqDto
     uuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
@@ -79,10 +79,10 @@ modifyVersion :: WizardRequestContextC s m => U.UUID -> U.UUID -> ProjectVersion
 modifyVersion projectUuid versionUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkOwnerPermissionToProject project.visibility project.permissions
+    checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
     validateProjectVersionUpdate reqDto
     now <- liftIO getCurrentTime
-    version <- findProjectVersionByUuid versionUuid
+    version <- findProjectVersionByProjectUuidAndUuid projectUuid versionUuid
     let updatedVersion = fromVersionChangeDTO' version reqDto now
     updateProjectVersionByUuid updatedVersion
     createdBy <-
@@ -97,8 +97,8 @@ deleteVersion :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteVersion projectUuid vUuid =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkOwnerPermissionToProject project.visibility project.permissions
-    _ <- findProjectVersionByUuid vUuid
+    checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
+    _ <- findProjectVersionByProjectUuidAndUuid projectUuid vUuid
     void $ deleteProjectVersionByUuid vUuid
     void $ deleteProjectCacheByProjectUuid projectUuid
 
@@ -107,8 +107,8 @@ revertToEvent projectUuid reqDto shouldSave =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     if shouldSave
-      then checkOwnerPermissionToProject project.visibility project.permissions
-      else checkViewPermissionToProject project.visibility project.sharing project.permissions
+      then checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
+      else checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     projectVersions <- findProjectVersionsByProjectUuid projectUuid
     projectEvents <- findProjectEventListsByProjectUuid projectUuid
     let updatedEvents = takeWhileInclusive (\e -> getUuid e /= reqDto.eventUuid) projectEvents

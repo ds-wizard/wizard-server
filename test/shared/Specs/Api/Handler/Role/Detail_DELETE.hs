@@ -10,12 +10,16 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Workspace
 import Shared.Database.DAO.User.RoleDAO (insertRole)
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.User.Data.Roles
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Error.Error
 import Shared.Model.User.Role
+import Shared.Model.User.User
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -76,7 +80,10 @@ test_400_admin requestContext = createDeleteValidationTest requestContext "the a
 
 test_400_default requestContext = createDeleteValidationTest requestContext "the default role is deleted" "4e79c242-4100-4447-becd-45eca47fa60b" _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT
 
-test_400_in_use requestContext = createDeleteValidationTest requestContext "the role is assigned to users" "65f88e18-8a24-4f70-92e7-8f20f7559600" _ERROR_VALIDATION__USER_ROLE_IN_USE
+test_400_in_use requestContext = do
+  createDeleteValidationTest requestContext "the role is assigned to users" "65f88e18-8a24-4f70-92e7-8f20f7559600" _ERROR_VALIDATION__USER_ROLE_IN_USE
+  createDeleteValidationTest requestContext "the workspace role is the workspace default" "a0000000-0000-0000-0000-000000000022" _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT
+  createDeleteValidationTest requestContext "the workspace role has members" "a0000000-0000-0000-0000-000000000021" _ERROR_VALIDATION__USER_ROLE_IN_USE
 
 createDeleteValidationTest requestContext title roleUuid expError =
   it ("HTTP 400 BAD REQUEST when " ++ title) $ do
@@ -87,6 +94,7 @@ createDeleteValidationTest requestContext title roleUuid expError =
     let expBody = encode expDto
     -- AND: Run migrations
     runInContextIO U_Migration.runMigration requestContext
+    runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userAlbert.uuid defaultWorkspaceAdminRole.uuid) requestContext
     -- WHEN: Call API
     response <- request reqMethod ("/api/roles/" `mappend` roleUuid) reqHeaders reqBody
     -- THEN: Compare response with expectation
@@ -102,7 +110,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "roles.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

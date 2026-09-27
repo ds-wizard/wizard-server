@@ -29,7 +29,7 @@ import Shared.Service.Tenant.Config.WizardConfigMapper
 
 getCurrentTenantConfigDto :: WizardRequestContextC s m => m TenantConfig
 getCurrentTenantConfigDto = do
-  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   tcOrganization <- findTenantConfigOrganization
   tcAuthentication <- getCurrentTenantConfigAuthentication
   tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
@@ -45,7 +45,7 @@ getCurrentTenantConfigDto = do
 modifyTenantConfigDto :: WizardRequestContextC s m => TenantConfigChangeDTO -> m TenantConfig
 modifyTenantConfigDto reqDto =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     validateTenantConfig reqDto
     now <- liftIO getCurrentTime
     -- Organization

@@ -4,12 +4,14 @@ import Data.Maybe (fromJust)
 import Data.Time
 
 import Shared.Api.Resource.Workspace.WorkspaceChangeDTO
+import Shared.Api.Resource.Workspace.WorkspaceMemberChangeDTO
 import Shared.Constant.Tenant
 import Shared.Constant.Workspace
+import Shared.Database.Migration.Development.User.Data.Roles
+import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Model.Workspace.Workspace
 import Shared.Model.Workspace.WorkspaceMembership
-import Shared.Util.Uuid
 
 defaultWorkspace :: Workspace
 defaultWorkspace =
@@ -20,6 +22,7 @@ defaultWorkspace =
     , description = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
+    , defaultRoleUuid = Just defaultWorkspaceUserRole.uuid
     }
 
 defaultWorkspaceEdited :: Workspace
@@ -32,12 +35,13 @@ defaultWorkspaceEdited =
 secondWorkspace :: Workspace
 secondWorkspace =
   Workspace
-    { uuid = u' "3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9"
+    { uuid = secondWorkspaceUuid
     , tenantUuid = defaultTenantUuid
     , name = "Second Workspace"
     , description = Just "The second workspace of the default tenant"
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
+    , defaultRoleUuid = Just secondWorkspaceUserRole.uuid
     }
 
 differentWorkspace :: Workspace
@@ -49,6 +53,7 @@ differentWorkspace =
     , description = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
+    , defaultRoleUuid = Just differentWorkspaceUserRole.uuid
     }
 
 workspaceCreate :: WorkspaceChangeDTO
@@ -65,6 +70,9 @@ workspaceChange =
     , description = Just "EDITED: description"
     }
 
+workspaceMemberChange :: WorkspaceMemberChangeDTO
+workspaceMemberChange = WorkspaceMemberChangeDTO {roleUuid = Just defaultWorkspaceAdminRole.uuid}
+
 toMembership :: Workspace -> User -> WorkspaceMembership
 toMembership workspace user =
   WorkspaceMembership
@@ -72,7 +80,11 @@ toMembership workspace user =
     , userUuid = user.uuid
     , tenantUuid = workspace.tenantUuid
     , createdAt = workspace.createdAt
+    , roleUuid = fromJust workspace.defaultRoleUuid
     }
+
+toMembershipWithRole :: Workspace -> Role -> User -> WorkspaceMembership
+toMembershipWithRole workspace role user = (toMembership workspace user) {roleUuid = role.uuid}
 
 defaultWorkspaceMembership :: User -> WorkspaceMembership
 defaultWorkspaceMembership = toMembership defaultWorkspace

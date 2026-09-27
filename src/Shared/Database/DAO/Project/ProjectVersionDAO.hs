@@ -60,6 +60,11 @@ findProjectVersionListByProjectUuidAndCreatedAt projectUuid mCreatedAt = do
   let action conn = query conn (fromString sql) params
   runDB action
 
+findProjectVersionByProjectUuidAndUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ProjectVersion
+findProjectVersionByProjectUuidAndUuid projectUuid uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityWithFieldsByFn "*" False entityName [tenantQueryUuid tenantUuid, ("project_uuid", U.toString projectUuid), ("uuid", U.toString uuid)]
+
 findProjectVersionByUuid :: WizardRequestContextC s m => U.UUID -> m ProjectVersion
 findProjectVersionByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')

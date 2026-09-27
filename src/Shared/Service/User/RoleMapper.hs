@@ -16,6 +16,7 @@ toDTO role usersCount =
     , permissions = role.permissions
     , usersCount = usersCount
     , isAdmin = role.isAdmin
+    , workspaceUuid = role.workspaceUuid
     }
 
 toRoleSimple :: Role -> RoleSimple
@@ -26,15 +27,15 @@ toRoleSimple role =
     , permissions = role.permissions
     }
 
-fromCreateDTO :: RoleChangeDTO -> U.UUID -> U.UUID -> UTCTime -> Role
-fromCreateDTO dto uuid tenantUuid now =
+fromCreateDTO :: RoleChangeDTO -> U.UUID -> U.UUID -> Maybe U.UUID -> UTCTime -> Role
+fromCreateDTO dto uuid tenantUuid workspaceUuid now =
   Role
     { uuid = uuid
     , name = dto.name
     , permissions = dto.permissions
     , isAdmin = False
     , tenantUuid = tenantUuid
-    , workspaceUuid = Nothing
+    , workspaceUuid = workspaceUuid
     , createdAt = now
     , updatedAt = now
     }

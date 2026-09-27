@@ -17,6 +17,7 @@ type List_GET =
     :> Header "Host" String
     :> "document-template-drafts"
     :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> QueryParam "q" String
     :> QueryParam "page" Int
     :> QueryParam "size" Int
@@ -28,13 +29,14 @@ list_GET
   => Maybe String
   -> Maybe String
   -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> Maybe Int
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page DocumentTemplateDraftList))
-list_GET mTokenHeader mServerUrl mW mQuery mPage mSize mSort =
-  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW Nothing $ \runInAuthService ->
+list_GET mTokenHeader mServerUrl mW mTenant mQuery mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
         =<< getDraftsPage mQuery (Pageable mPage mSize) (parseSortQuery mSort)

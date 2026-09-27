@@ -20,7 +20,6 @@ import Shared.Model.Common.PageMetadata
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
 import Shared.Model.Config.WizardServerConfig
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
@@ -29,6 +28,7 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageEvent
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper as KnowledgeModelLocaleMapper
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageUtil
 import Shared.Service.Tenant.Config.ConfigService
@@ -61,10 +61,11 @@ getPackageDetailByUuid pkgUuid excludeDeprecatedVersions = do
 
 getDependentPackageResources :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [KnowledgeModelPackageDeletionImpact]
 getDependentPackageResources uuid mAllVersions = do
+  checkManagePermissionToPackage uuid
   case mAllVersions of
     Just True -> do
       pkg <- findPackageByUuid uuid
-      allPkgs <- findPackagesByOrganizationIdAndKmIdInPlane pkg.organizationId pkg.kmId pkg.workspaceUuid
+      allPkgs <- findPackagesByOrganizationIdAndKmIdInWorkspace pkg.organizationId pkg.kmId pkg.workspaceUuid
       findDependentPackageResources (fmap (.uuid) allPkgs)
     _ -> findDependentPackageResources [uuid]
 
@@ -79,15 +80,14 @@ createPackage (pkg, pkgEvents) =
 modifyPackage :: WizardRequestContextC s m => U.UUID -> KnowledgeModelPackageChangeDTO -> m KnowledgeModelPackageChangeDTO
 modifyPackage pkgUuid reqDto =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
-    _ <- findPackageByUuid pkgUuid
+    checkManagePermissionToPackage pkgUuid
     updatePackagePhaseAndPublicByUuid pkgUuid reqDto.phase reqDto.public
     return reqDto
 
 deletePackage :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m ()
 deletePackage uuid mAllVersions =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToPackage uuid
     case mAllVersions of
       Just True -> do
         pkg <- findPackageByUuid uuid
@@ -101,7 +101,7 @@ deletePackage uuid mAllVersions =
 -- --------------------------------
 getPackageVersions :: WizardRequestContextC s m => KnowledgeModelPackage -> Bool -> m [(U.UUID, String)]
 getPackageVersions pkg excludeDeprecatedVersions = do
-  allPkgs <- findPackagesByOrganizationIdAndKmIdInPlane pkg.organizationId pkg.kmId pkg.workspaceUuid
+  allPkgs <- findPackagesByOrganizationIdAndKmIdInWorkspace pkg.organizationId pkg.kmId pkg.workspaceUuid
   return . fmap (\p -> (p.uuid, p.version)) . filter (filterPkg excludeDeprecatedVersions) $ allPkgs
   where
     filterPkg :: Bool -> KnowledgeModelPackage -> Bool

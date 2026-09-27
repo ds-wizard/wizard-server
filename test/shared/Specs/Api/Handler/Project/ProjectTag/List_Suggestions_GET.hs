@@ -9,16 +9,22 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
+import Shared.Database.DAO.Project.ProjectDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
+import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
+import Shared.Model.Project.Project
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -28,6 +34,7 @@ list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
   describe "GET /api/projects/project-tags/suggestions" $ do
     test_200 requestContext
+    test_200_workspace requestContext
     test_401 requestContext
 
 -- ----------------------------------------------------
@@ -87,6 +94,7 @@ create_test_200 title requestContext reqUrl expDto =
       let expHeaders = resCtHeader : resCorsHeaders
       let expBody = encode expDto
       -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
       runInContextIO TML_Migration.runMigration requestContext
       runInContextIO PRJ_Migration.runMigration requestContext
       -- WHEN: Call API
@@ -95,6 +103,53 @@ create_test_200 title requestContext reqUrl expDto =
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200_workspace requestContext = do
+  create_test_200_workspace
+    "HTTP 200 OK (tags of a workspace the caller is a member of)"
+    requestContext
+    insertSecondWorkspace
+    ( Page
+        "projectTags"
+        (PageMetadata 20 5 1 0)
+        [_PROJECT_TAG_1, _PROJECT_TAG_2, secondWorkspaceProjectTag, _SETTINGS__PROJECT_TAG_1, _SETTINGS__PROJECT_TAG_2]
+    )
+  create_test_200_workspace
+    "HTTP 200 OK (tags of a workspace the caller is not a member of are hidden)"
+    requestContext
+    insertSecondWorkspaceWithoutCaller
+    ( Page
+        "projectTags"
+        (PageMetadata 20 4 1 0)
+        [_PROJECT_TAG_1, _PROJECT_TAG_2, _SETTINGS__PROJECT_TAG_1, _SETTINGS__PROJECT_TAG_2]
+    )
+
+create_test_200_workspace title requestContext prepareWorkspace expDto =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO (insertPackage amsterdamKmPackage) requestContext
+      prepareWorkspace requestContext
+      runInContextIO (insertProject (project16 {projectTags = [secondWorkspaceProjectTag]} :: Project)) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod "/api/projects/project-tags/suggestions?sort=projectTag,asc" reqHeaders reqBody
+      -- AND: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+secondWorkspaceProjectTag :: String
+secondWorkspaceProjectTag = "secondWorkspaceProjectTag"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

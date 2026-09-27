@@ -17,6 +17,7 @@ import Shared.Model.Common.Sort
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Document.Document
 import Shared.Model.Document.DocumentList
+import Shared.Model.User.RolePermission
 import Shared.Util.Logger
 import Shared.Util.String
 
@@ -52,7 +53,7 @@ findDocumentsPage floored mProjectUuid mProjectName mDocumentTemplateUuid mQuery
           case mDocumentTemplateUuid of
             Just documentTemplateUuid -> (" AND doc.document_template_uuid = ? ", [U.toString documentTemplateUuid])
             Nothing -> ("", [])
-    workspaceCondition <- if floored then workspaceOnlyCondition "doc.workspace_uuid" else return ""
+    workspaceCondition <- if floored then workspaceOnlyCondition (Just _PROJECTS_EDIT_ROLE_PERMISSION) "doc.workspace_uuid" else return ""
     let condition = "WHERE doc.tenant_uuid = ? AND doc.name ~* ? AND doc.durability = 'PersistentDocumentDurability'" ++ workspaceCondition ++ " " ++ projectCondition ++ documentTemplateUuidCondition
     let baseParams = [U.toString tenantUuid, regexM mQuery] ++ projectParam ++ documentTemplateUuidParam
     let params = projectSelectParams ++ baseParams

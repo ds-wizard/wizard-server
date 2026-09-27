@@ -3,6 +3,7 @@ module WizardServer.Model.Context.ContextMappers where
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Reader (liftIO, runReaderT)
 import Data.IORef (newIORef)
+import qualified Data.Map.Strict as M
 import Data.Pool
 import Data.Time
 import qualified Data.UUID as U
@@ -60,6 +61,7 @@ requestContextFromServerContext tenantUuid mUser transactionState serverContext 
           , cache = serverContext.cache
           , scope = NoScope
           , tenantMultiWorkspace = False
+          , workspaceRoles = M.empty
           }
   case transactionState of
     Transactional -> do

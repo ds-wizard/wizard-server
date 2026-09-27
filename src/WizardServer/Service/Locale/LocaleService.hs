@@ -43,7 +43,7 @@ import WizardServer.Service.Locale.LocaleMapper
 
 getLocalesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Pageable -> [Sort] -> m (Page LocaleDTO)
 getLocalesPage mOrganizationId mLocaleId mQuery pageable sort = do
-  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   checkIfAdminIsDisabled
   locales <- findLocalesPage mOrganizationId mLocaleId mQuery pageable sort
   tcRegistry <- getCurrentTenantConfigRegistry
@@ -57,7 +57,7 @@ getLocaleSuggestions mQuery pageable sort = do
 createLocale :: WizardRequestContextC s m => LocaleCreateDTO -> m LocaleSimple
 createLocale reqDto =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     checkIfAdminIsDisabled
     now <- liftIO getCurrentTime
     uuid <- liftIO generateUuid
@@ -75,7 +75,7 @@ createLocale reqDto =
 
 getLocaleByUuid :: WizardRequestContextC s m => U.UUID -> m LocaleDetailDTO
 getLocaleByUuid uuid = do
-  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   checkIfAdminIsDisabled
   serverConfig <- asks (.serverConfig')
   locale <- findLocaleByUuid uuid
@@ -104,7 +104,7 @@ getLocaleContentForCurrentUser mClientUrl = do
 modifyLocale :: WizardRequestContextC s m => U.UUID -> LocaleChangeDTO -> m LocaleDTO
 modifyLocale uuid reqDto = do
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     checkIfAdminIsDisabled
     now <- liftIO getCurrentTime
     locale <- findLocaleByUuid uuid
@@ -119,7 +119,7 @@ modifyLocale uuid reqDto = do
 deleteLocalesByQueryParams :: WizardRequestContextC s m => [(String, String)] -> m ()
 deleteLocalesByQueryParams queryParams =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     checkIfAdminIsDisabled
     locales <- findLocalesFiltered queryParams
     traverse_ validateLocaleDeletion locales
@@ -128,7 +128,7 @@ deleteLocalesByQueryParams queryParams =
 deleteLocale :: WizardRequestContextC s m => U.UUID -> m ()
 deleteLocale uuid =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     checkIfAdminIsDisabled
     locale <- findLocaleByUuid uuid
     validateLocaleDeletion locale

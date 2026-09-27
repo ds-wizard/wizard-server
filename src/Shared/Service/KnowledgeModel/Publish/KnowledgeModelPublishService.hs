@@ -16,7 +16,6 @@ import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Database.DAO.WizardCommon
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
@@ -25,6 +24,7 @@ import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import Shared.Service.KnowledgeModel.Editor.EditorAudit
 import Shared.Service.KnowledgeModel.Editor.EditorMapper
 import Shared.Service.KnowledgeModel.Editor.EditorUtil
@@ -40,7 +40,7 @@ import Shared.Util.Uuid
 publishPackageFromKnowledgeModelEditor :: WizardRequestContextC s m => PackagePublishEditorDTO -> m KnowledgeModelPackageSimpleDTO
 publishPackageFromKnowledgeModelEditor reqDto = do
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor reqDto.editorUuid
     validateMigrationExistence reqDto.editorUuid
     kmEditor <- findKnowledgeModelEditorByUuid reqDto.editorUuid
     kmEditorEvents <- findKnowledgeModelEventsByEditorUuid reqDto.editorUuid
@@ -61,7 +61,7 @@ publishPackageFromKnowledgeModelEditor reqDto = do
 publishPackageFromMigration :: WizardRequestContextC s m => PackagePublishMigrationDTO -> m KnowledgeModelPackageSimpleDTO
 publishPackageFromMigration reqDto = do
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor reqDto.editorUuid
     kmEditor <- findKnowledgeModelEditorByUuid reqDto.editorUuid
     ms <- findKnowledgeModelMigrationByEditorUuid reqDto.editorUuid
     deleteKnowledgeModelMigrationByEditorUuid reqDto.editorUuid
@@ -100,7 +100,7 @@ doPublishPackage version kmEditor kmEvents description readme mForkOfPkgId mMerg
   validateNewPackageVersion version kmEditor tcOrganization
   uuid <- liftIO generateUuid
   now <- liftIO getCurrentTime
-  workspaceUuid <- planeOfWorkspace kmEditor.workspaceUuid
+  workspaceUuid <- ownerWorkspaceUuid kmEditor.workspaceUuid
   let (pkg, pkgEvents) = fromPackage kmEditor uuid workspaceUuid mForkOfPkgId mMergeCheckpointPkgId tcOrganization version description readme squashedKmEvents now
   createdPkg <- createPackage (pkg, pkgEvents)
   copyLocalesForPublishedPackage mLocaleUuids kmEditor.previousPackageUuid pkg.uuid

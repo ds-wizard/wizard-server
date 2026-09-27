@@ -169,6 +169,7 @@ create_test_200' title requestContext project authHeader permissions extraSetup 
               , documentTemplateLanguage = project.documentTemplateLanguage
               , selectedQuestionTagUuids = project.selectedQuestionTagUuids
               , fileCount = 0
+              , workspaceUuid = project.workspaceUuid
               }
       let expBody = encode expDto
       -- WHEN: Call API

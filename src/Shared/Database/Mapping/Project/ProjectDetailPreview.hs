@@ -30,4 +30,5 @@ instance FromRow ProjectDetailPreview where
             (Just uuid, Just name, Just icon) -> Just $ DocumentTemplateFormatSimple {uuid = uuid, name = name, icon = icon}
             _ -> Nothing
     fileCount <- field
+    workspaceUuid <- field
     return $ ProjectDetailPreview {..}

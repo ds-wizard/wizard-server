@@ -41,7 +41,7 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
           case mNonEditable of
             Just nonEditable -> f' "AND non_editable = '%s'" [show nonEditable]
             Nothing -> ""
-    workspaceCondition <- tenantOrWorkspaceCondition "document_template.workspace_uuid"
+    workspaceCondition <- tenantOrWorkspaceCondition Nothing "document_template.workspace_uuid"
     -- 2. Get total count
     count <- countDocumentTemplatesPage mQuery mOrganizationId mTemplateId mOutdated outdatedCondition nonEditableCondition workspaceCondition
     -- 3. Get entities
@@ -115,7 +115,7 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
 findDocumentTemplatesSuggestions :: WizardRequestContextC s m => Maybe String -> Maybe Bool -> m [DocumentTemplateSuggestion]
 findDocumentTemplatesSuggestions mQuery mNonEditable = do
   tenantUuid <- asks (.tenantUuid')
-  workspaceCondition <- tenantOrWorkspaceCondition "document_template.workspace_uuid"
+  workspaceCondition <- tenantOrWorkspaceCondition Nothing "document_template.workspace_uuid"
   let nonEditableCondition =
         case mNonEditable of
           Just nonEditable -> f' "AND non_editable = '%s'" [show nonEditable]
@@ -207,7 +207,7 @@ countDocumentTemplatesPage mQuery mOrganizationId mTemplateId mOutdated outdated
 findDocumentTemplatesFiltered :: WizardRequestContextC s m => [(String, String)] -> m [DocumentTemplate]
 findDocumentTemplatesFiltered queryParams = do
   tenantUuid <- asks (.tenantUuid')
-  workspaceCondition <- tenantOrWorkspaceCondition "workspace_uuid"
+  workspaceCondition <- tenantOrWorkspaceCondition Nothing "workspace_uuid"
   let queryCondition =
         case queryParams of
           [] -> ""
