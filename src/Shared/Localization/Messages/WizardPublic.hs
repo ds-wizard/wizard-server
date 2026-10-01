@@ -46,10 +46,6 @@ _ERROR_VALIDATION__USER_ABSENCE userUuid =
 _ERROR_VALIDATION__TOKEN_ABSENCE tokenUuid =
   LocaleRecord "error.validation.token_absence" "Token ('%s') doesn't exist" [tokenUuid]
 
--- Delete
-_ERROR_VALIDATION__TML_CANT_BE_DELETED_BECAUSE_IT_IS_USED_BY_SOME_OTHER_ENTITY tmlId target =
-  LocaleRecord "error.validation.tml_deletion" "DocumentTemplate '%s' can't be deleted. It's used by some %s" [tmlId, target]
-
 -- Unsupported version
 _ERROR_VALIDATION__PKG_UNSUPPORTED_METAMODEL_VERSION pkgMetamodelVersion appPkgMetamodelVersion =
   LocaleRecord
@@ -131,6 +127,13 @@ _ERROR_SERVICE_MIGRATION_KM__EVENT_UUIDS_MISMATCH =
     "error.service.migration.km.event_uuids_mismatch"
     "There is a problem with an event metadata (mismatch in events' uuids)"
     []
+
+-- Library
+_ERROR_SERVICE_LIBRARY__DELETE_HIDDEN_DEPENDENTS packages editors projects documents workspaces =
+  LocaleRecord
+    "error.service.library.delete_hidden_dependents"
+    "It can't be deleted because it is used by %s knowledge models, %s editors, %s projects and %s documents in %s workspaces you can't see"
+    [show packages, show editors, show projects, show documents, show workspaces]
 
 -- Package
 _ERROR_SERVICE_PKG__IMPORT_PREVIOUS_PKG_AT_FIRST previousPkgId pkgId =

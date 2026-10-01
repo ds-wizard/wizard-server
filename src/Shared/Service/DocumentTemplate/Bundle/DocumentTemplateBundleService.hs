@@ -92,7 +92,6 @@ importAndConvertBundle contentS fromRegistry =
       tenantUuid <- asks (.tenantUuid')
       let dt = fromBundle bundle uuid tenantUuid workspaceUuid
       validateNewDocumentTemplate dt True
-      deleteOldDocumentTemplateIfPresent bundle workspaceUuid
       insertDocumentTemplate dt
       traverse_ (insertDocumentTemplateFormat . fromFormatDTO dt.uuid tenantUuid dt.createdAt dt.updatedAt) bundle.formats
       traverse_ (importFile dt) bundle.files
@@ -103,18 +102,6 @@ importAndConvertBundle contentS fromRegistry =
         else auditBundleImportFromFile (createCoordinate dt)
       return . toSimple $ dt
     Left error -> throwError error
-
-deleteOldDocumentTemplateIfPresent :: WizardRequestContextC s m => DocumentTemplateBundleDTO -> Maybe U.UUID -> m ()
-deleteOldDocumentTemplateIfPresent bundle workspaceUuid =
-  runInTransaction $ do
-    let coordinate = createCoordinate bundle
-    mOldDt <- findDocumentTemplateByCoordinate' coordinate workspaceUuid
-    case mOldDt of
-      Just oldDt -> do
-        oldAssets <- findAssetsByDocumentTemplateUuid oldDt.uuid
-        traverse_ (\a -> removeAsset oldDt.uuid a.uuid) oldAssets
-        void $ deleteDocumentTemplateByUuid oldDt.uuid
-      Nothing -> return ()
 
 -- --------------------------------
 -- PRIVATE

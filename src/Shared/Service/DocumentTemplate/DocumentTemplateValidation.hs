@@ -8,11 +8,9 @@ import GHC.Records
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeDTO
 import Shared.Constant.DocumentTemplate
-import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateAssetDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFileDAO
-import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Localization.Messages.DocumentTemplate.Public
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.WizardRequestContext
@@ -41,29 +39,6 @@ validateDocumentTemplateIdUniqueness coordinate mWorkspaceUuid = do
       Just _ -> maybeToList <$> findDocumentTemplateByCoordinate' coordinate mWorkspaceUuid
       Nothing -> findDocumentTemplatesFiltered [("organization_id", coordinate.organizationId), ("template_id", coordinate.entityId), ("version", coordinate.version)]
   unless (null dts) (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate))
-
-validateDocumentTemplateDeletion :: WizardRequestContextC s m => U.UUID -> m ()
-validateDocumentTemplateDeletion dtUuid = do
-  validateUsageBySomeProject dtUuid
-  validateUsageBySomeDocument dtUuid
-
-validateUsageBySomeProject :: WizardRequestContextC s m => U.UUID -> m ()
-validateUsageBySomeProject dtUuid = do
-  projects <- findProjectsByDocumentTemplateUuid dtUuid
-  case projects of
-    [] -> return ()
-    _ ->
-      throwError . UserError $
-        _ERROR_VALIDATION__TML_CANT_BE_DELETED_BECAUSE_IT_IS_USED_BY_SOME_OTHER_ENTITY (U.toString dtUuid) "project"
-
-validateUsageBySomeDocument :: WizardRequestContextC s m => U.UUID -> m ()
-validateUsageBySomeDocument dtUuid = do
-  projects <- findDocumentsByDocumentTemplateUuid dtUuid
-  case projects of
-    [] -> return ()
-    _ ->
-      throwError . UserError $
-        _ERROR_VALIDATION__TML_CANT_BE_DELETED_BECAUSE_IT_IS_USED_BY_SOME_OTHER_ENTITY (U.toString dtUuid) "document"
 
 validateMetamodelVersion :: WizardRequestContextC s m => DocumentTemplate -> m ()
 validateMetamodelVersion dt =

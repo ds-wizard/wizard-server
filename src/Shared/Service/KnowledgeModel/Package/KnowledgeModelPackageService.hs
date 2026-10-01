@@ -1,6 +1,5 @@
 module Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService where
 
-import Control.Monad (void)
 import Control.Monad.Reader (asks)
 import Data.Foldable (traverse_)
 import qualified Data.UUID as U
@@ -10,6 +9,7 @@ import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDetailDTO
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelLocaleDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelPackageDAO
+import Shared.Database.DAO.Library.LibraryDependentDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Registry.RegistryKnowledgeModelPackageDAO
@@ -23,14 +23,18 @@ import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageDeletionImpact
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageEvent
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
+import Shared.Model.Library.LibraryDependents
 import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Service.Acl.LibraryAcl
+import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper as KnowledgeModelLocaleMapper
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageUtil
+import Shared.Service.Library.LibraryDependentMapper
+import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Tenant.Config.ConfigService
 import Shared.Service.Tenant.Limit.WizardLimitService
 
@@ -59,15 +63,11 @@ getPackageDetailByUuid pkgUuid excludeDeprecatedVersions = do
   locales <- findKnowledgeModelLocalesByPackageUuid pkgUuid
   return $ toDetailDTO pkg tcRegistry.enabled pkgRs orgRs versions (buildPackageUrl serverConfig.registry.clientUrl pkg pkgRs) (fmap KnowledgeModelLocaleMapper.toList locales)
 
-getDependentPackageResources :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [KnowledgeModelPackageDeletionImpact]
-getDependentPackageResources uuid mAllVersions = do
+getPackageDependents :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m LibraryDependents
+getPackageDependents uuid mAllVersions = do
   checkManagePermissionToPackage uuid
-  case mAllVersions of
-    Just True -> do
-      pkg <- findPackageByUuid uuid
-      allPkgs <- findPackagesByOrganizationIdAndKmIdInWorkspace pkg.organizationId pkg.kmId pkg.workspaceUuid
-      findDependentPackageResources (fmap (.uuid) allPkgs)
-    _ -> findDependentPackageResources [uuid]
+  pkgUuids <- getPackageUuidsToDelete uuid mAllVersions
+  toLibraryDependents <$> findPackageDependents pkgUuids
 
 createPackage :: WizardRequestContextC s m => (KnowledgeModelPackage, [KnowledgeModelPackageEvent]) -> m KnowledgeModelPackageSimpleDTO
 createPackage (pkg, pkgEvents) =
@@ -88,13 +88,12 @@ deletePackage :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m ()
 deletePackage uuid mAllVersions =
   runInTransaction $ do
     checkManagePermissionToPackage uuid
-    case mAllVersions of
-      Just True -> do
-        pkg <- findPackageByUuid uuid
-        void $ deletePackagesByOrganizationIdAndKmId pkg.organizationId pkg.kmId pkg.workspaceUuid
-      _ -> do
-        _ <- findPackageByUuid uuid
-        void $ deletePackageByUuid uuid
+    pkgUuids <- getPackageUuidsToDelete uuid mAllVersions
+    dependents <- toLibraryDependents <$> findPackageDependents pkgUuids
+    checkDeleteAllowed dependents
+    traverse_ deletePackageByUuid pkgUuids
+    traverse_ (logOutOnlineUsersWhenProjectDramaticallyChanged . (.uuid)) dependents.projects
+    traverse_ (logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged . (.uuid)) dependents.editors
 
 -- --------------------------------
 -- PRIVATE
@@ -107,3 +106,10 @@ getPackageVersions pkg excludeDeprecatedVersions = do
     filterPkg :: Bool -> KnowledgeModelPackage -> Bool
     filterPkg True pkg = pkg.phase == ReleasedKnowledgeModelPackagePhase
     filterPkg False _ = True
+
+getPackageUuidsToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [U.UUID]
+getPackageUuidsToDelete uuid mAllVersions = do
+  pkg <- findPackageByUuid uuid
+  case mAllVersions of
+    Just True -> fmap (.uuid) <$> findPackagesByOrganizationIdAndKmIdInWorkspace pkg.organizationId pkg.kmId pkg.workspaceUuid
+    _ -> return [pkg.uuid]

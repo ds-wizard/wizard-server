@@ -58,15 +58,6 @@ findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace organizationId tem
   let action conn = query conn sql params
   runDB action
 
-findDocumentTemplatesFilteredInWorkspace :: RequestContextC s sc m => [(String, String)] -> Maybe U.UUID -> m [DocumentTemplate]
-findDocumentTemplatesFilteredInWorkspace queryParams mWorkspaceUuid = do
-  tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT * FROM %s WHERE %s AND %s" [entityName, mapToDBQuerySql (tenantQueryUuid tenantUuid : queryParams), workspaceExactCondition]
-  let params = fmap (toField . snd) (tenantQueryUuid tenantUuid : queryParams) ++ [toField mWorkspaceUuid]
-  logQuery sql params
-  let action conn = query conn sql params
-  runDB action
-
 findDocumentTemplatesInWorkspace :: RequestContextC s sc m => Maybe U.UUID -> m [DocumentTemplate]
 findDocumentTemplatesInWorkspace mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')

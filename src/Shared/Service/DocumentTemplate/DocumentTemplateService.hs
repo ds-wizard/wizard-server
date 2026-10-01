@@ -1,9 +1,11 @@
 module Shared.Service.DocumentTemplate.DocumentTemplateService where
 
+import Control.Monad (void)
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
 import qualified Data.List as L
+import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeDTO
@@ -17,7 +19,9 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO hiding (findDocu
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFormatDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateLocaleDAO
 import Shared.Database.DAO.DocumentTemplate.WizardDocumentTemplateDAO
+import Shared.Database.DAO.Library.LibraryDependentDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
+import Shared.Database.DAO.Project.ProjectDAO (unsetDocumentTemplateInProjects)
 import Shared.Database.DAO.Registry.RegistryOrganizationDAO
 import Shared.Database.DAO.Registry.RegistryTemplateDAO
 import Shared.Database.DAO.WizardCommon
@@ -27,12 +31,12 @@ import Shared.Model.Common.PageMetadata
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
 import Shared.Model.Config.WizardServerConfig
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateSuggestion
 import Shared.Model.Error.Error
+import Shared.Model.Library.LibraryDependents
 import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
 import Shared.Service.Acl.LibraryAcl
@@ -42,8 +46,8 @@ import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import qualified Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMapper as DocumentTemplateLocaleMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
+import Shared.Service.Library.LibraryDependentMapper
 import Shared.Service.Tenant.Config.ConfigService
-import Shared.Service.Workspace.WorkspaceScopeService
 
 getDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateSimpleDTO)
 getDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated pageable sort = do
@@ -117,25 +121,20 @@ modifyDocumentTemplate uuid reqDto =
     deleteTemporalDocumentsByDocumentTemplateUuid uuid
     getDocumentTemplateByUuidDto uuid
 
-deleteDocumentTemplatesByQueryParams :: WizardRequestContextC s m => [(String, String)] -> m ()
-deleteDocumentTemplatesByQueryParams queryParams =
-  runInTransaction $ do
-    workspaceUuid <- requireTenantOrWorkspaceScope
-    checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
-    dts <- findDocumentTemplatesFilteredInWorkspace queryParams workspaceUuid
-    traverse_ (\dt -> deleteDocumentTemplate dt.uuid) dts
+getDocumentTemplateDependents :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m LibraryDependents
+getDocumentTemplateDependents uuid mAllVersions = do
+  checkManagePermissionToDocumentTemplate uuid
+  dtUuids <- getDocumentTemplateUuidsToDelete uuid mAllVersions
+  toLibraryDependents <$> findDocumentTemplateDependents dtUuids
 
-deleteDocumentTemplate :: WizardRequestContextC s m => U.UUID -> m ()
-deleteDocumentTemplate uuid =
+deleteDocumentTemplate :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m ()
+deleteDocumentTemplate uuid mAllVersions =
   runInTransaction $ do
     checkManagePermissionToDocumentTemplate uuid
-    tml <- findDocumentTemplateByUuid uuid
-    assets <- findAssetsByDocumentTemplateUuid uuid
-    validateDocumentTemplateDeletion uuid
-    cleanTemporallyDocumentsForTemplate uuid
-    deleteDocumentTemplateByUuid uuid
-    let assetUuids = fmap (.uuid) assets
-    traverse_ (removeAsset uuid) assetUuids
+    dtUuids <- getDocumentTemplateUuidsToDelete uuid mAllVersions
+    dependents <- toLibraryDependents <$> findDocumentTemplateDependents dtUuids
+    checkDeleteAllowed dependents
+    traverse_ deleteDocumentTemplateWithAssets dtUuids
 
 -- --------------------------------
 -- PRIVATE
@@ -144,3 +143,19 @@ getDocumentTemplateVersions :: WizardRequestContextC s m => DocumentTemplate -> 
 getDocumentTemplateVersions tml = do
   allTmls <- findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace tml.organizationId tml.templateId tml.workspaceUuid
   return . fmap (\t -> (t.uuid, t.version)) . filter (\t -> t.phase == ReleasedDocumentTemplatePhase || t.phase == DeprecatedDocumentTemplatePhase) $ allTmls
+
+getDocumentTemplateUuidsToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [U.UUID]
+getDocumentTemplateUuidsToDelete uuid mAllVersions = do
+  tml <- findDocumentTemplateByUuid uuid
+  case mAllVersions of
+    Just True -> fmap (.uuid) . filter (\t -> t.phase /= DraftDocumentTemplatePhase) <$> findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace tml.organizationId tml.templateId tml.workspaceUuid
+    _ -> return [tml.uuid]
+
+deleteDocumentTemplateWithAssets :: WizardRequestContextC s m => U.UUID -> m ()
+deleteDocumentTemplateWithAssets uuid = do
+  assets <- findAssetsByDocumentTemplateUuid uuid
+  now <- liftIO getCurrentTime
+  cleanTemporallyDocumentsForTemplate uuid
+  void $ unsetDocumentTemplateInProjects uuid now
+  void $ deleteDocumentTemplateByUuid uuid
+  traverse_ (removeAsset uuid . (.uuid)) assets

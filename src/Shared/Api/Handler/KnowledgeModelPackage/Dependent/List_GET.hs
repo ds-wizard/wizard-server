@@ -5,9 +5,9 @@ import Servant
 
 import Shared.Api.Handler.Common
 import Shared.Api.Handler.WizardCommon
-import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDeletionImpactJM ()
+import Shared.Api.Resource.Library.LibraryDependentsJM ()
 import Shared.Model.Context.TransactionState
-import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageDeletionImpact
+import Shared.Model.Library.LibraryDependents
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService
 
 type List_GET =
@@ -17,7 +17,7 @@ type List_GET =
     :> Capture "uuid" U.UUID
     :> "dependents"
     :> QueryParam "allVersions" Bool
-    :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] [KnowledgeModelPackageDeletionImpact])
+    :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] LibraryDependents)
 
 list_GET
   :: WizardHandlerC s sm r rm
@@ -25,9 +25,9 @@ list_GET
   -> Maybe String
   -> U.UUID
   -> Maybe Bool
-  -> sm (Headers '[Header "x-trace-uuid" String] [KnowledgeModelPackageDeletionImpact])
+  -> sm (Headers '[Header "x-trace-uuid" String] LibraryDependents)
 list_GET mTokenHeader mServerUrl uuid mAllVersions =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
-        =<< getDependentPackageResources uuid mAllVersions
+        =<< getPackageDependents uuid mAllVersions

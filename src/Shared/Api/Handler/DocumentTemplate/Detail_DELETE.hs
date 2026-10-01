@@ -13,12 +13,13 @@ type Detail_DELETE =
     :> Header "Host" String
     :> "document-templates"
     :> Capture "uuid" U.UUID
+    :> QueryParam "allVersions" Bool
     :> Verb DELETE 204 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] NoContent)
 
-detail_DELETE :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> U.UUID -> sm (Headers '[Header "x-trace-uuid" String] NoContent)
-detail_DELETE mTokenHeader mServerUrl uuid =
+detail_DELETE :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> U.UUID -> Maybe Bool -> sm (Headers '[Header "x-trace-uuid" String] NoContent)
+detail_DELETE mTokenHeader mServerUrl uuid mAllVersions =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService Transactional $
       addTraceUuidHeader =<< do
-        deleteDocumentTemplate uuid
+        deleteDocumentTemplate uuid mAllVersions
         return NoContent

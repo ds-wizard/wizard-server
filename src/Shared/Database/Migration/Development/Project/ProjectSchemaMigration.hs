@@ -87,7 +87,7 @@ createProjectTable = do
         \    workspace_uuid               uuid        NOT NULL, \
         \    CONSTRAINT project_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT project_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT project_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT project_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE SET NULL, \
         \    CONSTRAINT project_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE SET NULL, \
         \    CONSTRAINT project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT project_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \

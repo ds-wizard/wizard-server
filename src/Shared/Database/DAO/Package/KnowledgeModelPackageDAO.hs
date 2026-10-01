@@ -266,12 +266,3 @@ deletePackageByUuid :: RequestContextC s sc m => U.UUID -> m Int64
 deletePackageByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createDeleteEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
-
-deletePackagesByOrganizationIdAndKmId :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m Int64
-deletePackagesByOrganizationIdAndKmId organizationId kmId mWorkspaceUuid = do
-  tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "DELETE FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND km_id = ? AND %s" [entityName, workspaceExactCondition]
-  let params = [toField tenantUuid, toField organizationId, toField kmId, toField mWorkspaceUuid]
-  logQuery sql params
-  let action conn = execute conn sql params
-  runDB action

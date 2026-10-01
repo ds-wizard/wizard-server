@@ -109,6 +109,7 @@ library:
   - servant-swagger-ui
   - servant-websockets
   - swagger2
+  - tagsoup
   - text
   - text-replace
   - time

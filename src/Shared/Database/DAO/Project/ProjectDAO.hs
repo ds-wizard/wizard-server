@@ -60,7 +60,6 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    currentUser <- getCurrentUser
     let (nameCondition, nameRegex) =
           case mQuery of
             Just query -> (" AND project.name ~* ?", [regex query])
@@ -135,29 +134,10 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
                   , f' " AND (%s)" [L.intercalate operator . fmap (\c -> if c.version == "all" then " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ?)" else " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ? AND knowledge_model_package.version = ?)") $ kmpCoordinates]
                   , concatMap (\c -> if c.version == "all" then [c.organizationId, c.entityId] else [c.organizationId, c.entityId, c.version]) kmpCoordinates
                   )
-    viewAccess <- workspaceAccess (Just _PROJECTS_VIEW_ROLE_PERMISSION)
-    memberAccess <- workspaceAccess Nothing
     workspaceCondition <- workspaceScopeCondition "project.workspace_uuid"
-    let (aclJoins, aclCondition) =
-          case viewAccess of
-            UnrestrictedWorkspaceAccess -> (userUuidsJoin ++ userGroupUuidsJoin, "")
-            _ ->
-              ( f''
-                  "LEFT JOIN project_perm_user ON project.uuid = project_perm_user.project_uuid AND project_perm_user.tenant_uuid = '${tenantUuid}' \
-                  \LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project_perm_group.tenant_uuid = '${tenantUuid}' \
-                  \LEFT JOIN user_group_membership ugm ON ugm.user_group_uuid = project_perm_group.user_group_uuid AND ugm.user_uuid = '${currentUserUuid}' AND ugm.tenant_uuid = '${tenantUuid}'"
-                  [ ("currentUserUuid", U.toString currentUser.uuid)
-                  , ("tenantUuid", U.toString tenantUuid)
-                  ]
-              , f'
-                  "AND (%s OR (%s AND (visibility = 'VisibleEditProjectVisibility' \
-                  \  OR visibility = 'VisibleCommentProjectVisibility' \
-                  \  OR visibility = 'VisibleViewProjectVisibility' \
-                  \  OR (visibility = 'PrivateProjectVisibility' AND project_perm_user.user_uuid = '%s' AND project_perm_user.perms @> ARRAY %s) \
-                  \  OR (visibility = 'PrivateProjectVisibility' AND project_perm_group.user_group_uuid = ugm.user_group_uuid AND project_perm_group.perms @> ARRAY %s) \
-                  \)))"
-                  [workspaceAccessSql "project.workspace_uuid" viewAccess, workspaceAccessSql "project.workspace_uuid" memberAccess, U.toString currentUser.uuid, "['VIEW']", "['VIEW']"]
-              )
+    visibleCondition <- projectVisibleCondition
+    let aclJoins = userUuidsJoin ++ userGroupUuidsJoin
+    let aclCondition = "AND " ++ visibleCondition
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
     let countSql =
@@ -287,10 +267,39 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
             }
     return $ Page pageLabel metadata entities
 
-findProjectsByDocumentTemplateUuid :: WizardRequestContextC s m => U.UUID -> m [Project]
-findProjectsByDocumentTemplateUuid documentTemplateUuid = do
+projectVisibleCondition :: WizardRequestContextC s m => m String
+projectVisibleCondition = do
+  viewAccess <- workspaceAccess (Just _PROJECTS_VIEW_ROLE_PERMISSION)
+  memberAccess <- workspaceAccess Nothing
+  case viewAccess of
+    UnrestrictedWorkspaceAccess -> return "TRUE"
+    _ -> do
+      tenantUuid <- asks (.tenantUuid')
+      currentUser <- getCurrentUser
+      return $
+        f''
+          "(${viewAccess} OR (${memberAccess} AND (project.visibility IN ('VisibleEditProjectVisibility', 'VisibleCommentProjectVisibility', 'VisibleViewProjectVisibility') \
+          \  OR EXISTS (SELECT 1 \
+          \             FROM project_perm_user ppu \
+          \             WHERE ppu.project_uuid = project.uuid AND ppu.tenant_uuid = '${tenantUuid}' AND ppu.user_uuid = '${currentUserUuid}' AND ppu.perms @> ARRAY ['VIEW']) \
+          \  OR EXISTS (SELECT 1 \
+          \             FROM project_perm_group ppg \
+          \             JOIN user_group_membership ugm ON ugm.user_group_uuid = ppg.user_group_uuid AND ugm.user_uuid = '${currentUserUuid}' AND ugm.tenant_uuid = '${tenantUuid}' \
+          \             WHERE ppg.project_uuid = project.uuid AND ppg.tenant_uuid = '${tenantUuid}' AND ppg.perms @> ARRAY ['VIEW']))))"
+          [ ("viewAccess", workspaceAccessSql "project.workspace_uuid" viewAccess)
+          , ("memberAccess", workspaceAccessSql "project.workspace_uuid" memberAccess)
+          , ("tenantUuid", U.toString tenantUuid)
+          , ("currentUserUuid", U.toString currentUser.uuid)
+          ]
+
+unsetDocumentTemplateInProjects :: WizardRequestContextC s m => U.UUID -> UTCTime -> m Int64
+unsetDocumentTemplateInProjects documentTemplateUuid now = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid)] >>= traverse enhance
+  let sql = fromString "UPDATE project SET document_template_uuid = NULL, format_uuid = NULL, updated_at = ? WHERE tenant_uuid = ? AND document_template_uuid = ?"
+  let params = [toField now, toField tenantUuid, toField documentTemplateUuid]
+  logQuery sql params
+  let action conn = execute conn sql params
+  runDB action
 
 findProjectUuidsByWorkspaceUuid :: WizardRequestContextC s m => U.UUID -> m [U.UUID]
 findProjectUuidsByWorkspaceUuid workspaceUuid = do

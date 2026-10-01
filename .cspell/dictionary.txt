@@ -181,6 +181,7 @@ subtag
 suchanek
 swarmpit
 tablename
+tagsoup
 tdfa
 timestamptz
 tml

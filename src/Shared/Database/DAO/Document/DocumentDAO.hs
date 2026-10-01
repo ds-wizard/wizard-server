@@ -113,11 +113,6 @@ findDocumentsPage floored mProjectUuid mProjectName mDocumentTemplateUuid mQuery
             }
     return $ Page pageLabel metadata entities
 
-findDocumentsByDocumentTemplateUuid :: WizardRequestContextC s m => U.UUID -> m [Document]
-findDocumentsByDocumentTemplateUuid documentTemplateUuid = do
-  tenantUuid <- asks (.tenantUuid')
-  createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid), ("durability", "PersistentDocumentDurability")]
-
 findDocumentByUuid :: WizardRequestContextC s m => U.UUID -> m Document
 findDocumentByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')

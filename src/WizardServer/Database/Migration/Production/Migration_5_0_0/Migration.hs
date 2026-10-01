@@ -20,7 +20,7 @@ import Shared.Util.String (f')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles and the workspace column of the workspace-scoped tables"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables and keep projects when their document template is deleted"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -48,6 +48,7 @@ migrateShared dbPool = do
   addRoleColumns dbPool
   renamePermissions dbPool
   seedWorkspaceRoles dbPool
+  keepProjectsOnDocumentTemplateDelete dbPool
 
 assertNoDuplicateDocumentTemplates :: Pool Connection -> LoggingT IO ()
 assertNoDuplicateDocumentTemplates dbPool =
@@ -302,6 +303,14 @@ workspaceAdminPermissions =
   , "userGroups.manage"
   , "settings.manage"
   ]
+
+keepProjectsOnDocumentTemplateDelete :: Pool Connection -> LoggingT IO ()
+keepProjectsOnDocumentTemplateDelete dbPool =
+  runSql
+    dbPool
+    "ALTER TABLE project \
+    \    DROP CONSTRAINT IF EXISTS project_document_template_uuid_fk, \
+    \    ADD CONSTRAINT project_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE SET NULL;"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do
