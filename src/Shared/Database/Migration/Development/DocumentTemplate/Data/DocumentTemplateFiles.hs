@@ -397,7 +397,7 @@ html =
       {% endif %}
       <tr>
         <th>Based on</th>
-        <td>{{ctx.package.name}}, {{ctx.package.version}} (<span class="package-id"><span class="organization-id">{{ctx.package.organizationId}}</span>:<span class="km-id">{{ctx.package.kmId}}</span>:<span class="version">{{ctx.package.version}}</span></span>)</td>
+        <td>{{ctx.package.name}}, {{ctx.package.version}} (<span class="package-id"><span class="km-id">{{ctx.package.id}}</span>:<span class="version">{{ctx.package.version}}</span></span>)</td>
       </tr>
       {% if ctx.config.levelsEnabled %}
       <tr>

@@ -51,11 +51,10 @@ instance FromRow ProjectCommentThreadNotification where
             _ -> Nothing
     text <- field
     let questionTitle = Nothing
-    clientUrl <- field
+    workspaceUuid <- field
     appTitle <- field
     logoUrl <- field
     primaryColor <- field
-    illustrationsColor <- field
     supportEmail <- field
     mailConfigUuid <- field
     return ProjectCommentThreadNotification {..}

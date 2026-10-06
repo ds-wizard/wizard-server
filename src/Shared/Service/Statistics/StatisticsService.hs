@@ -12,11 +12,11 @@ import Shared.Model.Statistics.InstanceStatistics
 getInstanceStatistics :: WizardRequestContextC s m => m InstanceStatistics
 getInstanceStatistics = do
   uCount <- countUsers
-  pCount <- countPackagesGroupedByOrganizationIdAndKmId
+  pCount <- countPackagesGroupedById
   qCount <- countProjects
   bCount <- countKnowledgeModelEditors
   docCount <- countDocuments
-  tmlCount <- countDocumentTemplatesGroupedByOrganizationIdAndKmId
+  tmlCount <- countDocumentTemplatesGroupedById
   return
     InstanceStatistics
       { userCount = uCount

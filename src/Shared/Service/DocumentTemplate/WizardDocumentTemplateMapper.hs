@@ -4,7 +4,6 @@ import qualified Data.List as L
 import Data.Maybe (fromMaybe)
 import qualified Data.UUID as U
 
-import RegistryPublic.Model.Organization.OrganizationSimple
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeDTO
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateDetailDTO
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
@@ -19,21 +18,19 @@ import Shared.Model.DocumentTemplate.DocumentTemplateSuggestion
 import Shared.Model.DocumentTemplate.DocumentTemplateWithCoordinate
 import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocaleList
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.Registry.RegistryOrganization
 import Shared.Model.Registry.RegistryTemplate
 import qualified Shared.Service.DocumentTemplate.DocumentTemplateMapper as STM
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
 import qualified Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper as PM_Mapper
 import Shared.Service.Version.VersionMapper
-import Shared.Util.Coordinate
+import Shared.Util.Reference
 
-toList :: DocumentTemplate -> Maybe RegistryTemplate -> Maybe RegistryOrganization -> DocumentTemplatePhase -> DocumentTemplateList
-toList dt mDtR mOrgR phase =
+toList :: DocumentTemplate -> Maybe RegistryTemplate -> DocumentTemplatePhase -> DocumentTemplateList
+toList dt mDtR phase =
   DocumentTemplateList
     { uuid = dt.uuid
     , name = dt.name
-    , organizationId = dt.organizationId
-    , templateId = dt.templateId
+    , id = dt.id
     , version = dt.version
     , phase = dt.phase
     , metamodelVersion = dt.metamodelVersion
@@ -43,24 +40,19 @@ toList dt mDtR mOrgR phase =
     , language = dt.language
     , potFileReady = dt.potFileReady
     , remoteVersion = fmap (.remoteVersion) mDtR
-    , remoteOrganizationName = fmap (.name) mOrgR
-    , remoteOrganizationLogo =
-        case mOrgR of
-          Just orgR -> orgR.logo
-          Nothing -> Nothing
     , createdAt = dt.createdAt
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toSimpleDTO :: DocumentTemplate -> DocumentTemplateSimpleDTO
-toSimpleDTO dt = toSimpleDTO' False $ toList dt Nothing Nothing ReleasedDocumentTemplatePhase
+toSimpleDTO dt = toSimpleDTO' False $ toList dt Nothing ReleasedDocumentTemplatePhase
 
 toSimpleDTO' :: Bool -> DocumentTemplateList -> DocumentTemplateSimpleDTO
 toSimpleDTO' registryEnabled dt =
   DocumentTemplateSimpleDTO
     { uuid = dt.uuid
     , name = dt.name
-    , organizationId = dt.organizationId
-    , templateId = dt.templateId
+    , id = dt.id
     , version = dt.version
     , phase = dt.phase
     , remoteLatestVersion =
@@ -72,17 +64,8 @@ toSimpleDTO' registryEnabled dt =
     , language = dt.language
     , potFileReady = dt.potFileReady
     , state = computeDocumentTemplateState' dt
-    , organization =
-        case (registryEnabled, dt.remoteOrganizationName) of
-          (True, Just orgName) ->
-            Just $
-              OrganizationSimple
-                { organizationId = dt.organizationId
-                , name = orgName
-                , logo = dt.remoteOrganizationLogo
-                }
-          _ -> Nothing
     , createdAt = dt.createdAt
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toSuggestionDTOPage :: [DocumentTemplateSuggestion] -> Pageable -> Page DocumentTemplateSuggestionDTO
@@ -107,8 +90,7 @@ toSuggestionDTO' dt formats locales =
   DocumentTemplateSuggestionDTO
     { uuid = dt.uuid
     , name = dt.name
-    , organizationId = dt.organizationId
-    , templateId = dt.templateId
+    , id = dt.id
     , version = dt.version
     , description = dt.description
     , language = dt.language
@@ -124,18 +106,16 @@ toDetailDTO
   -> [DocumentTemplateFormat]
   -> Bool
   -> [RegistryTemplate]
-  -> [RegistryOrganization]
   -> [(U.UUID, String)]
   -> Maybe String
   -> [KnowledgeModelPackage]
   -> [DocumentTemplateLocaleList]
   -> DocumentTemplateDetailDTO
-toDetailDTO tml formats registryEnabled tmlRs orgRs versionLs registryLink pkgs locales =
+toDetailDTO tml formats registryEnabled tmlRs versionLs registryLink pkgs locales =
   DocumentTemplateDetailDTO
     { uuid = tml.uuid
     , name = tml.name
-    , organizationId = tml.organizationId
-    , templateId = tml.templateId
+    , id = tml.id
     , version = tml.version
     , phase = tml.phase
     , metamodelVersion = tml.metamodelVersion
@@ -151,7 +131,7 @@ toDetailDTO tml formats registryEnabled tmlRs orgRs versionLs registryLink pkgs 
     , locales = locales
     , versions = map toVersionDTO . L.sortBy (\(_, v1) (_, v2) -> compare v2 v1) $ versionLs
     , remoteLatestVersion =
-        case (registryEnabled, selectDocumentTemplateByOrgIdAndTmlId tml tmlRs) of
+        case (registryEnabled, selectDocumentTemplateById tml tmlRs) of
           (True, Just tmlR) -> Just tmlR.remoteVersion
           _ -> Nothing
     , state = computeDocumentTemplateState tmlRs tml
@@ -159,11 +139,8 @@ toDetailDTO tml formats registryEnabled tmlRs orgRs versionLs registryLink pkgs 
         if registryEnabled
           then registryLink
           else Nothing
-    , organization =
-        if registryEnabled
-          then selectOrganizationByOrgId tml orgRs
-          else Nothing
     , createdAt = tml.createdAt
+    , workspaceUuid = tml.workspaceUuid
     }
 
 toChangeDTO :: DocumentTemplate -> DocumentTemplateChangeDTO
@@ -177,8 +154,7 @@ fromChangeDTO dto dt =
   DocumentTemplate
     { uuid = dt.uuid
     , name = dt.name
-    , organizationId = dt.organizationId
-    , templateId = dt.templateId
+    , id = dt.id
     , version = dt.version
     , phase = dto.phase
     , metamodelVersion = dt.metamodelVersion
@@ -190,16 +166,17 @@ fromChangeDTO dto dt =
     , language = dt.language
     , potFileReady = dt.potFileReady
     , tenantUuid = dt.tenantUuid
+    , workspaceUuid = dt.workspaceUuid
     , createdAt = dt.createdAt
     , updatedAt = dt.updatedAt
     }
 
 buildRegistryTemplateUrl :: String -> DocumentTemplate -> [RegistryTemplate] -> Maybe String
 buildRegistryTemplateUrl clientRegistryUrl tml tmlRs =
-  case selectDocumentTemplateByOrgIdAndTmlId tml tmlRs of
+  case selectDocumentTemplateById tml tmlRs of
     Just tmlR ->
       Just $
         clientRegistryUrl
           ++ "/document-templates/"
-          ++ buildCoordinate tmlR.organizationId tmlR.templateId tmlR.remoteVersion
+          ++ buildReference tmlR.id tmlR.remoteVersion
     Nothing -> Nothing

@@ -7,16 +7,16 @@ import Shared.Api.Handler.WizardCommon
 import WizardServer.Api.Handler.User.PluginSettings.Detail_GET
 import WizardServer.Api.Handler.User.PluginSettings.Detail_PUT
 
-type PluginSettingsAPI =
+type UserPluginSettingsAPI =
   Tags "User Plugin Settings"
     :> ( Detail_GET
            :<|> Detail_PUT
        )
 
-pluginSettingsApi :: Proxy PluginSettingsAPI
-pluginSettingsApi = Proxy
+userPluginSettingsApi :: Proxy UserPluginSettingsAPI
+userPluginSettingsApi = Proxy
 
-pluginSettingsServer :: WizardHandlerC s sm r rm => ServerT PluginSettingsAPI sm
-pluginSettingsServer =
+userPluginSettingsServer :: WizardHandlerC s sm r rm => ServerT UserPluginSettingsAPI sm
+userPluginSettingsServer =
   detail_GET
     :<|> detail_PUT

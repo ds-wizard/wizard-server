@@ -24,11 +24,11 @@ import Specs.Api.Handler.Locale.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/locales/{uuid}
+-- PUT /api/locales/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/locales/{uuid}" $ do
+  describe "PUT /api/locales/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -39,7 +39,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/locales/d9894fb9-c6a5-4294-98d6-b46d75684d53"
+reqUrl = "/api/locales/d9894fb9-c6a5-4294-98d6-b46d75684d53"
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 
@@ -76,7 +76,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "organizationSettings.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -84,7 +84,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/locales/99193032-99e3-4676-acd8-222983ea0b88"
+    "/api/locales/99193032-99e3-4676-acd8-222983ea0b88"
     reqHeaders
     reqBody
     "locale"

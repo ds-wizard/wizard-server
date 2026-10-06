@@ -17,11 +17,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/users/current/locale
+-- GET /api/users/current/locale
 -- ------------------------------------------------------------------------
 list_current_locale_GET :: RequestContext -> SpecWith ((), Application)
 list_current_locale_GET requestContext =
-  describe "GET /wizard-api/users/current/locale" $ do
+  describe "GET /api/users/current/locale" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -30,7 +30,7 @@ list_current_locale_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/users/current/locale"
+reqUrl = "/api/users/current/locale"
 
 reqHeaders = [reqAuthHeader]
 

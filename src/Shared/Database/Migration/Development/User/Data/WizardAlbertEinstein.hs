@@ -9,17 +9,19 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserPasswordDTO
 import Shared.Api.Resource.User.UserProfileChangeDTO
 import Shared.Api.Resource.User.UserStateDTO
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.Locale.Data.Locales
 import Shared.Database.Migration.Development.Plugin.Data.PluginSettings
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
+import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.AlbertEinstein
+import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Model.Common.SensitiveData
 import Shared.Model.Locale.Locale
 import Shared.Model.Plugin.Plugin
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.OnlineUserInfo
 import Shared.Model.User.User
@@ -32,6 +34,7 @@ import Shared.Model.User.UserSubmissionPropEM ()
 import Shared.Model.User.UserSubmissionPropList
 import Shared.Model.User.UserSuggestion
 import Shared.Model.User.UserTour
+import Shared.Service.User.RoleMapper (toRoleSimple)
 import Shared.Service.User.WizardUserMapper
 import Shared.Util.Date
 
@@ -62,7 +65,7 @@ userAlbertDto :: UserDTO
 userAlbertDto = toDTO userAlbert
 
 userAlbertProfile :: UserProfile
-userAlbertProfile = toUserProfile (toDTO userAlbert) [bioGroup.uuid] plugin1Dict
+userAlbertProfile = toUserProfile (toDTO userAlbert) [bioGroup.uuid] plugin1Dict (M.singleton defaultWorkspaceUuid (toRoleSimple defaultWorkspaceUserRole))
 
 userAlbertEditedChange :: UserProfileChangeDTO
 userAlbertEditedChange =
@@ -141,8 +144,8 @@ userAlbertApiToken :: UserSubmissionProp
 userAlbertApiToken =
   UserSubmissionProp
     { userUuid = userAlbert.uuid
-    , serviceId = defaultSubmissionService.sId
-    , values = M.fromList [(defaultSubmissionServiceSecretProp, ""), (defaultSubmissionServiceApiTokenProp, "Some Token")]
+    , serviceId = settingsSubmissionService.sId
+    , values = M.fromList [(settingsSubmissionServiceSecretProp, ""), (settingsSubmissionServiceApiTokenProp, "Some Token")]
     , tenantUuid = defaultTenant.uuid
     , createdAt = dt' 2018 1 21
     , updatedAt = dt' 2018 1 21
@@ -151,9 +154,9 @@ userAlbertApiToken =
 userAlbertApiTokenList :: UserSubmissionPropList
 userAlbertApiTokenList =
   UserSubmissionPropList
-    { sId = defaultSubmissionService.sId
-    , name = defaultSubmissionService.name
-    , values = M.fromList [(defaultSubmissionServiceSecretProp, ""), (defaultSubmissionServiceApiTokenProp, "Some Token")]
+    { sId = settingsSubmissionService.sId
+    , name = settingsSubmissionService.name
+    , values = M.fromList [(settingsSubmissionServiceSecretProp, ""), (settingsSubmissionServiceApiTokenProp, "Some Token")]
     }
 
 userAlbertSubmissionPropsEdited :: [UserSubmissionProp]
@@ -162,15 +165,15 @@ userAlbertSubmissionPropsEdited = [process defaultSecret userAlbertApiTokenEdite
 userAlbertApiTokenEdited :: UserSubmissionProp
 userAlbertApiTokenEdited =
   userAlbertApiToken
-    { values = M.fromList [(defaultSubmissionServiceSecretProp, ""), (defaultSubmissionServiceApiTokenProp, "EDITED: Some Token")]
+    { values = M.fromList [(settingsSubmissionServiceSecretProp, ""), (settingsSubmissionServiceApiTokenProp, "EDITED: Some Token")]
     }
 
 userAlbertApiTokenEditedDto :: UserSubmissionPropList
 userAlbertApiTokenEditedDto =
   UserSubmissionPropList
-    { sId = defaultSubmissionService.sId
-    , name = defaultSubmissionService.name
-    , values = M.fromList [(defaultSubmissionServiceSecretProp, ""), (defaultSubmissionServiceApiTokenProp, "EDITED: Some Token")]
+    { sId = settingsSubmissionService.sId
+    , name = settingsSubmissionService.name
+    , values = M.fromList [(settingsSubmissionServiceSecretProp, ""), (settingsSubmissionServiceApiTokenProp, "EDITED: Some Token")]
     }
 
 userAlbertEditedLocale :: User

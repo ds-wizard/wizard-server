@@ -13,9 +13,8 @@ import Data.Aeson.Types
 import Shared.Api.Resource.Project.Comment.ProjectCommentThreadNotificationJM ()
 import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigLookAndFeelDAO
+import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigPrivacyAndSupportDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Config.ServerConfig
@@ -26,12 +25,14 @@ import qualified Shared.Model.PersistentCommand.Mail.MailCommand as MC
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Comment.ProjectCommentThreadNotification
 import Shared.Model.Project.Project
-import Shared.Model.Tenant.Config.TenantConfig
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
+import Shared.Model.Tenant.Config.TenantConfigMail
 import Shared.Model.User.User
 import Shared.Model.User.UserSimple
 import Shared.Model.User.UserToken
 import Shared.Service.PersistentCommand.PersistentCommandMapper
+import Shared.Service.Settings.SettingsService
+import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Tenant.TenantHelper
 import qualified Shared.Util.Aeson as A
 import Shared.Util.JSON
@@ -40,8 +41,8 @@ import Shared.Util.Uuid
 sendRegistrationConfirmationMail :: WizardRequestContextC s m => User -> String -> String -> m ()
 sendRegistrationConfirmationMail user hash clientUrl =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     let body =
           MC.MailCommand
@@ -59,8 +60,7 @@ sendRegistrationConfirmationMail user hash clientUrl =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]
@@ -71,8 +71,8 @@ sendRegistrationCreatedAnalyticsMail :: WizardRequestContextC s m => User -> m (
 sendRegistrationCreatedAnalyticsMail user =
   runInTransaction $ do
     serverConfig <- asks (.serverConfig')
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     let body =
@@ -90,8 +90,7 @@ sendRegistrationCreatedAnalyticsMail user =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]
@@ -101,8 +100,8 @@ sendRegistrationCreatedAnalyticsMail user =
 sendEmailChangeMail :: WizardRequestContextC s m => User -> String -> String -> m ()
 sendEmailChangeMail user hash newEmail =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     let body =
@@ -122,8 +121,7 @@ sendEmailChangeMail user hash newEmail =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]
@@ -133,8 +131,8 @@ sendEmailChangeMail user hash newEmail =
 sendResetPasswordMail :: WizardRequestContextC s m => UserDTO -> String -> m ()
 sendResetPasswordMail user hash =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     let body =
@@ -153,8 +151,7 @@ sendResetPasswordMail user hash =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]
@@ -164,8 +161,8 @@ sendResetPasswordMail user hash =
 sendTwoFactorAuthMail :: WizardRequestContextC s m => UserDTO -> String -> m ()
 sendTwoFactorAuthMail user code =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     let body =
@@ -184,8 +181,7 @@ sendTwoFactorAuthMail user code =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]
@@ -195,16 +191,16 @@ sendTwoFactorAuthMail user code =
 sendProjectInvitationMail :: WizardRequestContextC s m => Project -> Project -> m ()
 sendProjectInvitationMail oldProject newProject =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport (Just newProject.workspaceUuid)
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     currentUser <- getCurrentUser
-    traverse_ (sendOneEmail tcPrivacyAndSupport tcLookAndFeel tcMail clientUrl currentUser) (filter (filterPermissions currentUser) newProject.permissions)
+    traverse_ (sendOneEmail tcSupport tcLookAndFeel tcMail clientUrl currentUser) (filter (filterPermissions currentUser) newProject.permissions)
   where
     filterPermissions :: UserDTO -> ProjectPerm -> Bool
     filterPermissions currentUser perm = perm.memberUuid /= currentUser.uuid && perm.memberUuid `notElem` fmap (.memberUuid) oldProject.permissions
-    sendOneEmail tcPrivacyAndSupport tcLookAndFeel tcMail clientUrl currentUser permission =
+    sendOneEmail tcSupport tcLookAndFeel tcMail clientUrl currentUser permission =
       case permission.memberType of
         UserGroupProjectPermType -> return ()
         UserProjectPermType -> do
@@ -221,8 +217,7 @@ sendProjectInvitationMail oldProject newProject =
                         , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                         , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                         , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                        , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                        , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                        , ("supportEmail", A.maybeString tcSupport.supportEmail)
                         , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                         , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                         , ("inviteeUuid", A.uuid user.uuid)
@@ -230,6 +225,7 @@ sendProjectInvitationMail oldProject newProject =
                         , ("inviteeLastName", A.string user.lastName)
                         , ("inviteeEmail", A.string user.email)
                         , ("projectUuid", A.uuid newProject.uuid)
+                        , ("workspaceUuid", A.uuid newProject.workspaceUuid)
                         , ("projectName", A.string newProject.name)
                         , ("ownerUuid", A.uuid currentUser.uuid)
                         , ("ownerFirstName", A.string currentUser.firstName)
@@ -243,12 +239,14 @@ sendProjectCommentThreadAssignedMail :: WizardRequestContextC s m => [ProjectCom
 sendProjectCommentThreadAssignedMail notifications =
   runInTransaction $ do
     tcMail <- findTenantConfigMail
+    clientUrl <- getClientUrl
     case notifications of
       [] -> return ()
       notification : _ -> do
         let notificationFn n =
               A.Object . KM.fromList $
                 [ ("projectUuid", A.uuid n.projectUuid)
+                , ("workspaceUuid", A.uuid n.workspaceUuid)
                 , ("projectName", A.string n.projectName)
                 , ("commentThreadUuid", A.uuid n.commentThreadUuid)
                 , ("path", A.string n.path)
@@ -267,11 +265,10 @@ sendProjectCommentThreadAssignedMail notifications =
                     M.fromList
                       [ ("userFirstName", A.string notification.assignedTo.firstName)
                       , ("notifications", A.Array . Vector.fromList . fmap notificationFn $ notifications)
-                      , ("clientUrl", A.string notification.clientUrl)
+                      , ("clientUrl", A.string clientUrl)
                       , ("appTitle", A.maybeString notification.appTitle)
                       , ("logoUrl", A.maybeString notification.logoUrl)
                       , ("primaryColor", A.maybeString notification.primaryColor)
-                      , ("illustrationsColor", A.maybeString notification.illustrationsColor)
                       , ("supportEmail", A.maybeString notification.supportEmail)
                       , ("mailConfigUuid", A.maybeUuid notification.mailConfigUuid)
                       , ("mailCustomTemplates", A.bool tcMail.customTemplates)
@@ -282,8 +279,8 @@ sendProjectCommentThreadAssignedMail notifications =
 sendApiKeyCreatedMail :: WizardRequestContextC s m => UserDTO -> UserToken -> m ()
 sendApiKeyCreatedMail user userToken =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     let body =
@@ -303,8 +300,7 @@ sendApiKeyCreatedMail user userToken =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]
@@ -314,8 +310,8 @@ sendApiKeyCreatedMail user userToken =
 sendApiKeyExpirationMail :: WizardRequestContextC s m => User -> UserToken -> m ()
 sendApiKeyExpirationMail user userToken =
   runInTransaction $ do
-    tcPrivacyAndSupport <- findTenantConfigPrivacyAndSupport
-    tcLookAndFeel <- findTenantConfigLookAndFeel
+    tcSupport <- getEffectiveSettingsSupport Nothing
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
     tcMail <- findTenantConfigMail
     clientUrl <- getClientUrl
     let body =
@@ -335,8 +331,7 @@ sendApiKeyExpirationMail user userToken =
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
                   , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("illustrationsColor", A.maybeString tcLookAndFeel.illustrationsColor)
-                  , ("supportEmail", A.maybeString tcPrivacyAndSupport.supportEmail)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
                   , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
                   , ("mailCustomTemplates", A.bool tcMail.customTemplates)
                   ]

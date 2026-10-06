@@ -11,7 +11,6 @@ import Shared.Api.Resource.LocaleBundle.LocaleBundleJM ()
 import Shared.Localization.Messages.Locale.Public
 import Shared.Model.Error.Error
 import Shared.Model.Locale.Locale
-import Shared.Util.Coordinate
 import Shared.Util.String
 
 toLocaleArchive :: Locale -> BS.ByteString -> BS.ByteString -> BSL.ByteString
@@ -38,12 +37,10 @@ toTranslationEntry filename content = toEntry (f' "locale/%s" [filename]) 0 (BSL
 toLocaleBundle :: Locale -> LocaleBundleDTO
 toLocaleBundle locale =
   LocaleBundleDTO
-    { lId = buildCoordinate locale.organizationId locale.localeId locale.version
-    , name = locale.name
+    { name = locale.name
     , description = locale.description
     , code = locale.code
-    , organizationId = locale.organizationId
-    , localeId = locale.localeId
+    , id = locale.id
     , version = locale.version
     , readme = locale.readme
     , license = locale.license
@@ -83,8 +80,7 @@ fromLocaleBundle lb uuid tenantUuid =
     , name = lb.name
     , description = lb.description
     , code = lb.code
-    , organizationId = lb.organizationId
-    , localeId = lb.localeId
+    , id = lb.id
     , version = lb.version
     , defaultLocale = False
     , readme = lb.readme

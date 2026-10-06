@@ -19,5 +19,6 @@ data ProjectDetailPreview = ProjectDetailPreview
   , documentTemplateUuid :: Maybe U.UUID
   , format :: Maybe DocumentTemplateFormatSimple
   , fileCount :: Int
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

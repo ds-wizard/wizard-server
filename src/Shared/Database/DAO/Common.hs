@@ -481,18 +481,12 @@ mapToDBQuerySql [] = ""
 mapToDBQuerySql [(queryParamKey, queryParamValue)] = queryParamKey ++ " = ? "
 mapToDBQuerySql ((queryParamKey, queryParamValue) : xs) = queryParamKey ++ " = ? AND " ++ mapToDBQuerySql xs
 
-mapToDBCoordinatesSql :: String -> String -> Maybe String -> Maybe String -> String
-mapToDBCoordinatesSql entityName entityId (Just orgId) (Just eId) =
-  f' "and %s.organization_id = ? and %s.%s = ? " [entityName, entityName, entityId]
-mapToDBCoordinatesSql entityName entityId (Just orgId) _ = f' "and %s.organization_id = ? " [entityName]
-mapToDBCoordinatesSql entityName entityId _ (Just eId) = f' "and %s.%s = ? " [entityName, entityId]
-mapToDBCoordinatesSql _ _ _ _ = ""
+mapToDBIdSql :: String -> Maybe String -> String
+mapToDBIdSql entityName (Just _) = f' "and %s.id = ? " [entityName]
+mapToDBIdSql _ Nothing = ""
 
-mapToDBCoordinatesParams :: Maybe String -> Maybe String -> [String]
-mapToDBCoordinatesParams (Just orgId) (Just eId) = [orgId, eId]
-mapToDBCoordinatesParams (Just orgId) _ = [orgId]
-mapToDBCoordinatesParams _ (Just eId) = [eId]
-mapToDBCoordinatesParams _ _ = []
+mapToDBIdParams :: Maybe String -> [String]
+mapToDBIdParams = maybeToList
 
 toSortColumn :: String -> String
 toSortColumn = filter isSafe . toSnake
@@ -557,6 +551,12 @@ tenantQueryUuid tenantUuid = ("tenant_uuid", U.toString tenantUuid)
 
 tenantCondition :: String
 tenantCondition = "WHERE tenant_uuid = ?"
+
+workspaceVisibleCondition :: String
+workspaceVisibleCondition = "(workspace_uuid IS NULL OR workspace_uuid = ?)"
+
+workspaceExactCondition :: String
+workspaceExactCondition = "workspace_uuid IS NOT DISTINCT FROM ?"
 
 showAction :: Action -> String
 showAction (Plain a) = BS.unpack . toByteString $ a

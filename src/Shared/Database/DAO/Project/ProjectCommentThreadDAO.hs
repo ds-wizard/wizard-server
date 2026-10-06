@@ -279,20 +279,19 @@ findProjectCommentThreadsForNotifying = do
         \          AND comment.tenant_uuid = thread.tenant_uuid \
         \        ORDER BY comment.created_at \
         \        LIMIT 1) comment_text, \
-        \        tenant.client_url, \
-        \        config_look_and_feel.app_title AS app_title, \
-        \        config_look_and_feel.logo_url AS logo_url, \
-        \        config_look_and_feel.primary_color AS primary_color, \
-        \        config_look_and_feel.illustrations_color AS illustrations_color, \
-        \        config_privacy_and_support.support_email AS support_email, \
+        \        project.workspace_uuid, \
+        \        settings_look_and_feel.app_title AS app_title, \
+        \        settings_look_and_feel.logo_url AS logo_url, \
+        \        settings_look_and_feel.primary_color AS primary_color, \
+        \        CASE WHEN workspace_support.tenant_uuid IS NULL THEN org_support.support_email ELSE workspace_support.support_email END AS support_email, \
         \        config_mail.config_uuid AS mail_config_uuid \
         \FROM project_comment_thread thread \
         \JOIN project ON project.uuid = thread.project_uuid AND project.tenant_uuid = thread.tenant_uuid \
         \JOIN user_entity assigned_to ON assigned_to.uuid = thread.assigned_to AND assigned_to.tenant_uuid = thread.tenant_uuid \
         \LEFT JOIN user_entity assigned_by ON assigned_by.uuid = thread.assigned_by AND assigned_by.tenant_uuid = thread.tenant_uuid \
-        \JOIN tenant ON tenant.uuid = thread.tenant_uuid \
-        \JOIN config_look_and_feel ON config_look_and_feel.tenant_uuid = thread.tenant_uuid \
-        \JOIN config_privacy_and_support ON config_privacy_and_support.tenant_uuid = thread.tenant_uuid \
+        \JOIN settings_look_and_feel ON settings_look_and_feel.tenant_uuid = thread.tenant_uuid \
+        \JOIN settings_support org_support ON org_support.tenant_uuid = thread.tenant_uuid AND org_support.workspace_uuid IS NULL \
+        \LEFT JOIN settings_support workspace_support ON workspace_support.tenant_uuid = thread.tenant_uuid AND workspace_support.workspace_uuid = project.workspace_uuid \
         \JOIN config_mail ON config_mail.tenant_uuid = thread.tenant_uuid \
         \WHERE thread.notification_required = true"
   logInfoI _CMP_DATABASE (trim sql)

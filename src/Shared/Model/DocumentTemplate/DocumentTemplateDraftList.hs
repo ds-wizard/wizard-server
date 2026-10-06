@@ -7,17 +7,16 @@ import GHC.Generics
 data DocumentTemplateDraftList = DocumentTemplateDraftList
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , description :: String
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 
 instance Ord DocumentTemplateDraftList where
   compare a b =
-    compare a.organizationId b.organizationId
-      <> compare a.templateId b.templateId
+    compare a.id b.id
       <> compare a.version b.version

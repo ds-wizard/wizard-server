@@ -12,6 +12,8 @@ import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserFromExternalDTO
 import Shared.Api.Resource.UserToken.UserTokenDTO
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
+import Shared.Database.DAO.Settings.SettingsRolesDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserOpenIdIdentityDAO
 import Shared.Database.DAO.User.UserRegistrationPendingDAO
@@ -21,7 +23,7 @@ import Shared.Localization.Messages.WizardInternal
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Model.User.UserRegistrationPending
@@ -29,7 +31,7 @@ import Shared.Model.User.UserRegistrationPendingServiceType
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
 import Shared.Service.Mail.Mailer
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
 import qualified Shared.Service.User.UserOpenIdIdentityMapper as UserOpenIdIdentityMapper
@@ -40,6 +42,8 @@ import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.Login.LoginService
 import Shared.Service.UserToken.Login.LoginValidation
+import Shared.Service.Workspace.WorkspaceMembershipService
+import Shared.Util.Password
 import Shared.Util.Uuid
 
 completeExternalRegistration :: WizardRequestContextC s m => UserFromExternalDTO -> Maybe String -> Maybe String -> m UserTokenDTO
@@ -66,7 +70,7 @@ completeExternalRegistration reqDto _mAcceptLanguages mUserAgent =
     deleteUserRegistrationPendingByHash reqDto.hash
     if emailVerified
       then do
-        tcAuthentication <- getCurrentTenantConfigAuthentication
+        tcAuthentication <- getCurrentSettings findSettingsAuthentication
         validateLoginEnabled tcAuthentication user
         createLoginToken user mUserAgent Nothing
       else do
@@ -94,8 +98,8 @@ createUserForPending pending reqDto emailVerified now = do
   uUuid <- liftIO generateUuid
   password <- liftIO . fmap U.toString $ generateUuid
   uPasswordHash <- generatePasswordHash password
-  tcAuthentication <- getCurrentTenantConfigAuthentication
-  let role = tcAuthentication.defaultRoleUuid
+  settingsRoles <- getCurrentSettings findSettingsRoles
+  let role = settingsRoles.defaultRoleUuid
   uRole <- getRoleForUser role
   let user =
         fromUserExternalDTO
@@ -112,4 +116,5 @@ createUserForPending pending reqDto emailVerified now = do
           tenantUuid
           now
   insertUser user
+  addUserToSingleWorkspace tenantUuid uUuid now
   return user

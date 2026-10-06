@@ -13,6 +13,6 @@ getUsage = Usage.getUsage
 
 getUsageForCurrentTenant :: WizardRequestContextC s m => m WizardUsageDTO
 getUsageForCurrentTenant = do
-  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   tenantUuid <- asks (.tenantUuid')
   Usage.getUsage tenantUuid

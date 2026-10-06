@@ -13,29 +13,35 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Project.ProjectSettingsChangeDTO
+import Shared.Constant.Workspace
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
+import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Localization.Messages.DocumentTemplate.Public
 import Shared.Localization.Messages.Public
+import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Project.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/projects/{projectUuid}/settings
+-- PUT /api/projects/{projectUuid}/settings
 -- ------------------------------------------------------------------------
 detail_settings_PUT :: RequestContext -> SpecWith ((), Application)
 detail_settings_PUT requestContext =
-  describe "PUT /wizard-api/projects/{projectUuid}/settings" $ do
+  describe "PUT /api/projects/{projectUuid}/settings" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -47,7 +53,7 @@ detail_settings_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/settings"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/settings"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 
@@ -216,11 +222,44 @@ create_test_403 title requestContext project projectEdited reason =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_404 requestContext =
+test_404 requestContext = do
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/settings"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/settings"
     (reqHeadersT [reqAuthHeader])
     (reqBodyT project1)
     "project"
     [("uuid", "f08ead5f-746d-411b-aee6-77ea3d24016a")]
+  it "HTTP 404 NOT FOUND (document template of another workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project1.uuid
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqDto = (reqDtoT project1) {documentTemplateUuid = Just secondWorkspaceDocumentTemplate.uuid} :: ProjectSettingsChangeDTO
+      let reqBody = encode reqDto
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError (_ERROR_VALIDATION__ABSENCE "document_template")
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertDocumentTemplate secondWorkspaceDocumentTemplate) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find a result in DB
+      assertExistenceOfProjectInDB requestContext project1 project1Events
+
+secondWorkspaceDocumentTemplate :: DocumentTemplate
+secondWorkspaceDocumentTemplate =
+  wizardDocumentTemplate
+    { uuid = u' "6b5a4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d"
+    , workspaceUuid = Just secondWorkspaceUuid
+    }

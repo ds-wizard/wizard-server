@@ -18,24 +18,24 @@ countKnowledgeModelEditorsWithTenant :: RequestContextC s sc m => U.UUID -> m In
 countKnowledgeModelEditorsWithTenant tenantUuid = createCountByFn "knowledge_model_editor" tenantCondition [U.toString tenantUuid]
 
 countPackagesWithTenant :: RequestContextC s sc m => U.UUID -> m Int
-countPackagesWithTenant = countGroupedWithTenant "knowledge_model_package" "" "organization_id, km_id"
+countPackagesWithTenant = countGroupedWithTenant "knowledge_model_package" "" "id"
 
 countProjectsWithTenant :: RequestContextC s sc m => U.UUID -> m Int
 countProjectsWithTenant tenantUuid = createCountByFn "project" tenantCondition [U.toString tenantUuid]
 
 countDocumentTemplatesWithTenant :: RequestContextC s sc m => U.UUID -> m Int
 countDocumentTemplatesWithTenant =
-  countGroupedWithTenant "document_template" "AND (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase')" "organization_id, template_id"
+  countGroupedWithTenant "document_template" "AND (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase')" "id"
 
 countDocumentTemplateDraftsWithTenant :: RequestContextC s sc m => U.UUID -> m Int
 countDocumentTemplateDraftsWithTenant =
-  countGroupedWithTenant "document_template" "AND phase = 'DraftDocumentTemplatePhase'" "organization_id, template_id"
+  countGroupedWithTenant "document_template" "AND phase = 'DraftDocumentTemplatePhase'" "id"
 
 countDocumentsWithTenant :: RequestContextC s sc m => U.UUID -> m Int
 countDocumentsWithTenant tenantUuid = createCountByFn "document" tenantCondition [U.toString tenantUuid]
 
 countLocalesWithTenant :: RequestContextC s sc m => U.UUID -> m Int
-countLocalesWithTenant = countGroupedWithTenant "locale" "" "organization_id, locale_id"
+countLocalesWithTenant = countGroupedWithTenant "locale" "" "id"
 
 sumStorageWithTenant :: RequestContextC s sc m => U.UUID -> m Int64
 sumStorageWithTenant tenantUuid = do

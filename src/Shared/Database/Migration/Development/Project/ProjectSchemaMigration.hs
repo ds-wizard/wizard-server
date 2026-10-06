@@ -84,12 +84,16 @@ createProjectTable = do
         \    project_tags                 text[]      NOT NULL, \
         \    language                     varchar, \
         \    document_template_language   varchar, \
+        \    workspace_uuid               uuid        NOT NULL, \
         \    CONSTRAINT project_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT project_knowledge_model_package_uuid_fk FOREIGN KEY (knowledge_model_package_uuid) REFERENCES knowledge_model_package (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT project_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT project_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE SET NULL, \
         \    CONSTRAINT project_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \    CONSTRAINT project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT project_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+        \); \
+        \ \
+        \CREATE INDEX project_workspace_uuid_index ON project (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
@@ -263,11 +267,14 @@ createProjectCacheTable = do
         \    tenant_uuid                     uuid        NOT NULL, \
         \    created_at                      timestamptz NOT NULL, \
         \    updated_at                      timestamptz NOT NULL, \
+        \    workspace_uuid                  uuid        NOT NULL, \
         \    CONSTRAINT project_cache_pk PRIMARY KEY (project_uuid), \
         \    CONSTRAINT project_cache_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES project (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT project_cache_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT project_cache_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT project_cache_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
         \); \
-        \CREATE INDEX project_cache_tenant_uuid_index ON project_cache (tenant_uuid);"
+        \CREATE INDEX project_cache_tenant_uuid_index ON project_cache (tenant_uuid); \
+        \CREATE INDEX project_cache_workspace_uuid_index ON project_cache (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 

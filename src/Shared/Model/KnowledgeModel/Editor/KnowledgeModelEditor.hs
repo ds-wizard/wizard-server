@@ -7,7 +7,7 @@ import GHC.Generics
 data KnowledgeModelEditor = KnowledgeModelEditor
   { uuid :: U.UUID
   , name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
   , readme :: String
@@ -20,5 +20,6 @@ data KnowledgeModelEditor = KnowledgeModelEditor
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

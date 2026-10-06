@@ -3,7 +3,7 @@ module Shared.Util.Crypto where
 import Crypto.Cipher.AES (AES256)
 import Crypto.Cipher.Types (BlockCipher (..), Cipher (..), nullIV)
 import Crypto.Error (throwCryptoError)
-import Crypto.Hash (Digest, MD5 (..), hash)
+import Crypto.Hash (Digest, MD5 (..), SHA256 (..), hash)
 import qualified Crypto.PubKey.RSA.Types as RSA
 import Crypto.Random (getRandomBytes)
 import qualified Data.Base64.Types as B64_Types
@@ -45,6 +45,12 @@ decryptAES256WithB64 key plainData =
 hashMD5 :: String -> String
 hashMD5 text =
   let digest :: Digest MD5
+      digest = hash . TE.encodeUtf8 . T.pack $ text
+   in show digest
+
+hashSHA256 :: String -> String
+hashSHA256 text =
+  let digest :: Digest SHA256
       digest = hash . TE.encodeUtf8 . T.pack $ text
    in show digest
 

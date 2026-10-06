@@ -11,8 +11,7 @@ dropTables :: WizardRequestContextC s m => m Int64
 dropTables = do
   logInfo _CMP_MIGRATION "(Table/Registry) drop tables"
   let sql =
-        "DROP TABLE IF EXISTS registry_organization CASCADE; \
-        \DROP TABLE IF EXISTS registry_knowledge_model_package CASCADE; \
+        "DROP TABLE IF EXISTS registry_knowledge_model_package CASCADE; \
         \DROP TABLE IF EXISTS registry_document_template CASCADE; \
         \DROP TABLE IF EXISTS registry_locale CASCADE;"
   let action conn = execute_ conn sql
@@ -20,25 +19,9 @@ dropTables = do
 
 createTables :: WizardRequestContextC s m => m Int64
 createTables = do
-  createOrganizationTable
   createKnowledgeModelPackageTable
   createTemplateTable
   createLocaleTable
-
-createOrganizationTable :: WizardRequestContextC s m => m Int64
-createOrganizationTable = do
-  logInfo _CMP_MIGRATION "(Table/RegistryOrganization) create table"
-  let sql =
-        "CREATE TABLE registry_organization \
-        \( \
-        \    organization_id varchar     NOT NULL, \
-        \    name            varchar     NOT NULL, \
-        \    logo            varchar, \
-        \    created_at      timestamptz NOT NULL, \
-        \    CONSTRAINT registry_organization_pk PRIMARY KEY (organization_id) \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
 
 createKnowledgeModelPackageTable :: WizardRequestContextC s m => m Int64
 createKnowledgeModelPackageTable = do
@@ -46,11 +29,10 @@ createKnowledgeModelPackageTable = do
   let sql =
         "CREATE TABLE registry_knowledge_model_package \
         \( \
-        \    organization_id varchar     NOT NULL, \
-        \    km_id           varchar     NOT NULL, \
+        \    id              varchar     NOT NULL, \
         \    remote_version  varchar     NOT NULL, \
         \    created_at      timestamptz NOT NULL, \
-        \    CONSTRAINT registry_knowledge_model_package_pk PRIMARY KEY (organization_id, km_id) \
+        \    CONSTRAINT registry_knowledge_model_package_pk PRIMARY KEY (id) \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -61,11 +43,10 @@ createTemplateTable = do
   let sql =
         "CREATE TABLE registry_document_template \
         \( \
-        \    organization_id varchar     NOT NULL, \
-        \    template_id     varchar     NOT NULL, \
+        \    id              varchar     NOT NULL, \
         \    remote_version  varchar     NOT NULL, \
         \    created_at      timestamptz NOT NULL, \
-        \    CONSTRAINT registry_document_template_pk PRIMARY KEY (organization_id, template_id) \
+        \    CONSTRAINT registry_document_template_pk PRIMARY KEY (id) \
         \);"
   let action conn = execute_ conn sql
   runDB action
@@ -76,11 +57,10 @@ createLocaleTable = do
   let sql =
         "CREATE TABLE registry_locale \
         \( \
-        \    organization_id varchar     NOT NULL, \
-        \    locale_id       varchar     NOT NULL, \
+        \    id              varchar     NOT NULL, \
         \    remote_version  varchar     NOT NULL, \
         \    created_at      timestamptz NOT NULL, \
-        \    CONSTRAINT registry_locale_pk PRIMARY KEY (organization_id, locale_id) \
+        \    CONSTRAINT registry_locale_pk PRIMARY KEY (id) \
         \);"
   let action conn = execute_ conn sql
   runDB action

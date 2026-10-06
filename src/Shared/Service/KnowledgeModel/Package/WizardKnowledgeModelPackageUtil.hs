@@ -13,10 +13,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 
-selectPackageByOrgIdAndKmId pkg =
-  L.find (\p -> p.organizationId == pkg.organizationId && p.kmId == pkg.kmId)
-
-selectOrganizationByOrgId pkg = L.find (\org -> org.organizationId == pkg.organizationId)
+selectPackageById pkg = L.find (\p -> p.id == pkg.id)
 
 checkViewPermissionToKnowledgeModelPackage :: WizardRequestContextC s m => Maybe U.UUID -> m ()
 checkViewPermissionToKnowledgeModelPackage Nothing = return ()

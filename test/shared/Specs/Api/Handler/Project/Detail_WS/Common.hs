@@ -51,7 +51,7 @@ reqUrlT projectUuid mUser =
         case mUser of
           Just user -> "?Authorization=Bearer%20" ++ user
           Nothing -> ""
-   in f' "/wizard-api/projects/%s/websocket%s" [U.toString projectUuid, suffix]
+   in f' "/api/projects/%s/websocket%s" [U.toString projectUuid, suffix]
 
 -- --------------------------------
 -- DATABASE

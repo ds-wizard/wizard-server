@@ -18,11 +18,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelEditor.Migration.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-editors/uuid/migrations/current/conflict/all
+-- POST /api/knowledge-model-editors/uuid/migrations/current/conflict/all
 -- ------------------------------------------------------------------------
 list_Current_Conflict_All_POST :: RequestContext -> SpecWith ((), Application)
 list_Current_Conflict_All_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-editors/uuid/migrations/current/conflict/all" $ do
+  describe "POST /api/knowledge-model-editors/uuid/migrations/current/conflict/all" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -33,7 +33,7 @@ list_Current_Conflict_All_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current/conflict/all"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current/conflict/all"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -68,7 +68,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

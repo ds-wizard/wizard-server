@@ -16,8 +16,7 @@ instance ToRow DocumentTemplate where
   toRow DocumentTemplate {..} =
     [ toField uuid
     , toField name
-    , toField organizationId
-    , toField templateId
+    , toField id
     , toField version
     , toField metamodelVersion
     , toField description
@@ -31,14 +30,14 @@ instance ToRow DocumentTemplate where
     , toField nonEditable
     , toField language
     , toField potFileReady
+    , toField workspaceUuid
     ]
 
 instance FromRow DocumentTemplate where
   fromRow = do
     uuid <- field
     name <- field
-    organizationId <- field
-    templateId <- field
+    id <- field
     version <- field
     metamodelVersion <- field
     description <- field
@@ -52,4 +51,5 @@ instance FromRow DocumentTemplate where
     nonEditable <- field
     language <- field
     potFileReady <- field
+    workspaceUuid <- field
     return $ DocumentTemplate {..}

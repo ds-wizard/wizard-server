@@ -8,8 +8,7 @@ import Shared.Util.Aeson
 
 data DocumentTemplateGeneratePotFileCommand = DocumentTemplateGeneratePotFileCommand
   { documentTemplateUuid :: U.UUID
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , language :: String
   }

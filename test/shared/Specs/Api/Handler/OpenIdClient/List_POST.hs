@@ -23,11 +23,11 @@ import Specs.Api.Handler.OpenIdClient.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/open-id-clients
+-- POST /api/open-id-clients
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/open-id-clients" $ do
+  describe "POST /api/open-id-clients" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -38,7 +38,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/open-id-clients"
+reqUrl = "/api/open-id-clients"
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 
@@ -81,4 +81,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "organizationSettings.manage"

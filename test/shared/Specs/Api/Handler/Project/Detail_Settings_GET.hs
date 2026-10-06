@@ -45,11 +45,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/{projectUuid}/settings
+-- GET /api/projects/{projectUuid}/settings
 -- ------------------------------------------------------------------------
 detail_settings_GET :: RequestContext -> SpecWith ((), Application)
 detail_settings_GET requestContext =
-  describe "GET /wizard-api/projects/{projectUuid}/settings" $ do
+  describe "GET /api/projects/{projectUuid}/settings" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -59,7 +59,7 @@ detail_settings_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/settings"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/settings"
 
 reqHeadersT authHeader = authHeader
 
@@ -156,7 +156,7 @@ create_test_200' title requestContext project authHeader permissions extraSetup 
               , permissions = permissions
               , projectTags = project.projectTags
               , knowledgeModelPackageUuid = project.knowledgeModelPackageUuid
-              , knowledgeModelPackage = PM.toSimpleDTO' [] [] germanyKmPackage
+              , knowledgeModelPackage = PM.toSimpleDTO' [] germanyKmPackage
               , knowledgeModelTags = M.elems km1WithQ4.entities.tags
               , knowledgeModelState = UpToDateKnowledgeModelProjectState
               , language = project.language
@@ -169,6 +169,7 @@ create_test_200' title requestContext project authHeader permissions extraSetup 
               , documentTemplateLanguage = project.documentTemplateLanguage
               , selectedQuestionTagUuids = project.selectedQuestionTagUuids
               , fileCount = 0
+              , workspaceUuid = project.workspaceUuid
               }
       let expBody = encode expDto
       -- WHEN: Call API
@@ -229,7 +230,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/settings"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/settings"
     [reqHeadersT reqAuthHeader]
     reqBody
     "project"

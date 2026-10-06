@@ -4,13 +4,10 @@ import Data.Maybe (fromJust)
 import Data.Time
 
 import RegistryPublic.Api.Resource.Package.KnowledgeModelPackageSimpleDTO
-import RegistryPublic.Database.Migration.Development.Organization.Data.Organizations
-import RegistryPublic.Model.Organization.OrganizationSimple
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDetailDTO
 import Shared.Constant.KnowledgeModel
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Event.KnowledgeModelEvents
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
-import Shared.Database.Migration.Development.Registry.Data.RegistryOrganizations
 import Shared.Database.Migration.Development.Registry.Data.RegistryPackages
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Model.Coordinate.Coordinate
@@ -27,16 +24,9 @@ globalRemotePackage =
   KnowledgeModelPackageSimpleDTO
     { uuid = globalKmPackage.uuid
     , name = globalKmPackage.name
-    , organizationId = globalKmPackage.organizationId
-    , kmId = globalKmPackage.kmId
+    , id = globalKmPackage.id
     , version = globalKmPackage.version
     , description = globalKmPackage.description
-    , organization =
-        OrganizationSimple
-          { organizationId = orgGlobalSimple.organizationId
-          , name = orgGlobalSimple.name
-          , logo = Just orgLogo
-          }
     , language = globalKmPackage.language
     , createdAt = globalKmPackage.createdAt
     }
@@ -47,7 +37,6 @@ globalKmPackageDetailDto =
     globalKmPackage
     True
     [globalRegistryPackage]
-    [globalRegistryOrganization, nlRegistryOrganization]
     [(globalKmPackageEmpty.uuid, globalKmPackageEmpty.version), (globalKmPackage.uuid, globalKmPackage.version)]
     (Just $ "https://registry-test.ds-wizard.org/knowledge-models/" ++ show (createCoordinate globalKmPackage))
     []
@@ -57,16 +46,9 @@ globalNetherlandsPackage =
   KnowledgeModelPackageSimpleDTO
     { uuid = netherlandsKmPackageV2.uuid
     , name = netherlandsKmPackageV2.name
-    , organizationId = netherlandsKmPackageV2.organizationId
-    , kmId = netherlandsKmPackageV2.kmId
+    , id = netherlandsKmPackageV2.id
     , version = netherlandsKmPackageV2.version
     , description = netherlandsKmPackageV2.description
-    , organization =
-        OrganizationSimple
-          { organizationId = orgNetherlandsSimple.organizationId
-          , name = orgNetherlandsSimple.name
-          , logo = Just orgLogo
-          }
     , language = netherlandsKmPackageV2.language
     , createdAt = globalKmPackage.createdAt
     }
@@ -77,7 +59,6 @@ globalNetherlandsPackageDetailDto =
     netherlandsKmPackageV2
     True
     [nlRegistryPackage]
-    [globalRegistryOrganization, nlRegistryOrganization]
     [(netherlandsKmPackage.uuid, netherlandsKmPackage.version), (netherlandsKmPackageV2.uuid, netherlandsKmPackageV2.version)]
     (Just $ "https://registry-test.ds-wizard.org/knowledge-models/" ++ show (createCoordinate netherlandsKmPackageV2))
     []
@@ -90,8 +71,7 @@ differentPackage =
   KnowledgeModelPackage
     { uuid = u' "5dc5209a-03ad-425d-9aa0-6ad2aef94563"
     , name = "Different Knowledge Model"
-    , organizationId = "global"
-    , kmId = "different"
+    , id = "global.different"
     , version = "1.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -105,6 +85,7 @@ differentPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = differentTenant.uuid
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 

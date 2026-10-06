@@ -7,8 +7,8 @@ import Prelude hiding (id)
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeDTO
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 
-fromCreateDTO :: KnowledgeModelSecretChangeDTO -> U.UUID -> U.UUID -> UTCTime -> KnowledgeModelSecret
-fromCreateDTO dto uuid tenantUuid now =
+fromCreateDTO :: KnowledgeModelSecretChangeDTO -> U.UUID -> U.UUID -> Maybe U.UUID -> UTCTime -> KnowledgeModelSecret
+fromCreateDTO dto uuid tenantUuid workspaceUuid now =
   KnowledgeModelSecret
     { uuid = uuid
     , name = dto.name
@@ -16,6 +16,7 @@ fromCreateDTO dto uuid tenantUuid now =
     , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = workspaceUuid
     }
 
 fromChangeDTO :: KnowledgeModelSecret -> KnowledgeModelSecretChangeDTO -> UTCTime -> KnowledgeModelSecret
@@ -27,4 +28,5 @@ fromChangeDTO kmSecret dto now =
     , tenantUuid = kmSecret.tenantUuid
     , createdAt = kmSecret.createdAt
     , updatedAt = now
+    , workspaceUuid = kmSecret.workspaceUuid
     }

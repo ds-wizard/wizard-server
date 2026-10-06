@@ -4,8 +4,7 @@ import Data.Time
 import GHC.Generics
 
 data RegistryTemplate = RegistryTemplate
-  { organizationId :: String
-  , templateId :: String
+  { id :: String
   , remoteVersion :: String
   , createdAt :: UTCTime
   }

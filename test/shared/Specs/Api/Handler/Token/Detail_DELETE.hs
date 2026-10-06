@@ -16,11 +16,11 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/tokens/{uuid}
+-- DELETE /api/tokens/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/tokens/{uuid}" $ do
+  describe "DELETE /api/tokens/{uuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_404 requestContext
@@ -30,7 +30,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/tokens/54ea072d-b5f9-4251-b3a4-ae177360509c"
+reqUrl = "/api/tokens/54ea072d-b5f9-4251-b3a4-ae177360509c"
 
 reqHeaders = [reqAuthHeader]
 
@@ -66,7 +66,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/tokens/1784f9c2-c5ad-4552-a8ce-560d55bc7482"
+    "/api/tokens/1784f9c2-c5ad-4552-a8ce-560d55bc7482"
     reqHeaders
     reqBody
     "user_token"

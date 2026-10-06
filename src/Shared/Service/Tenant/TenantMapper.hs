@@ -10,10 +10,10 @@ import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantDetailDTO
 import Shared.Api.Resource.Tenant.Usage.WizardUsageDTO
+import Shared.Constant.Api
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Tenant.Tenant
-import Shared.Model.Tenant.TenantSuggestion
 import Shared.Model.User.User
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
 import Shared.Util.String
@@ -26,9 +26,10 @@ toDTO tenant mLogoUrl mPrimaryColor =
     , name = tenant.name
     , serverDomain = tenant.serverDomain
     , serverUrl = tenantServerUrl tenant
-    , clientUrl = tenantClientUrl tenant
+    , clientUrl = tenant.clientUrl
     , state = tenant.state
     , enabled = tenant.enabled
+    , multiWorkspace = tenant.multiWorkspace
     , logoUrl = mLogoUrl
     , primaryColor = mPrimaryColor
     , createdAt = tenant.createdAt
@@ -43,9 +44,10 @@ toDetailDTO tenant mLogoUrl mPrimaryColor usage users =
     , name = tenant.name
     , serverDomain = tenant.serverDomain
     , serverUrl = tenantServerUrl tenant
-    , clientUrl = tenantClientUrl tenant
+    , clientUrl = tenant.clientUrl
     , state = tenant.state
     , enabled = tenant.enabled
+    , multiWorkspace = tenant.multiWorkspace
     , logoUrl = mLogoUrl
     , primaryColor = mPrimaryColor
     , usage = usage
@@ -71,6 +73,7 @@ fromRegisterCreateDTO reqDto aUuid serverConfig now =
         , state = ReadyForUseTenantState
         , createdAt = now
         , updatedAt = now
+        , multiWorkspace = False
         }
 
 fromAdminCreateDTO :: TenantCreateDTO -> U.UUID -> ServerConfig -> UTCTime -> Tenant
@@ -87,6 +90,7 @@ fromAdminCreateDTO reqDto aUuid serverConfig now =
         , state = ReadyForUseTenantState
         , createdAt = now
         , updatedAt = now
+        , multiWorkspace = False
         }
 
 fromChangeDTO :: Tenant -> TenantChangeDTO -> ServerConfig -> Tenant
@@ -106,19 +110,11 @@ fromChangeDTO tenant reqDto serverConfig =
         , state = tenant.state
         , createdAt = tenant.createdAt
         , updatedAt = tenant.updatedAt
+        , multiWorkspace = tenant.multiWorkspace
         }
 
-toSuggestionUrls :: TenantSuggestion -> TenantSuggestion
-toSuggestionUrls suggestion = suggestion {clientUrl = tenantClientUrl suggestion}
-
 tenantServerUrl :: HasField "serverUrl" entity String => entity -> String
-tenantServerUrl entity = f' "%s/wizard-api" [entity.serverUrl]
-
-tenantClientUrl :: HasField "clientUrl" entity String => entity -> String
-tenantClientUrl entity = f' "%s/wizard" [entity.clientUrl]
-
-toClientUrlBase :: String -> String
-toClientUrlBase = stripSuffixIfExists "/wizard"
+tenantServerUrl entity = f' "%s%s" [entity.serverUrl, apiPrefix]
 
 createServerDomain :: ServerConfig -> String -> String
 createServerDomain serverConfig tenantId = f' "%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]

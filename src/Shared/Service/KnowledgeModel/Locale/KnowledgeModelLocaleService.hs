@@ -15,16 +15,17 @@ import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectCacheDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.KnowledgeModel.Public
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Locale.KnowledgeModelLocale
 import Shared.Model.KnowledgeModel.Locale.KnowledgeModelLocaleList
 import Shared.S3.KnowledgeModel.KnowledgeModelLocaleS3
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleUtil
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleValidation
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
 import Shared.Util.Uuid
 
 getLocalesForPackage :: WizardRequestContextC s m => U.UUID -> m [KnowledgeModelLocaleList]
@@ -36,8 +37,7 @@ getLocalesForPackage pkgUuid = do
 createLocale :: WizardRequestContextC s m => U.UUID -> KnowledgeModelLocaleCreateDTO -> m KnowledgeModelLocaleList
 createLocale pkgUuid reqDto =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
-    _ <- findPackageByUuid pkgUuid
+    checkManagePermissionToPackage pkgUuid
     code <- extractLanguageCode reqDto.poContent
     validateJsonContent reqDto.jsonContent
     validateCodeUniqueness pkgUuid code
@@ -67,7 +67,7 @@ getLocaleContent pkgUuid localeUuid = do
 deleteLocale :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteLocale pkgUuid localeUuid =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToPackage pkgUuid
     locale <- findKnowledgeModelLocaleByPackageUuidAndUuid pkgUuid localeUuid
     void $ deleteProjectCachesByKnowledgeModelLocale pkgUuid locale.code
     void $ deleteKnowledgeModelLocaleByUuid locale.uuid
@@ -88,7 +88,7 @@ findLocaleJson pkgUuid (Just code) =
 
 getReusableLocalesForEditor :: WizardRequestContextC s m => U.UUID -> m [KnowledgeModelLocaleList]
 getReusableLocalesForEditor editorUuid = do
-  checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+  checkPermissionToEditor editorUuid
   editor <- findKnowledgeModelEditorByUuid editorUuid
   case editor.previousPackageUuid of
     Just previousPackageUuid -> do

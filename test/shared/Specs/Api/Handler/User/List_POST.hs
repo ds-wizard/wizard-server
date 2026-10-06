@@ -2,8 +2,10 @@ module Specs.Api.Handler.User.List_POST (
   list_POST,
 ) where
 
+import Control.Monad (when)
 import Data.Aeson (encode)
 import qualified Data.Map.Strict as M
+import Data.Maybe (isJust)
 import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
@@ -14,9 +16,11 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.User.UserCreateDTO
 import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserJM ()
+import Shared.Constant.Workspace
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.UserEmailLink.UserEmailLinkDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLinkMigration as ACK
 import Shared.Localization.Messages.WizardPublic
@@ -30,14 +34,15 @@ import WizardServer.Model.Context.RequestContext
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.User.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/users
+-- POST /api/users
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/users" $ do
+  describe "POST /api/users" $ do
     test_201 requestContext
     test_400 requestContext
 
@@ -46,7 +51,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/users"
+reqUrl = "/api/users"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 
@@ -58,10 +63,12 @@ reqBodyT dto = encode (reqDtoT dto)
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_201 requestContext = do
-  create_test_201 "HTTP 201 CREATED (anonymous)" requestContext userJohnCreate userJohnCreateDS [] 1 False
-  create_test_201 "HTTP 201 CREATED (admin)" requestContext userJohnCreate userJohnCreate [reqAuthHeader] 0 True
+  create_test_201 "HTTP 201 CREATED (anonymous)" requestContext userJohnCreate userJohnCreateDS [] 1 False False
+  create_test_201 "HTTP 201 CREATED (admin)" requestContext userJohnCreate userJohnCreate [reqAuthHeader] 0 True False
+  create_test_201 "HTTP 201 CREATED (anonymous, multi-workspace tenant)" requestContext userJohnCreate userJohnCreateDS [] 1 False True
+  create_test_201 "HTTP 201 CREATED (admin, multi-workspace tenant)" requestContext userJohnCreate userJohnCreate [reqAuthHeader] 0 True True
 
-create_test_201 title requestContext reqDto expDto authHeaders persistentCommandCount userActive =
+create_test_201 title requestContext reqDto expDto authHeaders persistentCommandCount userActive multiWorkspace =
   it title $
     -- GIVEN: Prepare request
     do
@@ -73,6 +80,7 @@ create_test_201 title requestContext reqDto expDto authHeaders persistentCommand
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO ACK.runMigration requestContext
+      when multiWorkspace (enableMultiWorkspace requestContext)
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -84,6 +92,8 @@ create_test_201 title requestContext reqDto expDto authHeaders persistentCommand
       assertCountInDB (findUserEmailLinks :: RequestContextM [UserEmailLink U.UUID UserEmailLinkType]) requestContext 1
       assertCountInDB findUsers requestContext 2
       assertCountInDB (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) requestContext persistentCommandCount
+      eMembership <- runInContextIO (findWorkspaceMembership' defaultWorkspaceUuid resDto.uuid) requestContext
+      liftIO $ fmap isJust eMembership `shouldBe` Right (not multiWorkspace)
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

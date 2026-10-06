@@ -25,7 +25,6 @@ import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Project.ProjectVersionDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Common.Lens
@@ -46,7 +45,6 @@ import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectContent
 import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersion
-import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.S3.Document.DocumentS3
 import Shared.Service.Document.Context.DocumentContextService
 import Shared.Service.Document.DocumentAcl
@@ -55,6 +53,7 @@ import Shared.Service.Document.DocumentUtil
 import Shared.Service.DocumentTemplate.DocumentTemplateService
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleValidation
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import qualified Shared.Service.KnowledgeModel.Editor.EditorMapper as EditorMapper
 import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.ProjectAcl
@@ -68,15 +67,15 @@ import Shared.Util.Uuid
 getDocumentsPageDto :: WizardRequestContextC s m => Maybe U.UUID -> Maybe U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page DocumentDTO)
 getDocumentsPageDto mProjectUuid mDocumentTemplateUuid mQuery pageable sort = do
   checkPermission _PROJECTS_EDIT_ROLE_PERMISSION
-  docPage <- findDocumentsPage mProjectUuid Nothing mDocumentTemplateUuid mQuery pageable sort
-  traverse enhanceDocument docPage
+  docPage <- findDocumentsPage True mProjectUuid Nothing mDocumentTemplateUuid mQuery pageable sort
+  enhanceDocuments docPage
 
 getDocumentsForProject :: WizardRequestContextC s m => U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page DocumentDTO)
 getDocumentsForProject projectUuid mQuery pageable sort = do
   project <- findProjectByUuid projectUuid
   checkViewPermissionToDoc' project
-  docPage <- findDocumentsPage (Just projectUuid) (Just project.name) Nothing mQuery pageable sort
-  traverse enhanceDocument docPage
+  docPage <- findDocumentsPage False (Just projectUuid) (Just project.name) Nothing mQuery pageable sort
+  enhanceDocuments docPage
 
 createDocument :: WizardRequestContextC s m => DocumentCreateDTO -> m DocumentDTO
 createDocument reqDto =
@@ -85,7 +84,7 @@ createDocument reqDto =
     checkDocumentLimit
     checkStorageSize 0
     project <- findProjectByUuid reqDto.projectUuid
-    tml <- getDocumentTemplateByUuidAndPackageId reqDto.documentTemplateUuid project.knowledgeModelPackageUuid
+    tml <- getDocumentTemplateByUuidAndPackageId reqDto.documentTemplateUuid project.knowledgeModelPackageUuid project.workspaceUuid
     format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid reqDto.documentTemplateUuid reqDto.formatUuid
     validateMetamodelVersion tml
     validateLanguageAvailability tml reqDto.language
@@ -98,10 +97,10 @@ createDocument reqDto =
             Just eventUuid -> takeWhileInclusive (\e -> getUuid e /= eventUuid) projectEvents
             Nothing -> projectEvents
     let projectContent = compileProjectEvents filteredProjectEvents
-    tcOrganization <- findTenantConfigOrganization
+    tcOrganization <- getDocumentContextOrganization
     projectVersions <- findProjectVersionsByProjectUuid project.uuid
     let docContextHash = computeHash [] project projectVersions projectContent.phaseUuid projectContent.replies tcOrganization mCurrentUser
-    let doc = fromCreateDTO reqDto uuid docContextHash filteredProjectEvents mCurrentUser project.tenantUuid now
+    let doc = fromCreateDTO reqDto uuid docContextHash filteredProjectEvents mCurrentUser project.tenantUuid project.workspaceUuid now
     insertDocument doc
     pkg <- findPackageByUuid project.knowledgeModelPackageUuid
     publishToPersistentCommandQueue doc pkg [] project Nothing
@@ -130,10 +129,10 @@ createDocumentPreviewForProject :: WizardRequestContextC s m => U.UUID -> m (Doc
 createDocumentPreviewForProject projectUuid =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkViewPermissionToProject project.visibility project.sharing project.permissions
+    checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     case (project.documentTemplateUuid, project.formatUuid) of
       (Just dtUuid, Just formatUuid) -> do
-        tml <- getDocumentTemplateByUuidAndPackageId dtUuid project.knowledgeModelPackageUuid
+        tml <- getDocumentTemplateByUuidAndPackageId dtUuid project.knowledgeModelPackageUuid project.workspaceUuid
         pkg <- findPackageByUuid project.knowledgeModelPackageUuid
         projectEvents <- findProjectEventListsByProjectUuid projectUuid
         let projectEventUuid = fmap getUuid (lastSafe projectEvents)
@@ -151,7 +150,7 @@ createDocumentPreviewForDocTmlDraft dtUuid =
         draft <- findDraftByUuid dtUuid
         project <- findProjectByUuid projectUuid
         pkg <- findPackageByUuid project.knowledgeModelPackageUuid
-        checkViewPermissionToProject project.visibility project.sharing project.permissions
+        checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
         projectEvents <- findProjectEventListsByProjectUuid project.uuid
         let projectEventUuid = fmap getUuid (lastSafe projectEvents)
         let projectContent = compileProjectEvents projectEvents
@@ -165,7 +164,7 @@ createDocumentPreviewForDocTmlDraft dtUuid =
         let kmEvents = fmap EditorMapper.toKnowledgeModelEvent kmEditorEvents
         kmEditorReplies <- findKnowledgeModelRepliesByEditorUuid kmEditorUuid
         let replies = EditorMapper.toReplies kmEditorReplies
-        checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+        checkPermissionToEditor kmEditorUuid
         mCurrentUser <- asks (.currentUser')
         let project = toTemporaryProject editor pkg mCurrentUser
         let projectEventUuid = Nothing
@@ -174,7 +173,7 @@ createDocumentPreviewForDocTmlDraft dtUuid =
 
 createDocumentPreview :: WizardRequestContextC s m => DocumentTemplate -> KnowledgeModelPackage -> [KnowledgeModelEvent] -> Project -> [ProjectVersion] -> Maybe U.UUID -> Maybe U.UUID -> M.Map String Reply -> U.UUID -> Maybe String -> Bool -> m (Document, TemporaryFileDTO)
 createDocumentPreview dt pkg kmEditorEvents project projectVersions projectEventUuid phaseUuid replies formatUuid mLanguage fromKnowledgeModelEditor = do
-  tcOrganization <- findTenantConfigOrganization
+  tcOrganization <- getDocumentContextOrganization
   mCurrentUser <- asks (.currentUser')
   let repliesHash = computeHash kmEditorEvents project projectVersions phaseUuid replies tcOrganization mCurrentUser
   logDebugI _CMP_SERVICE ("Replies hash: " ++ show repliesHash)
@@ -201,7 +200,7 @@ createDocumentPreview dt pkg kmEditorEvents project projectVersions projectEvent
           validateMetamodelVersion dt
           dUuid <- liftIO generateUuid
           now <- liftIO getCurrentTime
-          let doc = fromTemporallyCreateDTO dUuid project projectEventUuid dt.uuid formatUuid mLanguage repliesHash mCurrentUser tcOrganization.tenantUuid now fromKnowledgeModelEditor
+          let doc = fromTemporallyCreateDTO dUuid project projectEventUuid dt.uuid formatUuid mLanguage repliesHash mCurrentUser project.tenantUuid now fromKnowledgeModelEditor
           insertDocument doc
           let mReplies = if fromKnowledgeModelEditor then Just replies else Nothing
           publishToPersistentCommandQueue doc pkg kmEditorEvents project mReplies

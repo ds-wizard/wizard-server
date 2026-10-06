@@ -27,7 +27,7 @@ roleListFields :: RequestContextC s sc m => m String
 roleListFields = do
   return $
     f''
-      "uuid, name, permissions, (SELECT count(*) FROM ${user} WHERE role_uuid = ${role}.uuid AND tenant_uuid = ${role}.tenant_uuid) AS users_count, is_admin"
+      "uuid, name, permissions, CASE WHEN ${role}.workspace_uuid IS NULL THEN (SELECT count(*) FROM ${user} WHERE role_uuid = ${role}.uuid AND tenant_uuid = ${role}.tenant_uuid) ELSE (SELECT count(*) FROM workspace_membership wm JOIN ${user} u ON u.uuid = wm.user_uuid AND u.machine = false WHERE wm.role_uuid = ${role}.uuid) END AS users_count, is_admin, workspace_uuid"
       [("user", "user_entity"), ("role", entityName)]
 
 findRoles :: RequestContextC s sc m => m [Role]
@@ -35,17 +35,18 @@ findRoles = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid]
 
-findRolesPage :: RequestContextC s sc m => Maybe String -> Pageable -> [Sort] -> m (Page RoleList)
-findRolesPage mQuery pageable sort = do
+findRolesPage :: RequestContextC s sc m => Maybe U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page RoleList)
+findRolesPage mWorkspaceUuid mQuery pageable sort = do
   tenantUuid <- asks (.tenantUuid')
   fields <- roleListFields
+  let roleWorkspaceCondition = maybe "workspace_uuid IS NULL" (\workspaceUuid -> f' "workspace_uuid = '%s'" [U.toString workspaceUuid]) mWorkspaceUuid
   createFindEntitiesPageableQuerySortFn
     entityName
     pageLabel
     pageable
     sort
     fields
-    "WHERE name ~* ? AND tenant_uuid = ?"
+    (f' "WHERE name ~* ? AND tenant_uuid = ? AND %s" [roleWorkspaceCondition])
     [regexM mQuery, U.toString tenantUuid]
 
 findRoleListByUuid :: RequestContextC s sc m => U.UUID -> m RoleList
@@ -82,7 +83,7 @@ updateRoleByUuid role = do
   let sql =
         fromString $
           f'
-            "UPDATE %s SET uuid = ?, name = ?, permissions = ?, is_admin = ?, tenant_uuid = ?, created_at = ?, updated_at = ? WHERE tenant_uuid = ? AND uuid = ?"
+            "UPDATE %s SET uuid = ?, name = ?, permissions = ?, is_admin = ?, tenant_uuid = ?, created_at = ?, updated_at = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
             [entityName]
   let params = toRow role ++ [toField tenantUuid, toField role.uuid]
   logQuery sql params

@@ -32,8 +32,7 @@ createTables = do
         \    name                    varchar     NOT NULL,\
         \    description             varchar     NOT NULL,\
         \    code                    varchar     NOT NULL,\
-        \    organization_id         varchar     NOT NULL,\
-        \    locale_id               varchar     NOT NULL,\
+        \    id                      varchar     NOT NULL,\
         \    version                 varchar     NOT NULL,\
         \    default_locale          bool        NOT NULL,\
         \    license                 varchar     NOT NULL,\
@@ -44,8 +43,10 @@ createTables = do
         \    created_at              timestamptz NOT NULL,\
         \    updated_at              timestamptz NOT NULL,\
         \    CONSTRAINT locale_pk PRIMARY KEY (uuid),\
-        \    CONSTRAINT locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \    CONSTRAINT locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT locale_id_unique UNIQUE (id, version, tenant_uuid) \
+        \); \
+        \CREATE INDEX locale_id_index ON locale (id, tenant_uuid);"
   let action conn = execute_ conn sql
   runDB action
 

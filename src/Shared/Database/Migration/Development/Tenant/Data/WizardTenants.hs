@@ -16,7 +16,7 @@ import Shared.Model.User.RolePermission
 
 defaultTenantModules :: [TenantModule]
 defaultTenantModules =
-  [ defaultTenantModule {position = 0, moduleKey = "wizard", title = "Wizard", url = "http://localhost:8080/wizard"}
+  [ defaultTenantModule {position = 0, moduleKey = "wizard", title = "Wizard", url = "http://localhost:8080"}
   , defaultTenantModule {position = 1, moduleKey = "admin", title = "Administration", url = "http://localhost:8080/admin"}
   , defaultTenantModule
       { position = 2
@@ -30,7 +30,7 @@ defaultTenantModules =
       , moduleKey = "analytics"
       , title = "Analytics"
       , url = "http://localhost:8080/analytics"
-      , requiredPermission = Just _SETTINGS_MANAGE_ROLE_PERMISSION
+      , requiredPermission = Just _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
       }
   ]
 

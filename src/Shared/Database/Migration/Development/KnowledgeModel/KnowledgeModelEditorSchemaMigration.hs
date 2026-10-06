@@ -22,8 +22,8 @@ dropFunctions :: WizardRequestContextC s m => m Int64
 dropFunctions = do
   logInfo _CMP_MIGRATION "(Function/KnowledgeModelEditor) drop functions"
   let sql =
-        "DROP FUNCTION IF EXISTS get_knowledge_model_editor_fork_of_package_id; \
-        \DROP FUNCTION IF EXISTS get_knowledge_model_editor_state;"
+        "DROP FUNCTION IF EXISTS get_knowledge_model_editor_state; \
+        \DROP FUNCTION IF EXISTS get_knowledge_model_editor_fork_of_package_id;"
   let action conn = execute_ conn sql
   runDB action
 
@@ -41,7 +41,7 @@ createKnowledgeModelEditorTable = do
         \( \
         \    uuid                  uuid        NOT NULL, \
         \    name                  varchar     NOT NULL, \
-        \    km_id                 varchar     NOT NULL, \
+        \    id                    varchar     NOT NULL, \
         \    previous_package_uuid uuid, \
         \    created_by            uuid, \
         \    created_at            timestamptz NOT NULL, \
@@ -54,11 +54,15 @@ createKnowledgeModelEditorTable = do
         \    metamodel_version     integer     NOT NULL, \
         \    squashed              boolean     NOT NULL, \
         \    language              varchar     NOT NULL DEFAULT 'en', \
+        \    workspace_uuid        uuid        NOT NULL, \
         \    CONSTRAINT knowledge_model_editor_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT knowledge_model_editor_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT knowledge_model_editor_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE SET NULL, \
-        \    CONSTRAINT knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \    CONSTRAINT knowledge_model_editor_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT knowledge_model_editor_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+        \); \
+        \ \
+        \CREATE INDEX knowledge_model_editor_workspace_uuid_index ON knowledge_model_editor (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
@@ -116,33 +120,7 @@ createKnowledgeModelEditorReplyTable = do
 createFunctions :: WizardRequestContextC s m => m Int64
 createFunctions = do
   logInfo _CMP_MIGRATION "(Function/KnowledgeModelEditor) create functions"
-  createGetKnowledgeModelEditorForkOfPackageIdFn
   createGetKnowledgeModelEditorStateFn
-
-createGetKnowledgeModelEditorForkOfPackageIdFn :: WizardRequestContextC s m => m Int64
-createGetKnowledgeModelEditorForkOfPackageIdFn = do
-  let sql =
-        "CREATE or REPLACE FUNCTION get_knowledge_model_editor_fork_of_package_id(config_organization config_organization, \
-        \                                                                         previous_pkg knowledge_model_package, \
-        \                                                                         knowledge_model_editor knowledge_model_editor) \
-        \    RETURNS varchar \
-        \    LANGUAGE plpgsql \
-        \AS \
-        \$$ \
-        \DECLARE \
-        \    fork_of_package_id varchar; \
-        \BEGIN \
-        \    SELECT CASE \
-        \               WHEN knowledge_model_editor.previous_package_uuid IS NULL THEN NULL \
-        \               WHEN previous_pkg.organization_id = config_organization.organization_id AND \
-        \                    previous_pkg.km_id = knowledge_model_editor.km_id THEN previous_pkg.fork_of_package_id \
-        \               WHEN True THEN concat(previous_pkg.organization_id, ':', previous_pkg.km_id, ':', previous_pkg.version) END as fork_of_package_id \
-        \    INTO fork_of_package_id; \
-        \    RETURN fork_of_package_id; \
-        \END; \
-        \$$;"
-  let action conn = execute_ conn sql
-  runDB action
 
 createGetKnowledgeModelEditorStateFn :: WizardRequestContextC s m => m Int64
 createGetKnowledgeModelEditorStateFn = do
@@ -150,6 +128,7 @@ createGetKnowledgeModelEditorStateFn = do
         "CREATE or REPLACE FUNCTION get_knowledge_model_editor_state(editor knowledge_model_editor, \
         \                                                            knowledge_model_migration knowledge_model_migration, \
         \                                                            fork_of_package_id varchar, \
+        \                                                            fork_of_package_uuid uuid, \
         \                                                            editor_tenant_uuid uuid) \
         \    RETURNS varchar \
         \    LANGUAGE plpgsql \
@@ -164,7 +143,7 @@ createGetKnowledgeModelEditorStateFn = do
         \               WHEN knowledge_model_migration.state ->> 'type' IS NOT NULL AND \
         \                    knowledge_model_migration.state ->> 'type' = 'CompletedKnowledgeModelMigrationState' THEN 'MigratedKnowledgeModelEditorState' \
         \               WHEN (SELECT COUNT(*) FROM knowledge_model_editor_event editor_event WHERE editor_event.tenant_uuid = editor.tenant_uuid AND editor_event.editor_uuid = editor.uuid) > 0 THEN 'EditedKnowledgeModelEditorState' \
-        \               WHEN fork_of_package_id != get_newest_knowledge_model_package_coordinate(fork_of_package_id, editor.tenant_uuid, ARRAY['ReleasedKnowledgeModelPackagePhase', 'DeprecatedKnowledgeModelPackagePhase']) THEN 'OutdatedKnowledgeModelEditorState' \
+        \               WHEN fork_of_package_uuid != get_newest_knowledge_model_package(fork_of_package_id, editor.tenant_uuid, ARRAY['ReleasedKnowledgeModelPackagePhase', 'DeprecatedKnowledgeModelPackagePhase'], editor.workspace_uuid) THEN 'OutdatedKnowledgeModelEditorState' \
         \               WHEN True THEN 'DefaultKnowledgeModelEditorState' END \
         \    INTO state; \
         \    RETURN state; \

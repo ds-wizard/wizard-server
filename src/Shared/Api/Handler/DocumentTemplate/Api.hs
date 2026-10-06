@@ -3,6 +3,7 @@ module Shared.Api.Handler.DocumentTemplate.Api where
 import Servant
 import Servant.Swagger.Tags
 
+import Shared.Api.Handler.DocumentTemplate.Dependent.Api
 import Shared.Api.Handler.DocumentTemplate.Detail_Bundle_GET
 import Shared.Api.Handler.DocumentTemplate.Detail_DELETE
 import Shared.Api.Handler.DocumentTemplate.Detail_GET
@@ -15,7 +16,6 @@ import Shared.Api.Handler.DocumentTemplate.Detail_PUT
 import Shared.Api.Handler.DocumentTemplate.Detail_Pull_POST
 import Shared.Api.Handler.DocumentTemplate.List_All_GET
 import Shared.Api.Handler.DocumentTemplate.List_Bundle_POST
-import Shared.Api.Handler.DocumentTemplate.List_DELETE
 import Shared.Api.Handler.DocumentTemplate.List_GET
 import Shared.Api.Handler.DocumentTemplate.List_Suggestions_GET
 import Shared.Api.Handler.WizardCommon
@@ -25,7 +25,6 @@ type DocumentTemplateAPI =
     :> ( List_GET
            :<|> List_All_GET
            :<|> List_Suggestions_GET
-           :<|> List_DELETE
            :<|> Detail_GET
            :<|> Detail_PUT
            :<|> Detail_DELETE
@@ -37,6 +36,7 @@ type DocumentTemplateAPI =
            :<|> Detail_Locales_Template_GET
            :<|> Detail_Locales_Content_GET
            :<|> Detail_Locales_DELETE
+           :<|> DependentAPI
        )
 
 documentTemplateApi :: Proxy DocumentTemplateAPI
@@ -47,7 +47,6 @@ documentTemplateServer =
   list_GET
     :<|> list_all_GET
     :<|> list_suggestions_GET
-    :<|> list_DELETE
     :<|> detail_GET
     :<|> detail_PUT
     :<|> detail_DELETE
@@ -59,3 +58,4 @@ documentTemplateServer =
     :<|> detail_locales_template_GET
     :<|> detail_locales_content_GET
     :<|> detail_locales_DELETE
+    :<|> dependentServer

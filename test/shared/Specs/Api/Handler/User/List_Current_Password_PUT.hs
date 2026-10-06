@@ -21,11 +21,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.User.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/current/password
+-- PUT /api/users/current/password
 -- ------------------------------------------------------------------------
 list_current_password_PUT :: RequestContext -> SpecWith ((), Application)
 list_current_password_PUT requestContext =
-  describe "PUT /wizard-api/users/current/password" $ do
+  describe "PUT /api/users/current/password" $ do
     test_204 requestContext
     test_400_invalid_json requestContext
     test_401 requestContext
@@ -35,7 +35,7 @@ list_current_password_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/current/password"
+reqUrl = "/api/users/current/password"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

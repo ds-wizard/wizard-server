@@ -15,7 +15,7 @@ import Shared.Model.Project.ProjectReply
 data KnowledgeModelEditorDetailDTO = KnowledgeModelEditorDetailDTO
   { uuid :: U.UUID
   , name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
   , readme :: String
@@ -30,6 +30,7 @@ data KnowledgeModelEditorDetailDTO = KnowledgeModelEditorDetailDTO
   , knowledgeModel :: KnowledgeModel
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Generic)
 
@@ -37,7 +38,7 @@ instance Eq KnowledgeModelEditorDetailDTO where
   a == b =
     a.uuid == b.uuid
       && a.name == b.name
-      && a.kmId == b.kmId
+      && a.id == b.id
       && a.version == b.version
       && a.description == b.description
       && a.readme == b.readme
@@ -50,3 +51,4 @@ instance Eq KnowledgeModelEditorDetailDTO where
       && a.events == b.events
       && a.replies == b.replies
       && a.knowledgeModel == b.knowledgeModel
+      && a.workspaceUuid == b.workspaceUuid

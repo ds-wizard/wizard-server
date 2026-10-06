@@ -42,7 +42,7 @@ import Shared.Model.Project.ProjectState
 import Shared.Model.Project.ProjectSuggestion
 import Shared.Model.Project.Version.ProjectVersionList
 import Shared.Model.Report.Report
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.User
 import Shared.Model.User.UserGroup
 import Shared.Service.Acl.AclMapper
@@ -64,6 +64,7 @@ toDTO project kmPackage knowledgeModelState documentTemplateState permissions =
     , isTemplate = project.isTemplate
     , createdAt = project.createdAt
     , updatedAt = project.updatedAt
+    , workspaceUuid = project.workspaceUuid
     }
 
 toDTO' :: ProjectList -> ProjectDTO
@@ -81,6 +82,7 @@ toDTO' project =
     , isTemplate = project.isTemplate
     , createdAt = project.createdAt
     , updatedAt = project.updatedAt
+    , workspaceUuid = project.workspaceUuid
     }
 
 toSimpleDTO :: Project -> KnowledgeModelPackage -> KnowledgeModelProjectState -> Maybe DocumentTemplateProjectState -> [ProjectPermDTO] -> ProjectDTO
@@ -98,6 +100,7 @@ toSimpleDTO project kmPackage knowledgeModelState documentTemplateState permissi
     , isTemplate = project.isTemplate
     , createdAt = project.createdAt
     , updatedAt = project.updatedAt
+    , workspaceUuid = project.workspaceUuid
     }
 
 toDetailDTO :: ProjectDetail -> ProjectDetailDTO
@@ -244,6 +247,7 @@ fromShareChangeDTO project dto visibility sharing now =
     , tenantUuid = project.tenantUuid
     , createdAt = project.createdAt
     , updatedAt = now
+    , workspaceUuid = project.workspaceUuid
     }
 
 fromSettingsChangeDTO :: Project -> ProjectSettingsChangeDTO -> Bool -> UTCTime -> Project
@@ -271,6 +275,7 @@ fromSettingsChangeDTO project dto hasProjectTemplatesManageRolePermission now =
     , tenantUuid = project.tenantUuid
     , createdAt = project.createdAt
     , updatedAt = now
+    , workspaceUuid = project.workspaceUuid
     }
 
 fromProjectCreateDTO
@@ -283,9 +288,10 @@ fromProjectCreateDTO
   -> U.UUID
   -> Maybe U.UUID
   -> U.UUID
+  -> U.UUID
   -> UTCTime
   -> (Project, [ProjectEvent])
-fromProjectCreateDTO dto projectUuid visibility sharing mCurrentUserUuid pkgUuid phaseEventUuid mPhase tenantUuid now =
+fromProjectCreateDTO dto projectUuid visibility sharing mCurrentUserUuid pkgUuid phaseEventUuid mPhase tenantUuid workspaceUuid now =
   ( Project
       { uuid = projectUuid
       , name = dto.name
@@ -309,6 +315,7 @@ fromProjectCreateDTO dto projectUuid visibility sharing mCurrentUserUuid pkgUuid
       , tenantUuid = tenantUuid
       , createdAt = now
       , updatedAt = now
+      , workspaceUuid = workspaceUuid
       }
   , case mPhase of
       Just phase ->
@@ -341,8 +348,8 @@ fromProjectPermChangeDTO projectUuid tenantUuid dto =
     , tenantUuid = tenantUuid
     }
 
-fromCreateProjectCommand :: CreateProjectCommand -> U.UUID -> [ProjectPerm] -> TenantConfigProject -> U.UUID -> UTCTime -> Project
-fromCreateProjectCommand command uuid permissions tcProject createdBy now = do
+fromCreateProjectCommand :: CreateProjectCommand -> U.UUID -> [ProjectPerm] -> SettingsProjects -> U.UUID -> U.UUID -> U.UUID -> UTCTime -> Project
+fromCreateProjectCommand command uuid permissions tcProject tenantUuid createdBy workspaceUuid now = do
   Project
     { uuid = uuid
     , name = command.name
@@ -360,7 +367,8 @@ fromCreateProjectCommand command uuid permissions tcProject createdBy now = do
     , permissions = permissions
     , isTemplate = False
     , squashed = True
-    , tenantUuid = tcProject.tenantUuid
+    , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = workspaceUuid
     }

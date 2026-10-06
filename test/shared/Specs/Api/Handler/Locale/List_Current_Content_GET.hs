@@ -21,17 +21,17 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/locales/current/content
+-- GET /api/locales/current/content
 -- ------------------------------------------------------------------------
 list_current_content_GET :: RequestContext -> SpecWith ((), Application)
-list_current_content_GET requestContext = describe "GET /wizard-api/locales/current/content" $ test_200 requestContext
+list_current_content_GET requestContext = describe "GET /api/locales/current/content" $ test_200 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/locales/current/content"
+reqUrl = "/api/locales/current/content"
 
 reqHeadersT authHeaders = authHeaders
 

@@ -40,6 +40,7 @@ data Project = Project
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Generic, Show)
 
@@ -62,3 +63,4 @@ instance Eq Project where
       && a.isTemplate == b.isTemplate
       && a.squashed == b.squashed
       && a.tenantUuid == b.tenantUuid
+      && a.workspaceUuid == b.workspaceUuid

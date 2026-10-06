@@ -6,9 +6,6 @@ import Servant
 import Servant.Swagger
 import Servant.Swagger.UI
 
-import RegistryPublic.Api.Resource.Organization.OrganizationSM ()
-import RegistryPublic.Api.Resource.Organization.OrganizationSimpleSM ()
-import Shared.Api.Handler.Api
 import Shared.Api.Resource.Auth.AuthConsentSM ()
 import Shared.Api.Resource.Common.AesonSM ()
 import Shared.Api.Resource.Common.FileSM ()
@@ -57,7 +54,6 @@ import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationResol
 import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationSM ()
 import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationStateSM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageChangeSM ()
-import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDeletionImpactSM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDetailSM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePhaseSM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSuggestionSM ()
@@ -65,6 +61,7 @@ import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackageP
 import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishMigrationSM ()
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeSM ()
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretSM ()
+import Shared.Api.Resource.Library.LibraryDependentsSM ()
 import Shared.Api.Resource.Locale.LocaleSimpleSM ()
 import Shared.Api.Resource.Locale.LocaleSuggestionSM ()
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientChangeSM ()
@@ -76,6 +73,7 @@ import Shared.Api.Resource.PersistentCommand.PersistentCommandDetailSM ()
 import Shared.Api.Resource.PersistentCommand.PersistentCommandListSM ()
 import Shared.Api.Resource.PersistentCommand.PersistentCommandSM ()
 import Shared.Api.Resource.PersistentCommand.WizardPersistentCommandSM ()
+import Shared.Api.Resource.Plugin.PluginSettingsSM ()
 import Shared.Api.Resource.Prefab.PrefabSM ()
 import Shared.Api.Resource.Project.Comment.ProjectCommentThreadAssignedSM ()
 import Shared.Api.Resource.Project.Detail.ProjectDetailPreviewSM ()
@@ -98,10 +96,8 @@ import Shared.Api.Resource.Project.ProjectSimpleSM ()
 import Shared.Api.Resource.Project.ProjectSuggestionSM ()
 import Shared.Api.Resource.Project.Version.ProjectVersionChangeSM ()
 import Shared.Api.Resource.Project.Version.ProjectVersionRevertSM ()
-import Shared.Api.Resource.Registry.RegistryConfirmationSM ()
-import Shared.Api.Resource.Registry.RegistryCreateSM ()
-import Shared.Api.Resource.Registry.RegistryOrganizationSM ()
 import Shared.Api.Resource.Report.ReportSM ()
+import Shared.Api.Resource.Settings.SettingsSM ()
 import Shared.Api.Resource.Submission.SubmissionCreateSM ()
 import Shared.Api.Resource.Submission.SubmissionSM ()
 import Shared.Api.Resource.TemporaryFile.TemporaryFileSM ()
@@ -124,16 +120,19 @@ import Shared.Api.Resource.UserToken.UserTokenListSM ()
 import Shared.Api.Resource.UserToken.UserTokenSM ()
 import Shared.Api.Resource.Websocket.ProjectMessageSM ()
 import Shared.Api.Resource.Websocket.WebsocketSM ()
+import Shared.Api.Resource.Workspace.WorkspaceChangeSM ()
+import Shared.Api.Resource.Workspace.WorkspaceMemberChangeSM ()
+import Shared.Api.Resource.Workspace.WorkspaceMemberSM ()
+import Shared.Api.Resource.Workspace.WorkspaceSM ()
+import Shared.Constant.Api
+import Shared.Util.Swagger (normalizeSwagger)
 import WizardServer.Api.Handler.Api
+import WizardServer.Api.Resource.Bootstrap.BootstrapSM ()
 import WizardServer.Api.Resource.Common.PageSM ()
-import WizardServer.Api.Resource.Config.ClientConfigSM ()
 import WizardServer.Api.Resource.Locale.LocaleChangeSM ()
 import WizardServer.Api.Resource.Locale.LocaleCreateSM ()
 import WizardServer.Api.Resource.Locale.LocaleDetailSM ()
 import WizardServer.Api.Resource.Locale.LocaleSM ()
-import WizardServer.Api.Resource.Tenant.Config.TenantConfigChangeSM ()
-import WizardServer.Api.Resource.Tenant.Config.TenantConfigSM ()
-import WizardServer.Api.Resource.Tenant.Config.TenantConfigSubmissionServiceSimpleSM ()
 import WizardServer.Api.Resource.Tenant.TenantChangeSM ()
 import WizardServer.Api.Resource.Tenant.TenantCreateSM ()
 import WizardServer.Api.Resource.Tenant.TenantDetailSM ()
@@ -151,7 +150,7 @@ type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 swagger :: String -> Swagger
 swagger version =
-  let s = toSwagger (Proxy :: Proxy (ApplicationAPI :<|> ManagementAPI))
+  let s = normalizeSwagger (toSwagger applicationApi)
    in s
         { _swaggerInfo =
             s._swaggerInfo
@@ -165,7 +164,7 @@ swagger version =
                       , _licenseUrl = Just . URL $ "https://raw.githubusercontent.com/ds-wizard/engine-backend/main/LICENSE.md"
                       }
               }
-        , _swaggerBasePath = Just "/wizard-api"
+        , _swaggerBasePath = Just apiPrefix
         }
 
 swaggerServer :: String -> Server SwaggerAPI

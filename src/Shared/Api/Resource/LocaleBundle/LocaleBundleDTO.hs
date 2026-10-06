@@ -6,12 +6,10 @@ import GHC.Generics
 import Shared.Model.Coordinate.Coordinate
 
 data LocaleBundleDTO = LocaleBundleDTO
-  { lId :: String
+  { id :: String
   , name :: String
   , description :: String
   , code :: String
-  , organizationId :: String
-  , localeId :: String
   , version :: String
   , license :: String
   , readme :: String
@@ -23,7 +21,6 @@ data LocaleBundleDTO = LocaleBundleDTO
 instance CoordinateFactory LocaleBundleDTO where
   createCoordinate locale =
     Coordinate
-      { organizationId = locale.organizationId
-      , entityId = locale.localeId
+      { id = locale.id
       , version = locale.version
       }

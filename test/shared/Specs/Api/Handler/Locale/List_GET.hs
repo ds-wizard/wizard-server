@@ -22,11 +22,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/locales
+-- GET /api/locales
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/locales" $ do
+  describe "GET /api/locales" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -36,7 +36,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/locales?sort=code,asc"
+reqUrl = "/api/locales?sort=code,asc"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -73,4 +73,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "organizationSettings.manage"

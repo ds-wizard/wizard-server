@@ -91,7 +91,6 @@ library:
   - random # OK
   - raven-haskell
   - raw-strings-qq
-  - rdf4h
   - regex-compat
   - regex-tdfa
   - resource-pool
@@ -109,6 +108,7 @@ library:
   - servant-swagger-ui
   - servant-websockets
   - swagger2
+  - tagsoup
   - text
   - text-replace
   - time
@@ -163,10 +163,12 @@ _test-dependencies: &test-dependencies
     - pwstore-fast
     - random
     - regex-compat
+    - insert-ordered-containers
     - resource-pool
     - servant
     - servant-server
     - servant-errors
+    - swagger2
     - text
     - time
     - unordered-containers
@@ -178,6 +180,7 @@ _test-dependencies: &test-dependencies
     - websockets
     - wreq
     - yaml
+    - zip-archive
     - hspec
     - hspec-expectations-json
     - hspec-expectations-pretty-diff
@@ -205,6 +208,7 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - LambdaCase
   - MultiParamTypeClasses
+  - NoFieldSelectors
   - OverloadedStrings
   - OverloadedRecordDot
   - QuasiQuotes

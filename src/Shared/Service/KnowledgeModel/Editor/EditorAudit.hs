@@ -17,7 +17,7 @@ auditKnowledgeModelEditorPublish kmEditor kmEditorEvents mForkOfPkgId =
     "publish"
     (U.toString kmEditor.uuid)
     ( M.fromList
-        [ ("kmId", kmEditor.kmId)
+        [ ("id", kmEditor.id)
         , ("eventSize", show . length $ kmEditorEvents)
         , ("isFork", show . isJust $ mForkOfPkgId)
         ]

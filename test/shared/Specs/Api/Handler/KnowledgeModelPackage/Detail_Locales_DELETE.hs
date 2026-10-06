@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/knowledge-model-packages/{uuid}/locales/{localeUuid}
+-- DELETE /api/knowledge-model-packages/{uuid}/locales/{localeUuid}
 -- ------------------------------------------------------------------------
 detail_locales_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_locales_DELETE requestContext =
-  describe "DELETE /wizard-api/knowledge-model-packages/{uuid}/locales/{localeUuid}" $ do
+  describe "DELETE /api/knowledge-model-packages/{uuid}/locales/{localeUuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -39,7 +39,7 @@ detail_locales_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/" ++ show czechGlobalKmLocale.uuid
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/" ++ show czechGlobalKmLocale.uuid
 
 reqHeaders = [reqAuthHeader]
 
@@ -83,7 +83,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    (BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")
+    (BS.pack $ "/api/knowledge-model-packages/" ++ show globalKmPackage.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")
     reqHeaders
     reqBody
     "knowledge_model_locale"

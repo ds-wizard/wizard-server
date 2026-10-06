@@ -34,11 +34,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-template-drafts/{uuid}
+-- GET /api/document-template-drafts/{uuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/document-template-drafts/{uuid}" $ do
+  describe "GET /api/document-template-drafts/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -49,7 +49,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/document-template-drafts/" ++ U.toString wizardDocumentTemplateDraft.uuid
+reqUrl = BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplateDraft.uuid
 
 reqHeaders = [reqAuthHeader]
 
@@ -88,7 +88,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "DocumentTemplateEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "documentTemplates.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -96,8 +96,8 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd"
+    "/api/document-template-drafts/3db4265e-8ba2-433d-97fb-6cc504866bbd"
     reqHeaders
     reqBody
     "document_template"
-    [("uuid", "3db4265e-8ba2-433d-97fb-6cc504866bbd"), ("phase", "DraftDocumentTemplatePhase")]
+    [("uuid", "3db4265e-8ba2-433d-97fb-6cc504866bbd")]

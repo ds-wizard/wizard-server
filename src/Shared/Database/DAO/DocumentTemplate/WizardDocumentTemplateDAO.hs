@@ -27,8 +27,8 @@ entityName = "document_template"
 
 pageLabel = "documentTemplates"
 
-findDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Maybe Bool -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateList)
-findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEditable pageable sort =
+findDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe Bool -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateList)
+findDocumentTemplatesPage mId mQuery mOutdated mNonEditable pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
@@ -41,8 +41,9 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
           case mNonEditable of
             Just nonEditable -> f' "AND non_editable = '%s'" [show nonEditable]
             Nothing -> ""
+    workspaceCondition <- tenantOrWorkspaceCondition Nothing "document_template.workspace_uuid"
     -- 2. Get total count
-    count <- countDocumentTemplatesPage mQuery mOrganizationId mTemplateId mOutdated outdatedCondition nonEditableCondition
+    count <- countDocumentTemplatesPage mQuery mId mOutdated outdatedCondition nonEditableCondition workspaceCondition
     -- 3. Get entities
     let sql =
           fromString $
@@ -50,8 +51,7 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
               "SELECT \
               \   document_template.uuid, \
               \   document_template.name, \
-              \   document_template.organization_id, \
-              \   document_template.template_id, \
+              \   document_template.id, \
               \   document_template.version, \
               \   document_template.phase, \
               \   document_template.metamodel_version, \
@@ -61,26 +61,25 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
               \   document_template.language, \
               \   document_template.pot_file_ready, \
               \   registry_document_template.remote_version, \
-              \   registry_organization.name as org_name, \
-              \   registry_organization.logo as org_logo, \
-              \   document_template.created_at \
+              \   document_template.created_at, \
+              \   document_template.workspace_uuid \
               \FROM document_template \
-              \LEFT JOIN registry_document_template ON document_template.organization_id = registry_document_template.organization_id AND document_template.template_id = registry_document_template.template_id \
-              \LEFT JOIN registry_organization ON document_template.organization_id = registry_organization.organization_id \
-              \WHERE tenant_uuid = ? AND concat(document_template.organization_id, ':', document_template.template_id, ':', document_template.version) IN ( \
-              \    SELECT CONCAT(organization_id, ':', template_id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
+              \LEFT JOIN registry_document_template ON document_template.id = registry_document_template.id \
+              \WHERE tenant_uuid = ? AND concat(document_template.id, ':', document_template.version, ':', document_template.workspace_uuid) IN ( \
+              \    SELECT CONCAT(id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
               \                                                          (max(string_to_array(version, '.')::int[]))[2] || '.' || \
-              \                                                          (max(string_to_array(version, '.')::int[]))[3]) \
+              \                                                          (max(string_to_array(version, '.')::int[]))[3], ':', document_template.workspace_uuid) \
               \    FROM document_template \
-              \    WHERE (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') AND tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR template_id ~* ? OR version ~* ?) %s \
-              \    GROUP BY organization_id, template_id \
+              \    WHERE (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') AND tenant_uuid = ? AND (name ~* ? OR id ~* ? OR version ~* ?) %s %s \
+              \    GROUP BY id, document_template.workspace_uuid \
               \) \
               \%s \
               \%s \
               \%s \
               \OFFSET %s \
               \LIMIT %s"
-              [ mapToDBCoordinatesSql entityName "template_id" mOrganizationId mTemplateId
+              [ mapToDBIdSql entityName mId
+              , workspaceCondition
               , outdatedCondition
               , nonEditableCondition
               , mapSort sort
@@ -93,8 +92,7 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
             : toField (regexM mQuery)
             : toField (regexM mQuery)
             : toField (regexM mQuery)
-            : toField (regexM mQuery)
-            : fmap toField (mapToDBCoordinatesParams mOrganizationId mTemplateId)
+            : fmap toField (mapToDBIdParams mId)
             ++ (maybeToList . fmap toField $ mOutdated)
     logQuery sql params
     let action conn = query conn sql params
@@ -112,6 +110,7 @@ findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated mNonEdita
 findDocumentTemplatesSuggestions :: WizardRequestContextC s m => Maybe String -> Maybe Bool -> m [DocumentTemplateSuggestion]
 findDocumentTemplatesSuggestions mQuery mNonEditable = do
   tenantUuid <- asks (.tenantUuid')
+  workspaceCondition <- tenantOrWorkspaceCondition Nothing "document_template.workspace_uuid"
   let nonEditableCondition =
         case mNonEditable of
           Just nonEditable -> f' "AND non_editable = '%s'" [show nonEditable]
@@ -122,8 +121,7 @@ findDocumentTemplatesSuggestions mQuery mNonEditable = do
             "SELECT \
             \   document_template.uuid, \
             \   document_template.name, \
-            \   document_template.organization_id, \
-            \   document_template.template_id, \
+            \   document_template.id, \
             \   document_template.version, \
             \   document_template.phase, \
             \   document_template.metamodel_version, \
@@ -147,51 +145,51 @@ findDocumentTemplatesSuggestions mQuery mNonEditable = do
             \          ORDER BY dt_locale.name) nested \
             \   ) AS document_template_locales \
             \FROM document_template \
-            \WHERE tenant_uuid = ? AND concat(organization_id, ':', template_id, ':', version) IN ( \
-            \    SELECT CONCAT(organization_id, ':', template_id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
+            \WHERE tenant_uuid = ? AND concat(id, ':', version, ':', workspace_uuid) IN ( \
+            \    SELECT CONCAT(id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
             \                                                          (max(string_to_array(version, '.')::int[]))[2] || '.' || \
-            \                                                          (max(string_to_array(version, '.')::int[]))[3]) \
+            \                                                          (max(string_to_array(version, '.')::int[]))[3], ':', workspace_uuid) \
             \    FROM document_template \
-            \    WHERE (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') AND tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR template_id ~* ? OR version ~* ?) \
-            \    GROUP BY organization_id, template_id \
+            \    WHERE (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') AND tenant_uuid = ? AND (name ~* ? OR id ~* ? OR version ~* ?) %s \
+            \    GROUP BY id, workspace_uuid \
             \) \
             \%s"
-            [nonEditableCondition]
-  let params = [U.toString tenantUuid, U.toString tenantUuid, regexM mQuery, regexM mQuery, regexM mQuery, regexM mQuery]
+            [workspaceCondition, nonEditableCondition]
+  let params = [U.toString tenantUuid, U.toString tenantUuid, regexM mQuery, regexM mQuery, regexM mQuery]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
 
-countDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Maybe Bool -> String -> String -> m Int
-countDocumentTemplatesPage mQuery mOrganizationId mTemplateId mOutdated outdatedCondition nonEditableCondition = do
+countDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe Bool -> String -> String -> String -> m Int
+countDocumentTemplatesPage mQuery mId mOutdated outdatedCondition nonEditableCondition workspaceCondition = do
   tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString $
           f'
             "SELECT count(*) \
             \FROM document_template \
-            \LEFT JOIN registry_document_template ON document_template.organization_id = registry_document_template.organization_id AND document_template.template_id = registry_document_template.template_id \
-            \WHERE tenant_uuid = ? AND (name ~* ? OR document_template.organization_id ~* ? OR document_template.template_id ~* ? OR document_template.version ~* ?) %s %s %s \
-            \  AND CONCAT(document_template.organization_id, ':', document_template.template_id, ':', document_template.version) IN \
-            \          (SELECT CONCAT(organization_id, ':', template_id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
+            \LEFT JOIN registry_document_template ON document_template.id = registry_document_template.id \
+            \WHERE tenant_uuid = ? AND (name ~* ? OR document_template.id ~* ? OR document_template.version ~* ?) %s %s %s \
+            \  AND CONCAT(document_template.id, ':', document_template.version, ':', document_template.workspace_uuid) IN \
+            \          (SELECT CONCAT(id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
             \                                                                 (max(string_to_array(version, '.')::int[]))[2] || '.' || \
-            \                                                                 (max(string_to_array(version, '.')::int[]))[3]) \
+            \                                                                 (max(string_to_array(version, '.')::int[]))[3], ':', document_template.workspace_uuid) \
             \             FROM document_template \
-            \             WHERE (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') AND tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR template_id ~* ? OR version ~* ?) \
-            \             GROUP BY organization_id, template_id)"
-            [ mapToDBCoordinatesSql entityName "template_id" mOrganizationId mTemplateId
+            \             WHERE (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') AND tenant_uuid = ? AND (name ~* ? OR id ~* ? OR version ~* ?) %s \
+            \             GROUP BY id, document_template.workspace_uuid)"
+            [ mapToDBIdSql entityName mId
             , outdatedCondition
             , nonEditableCondition
+            , workspaceCondition
             ]
   let params =
         toField tenantUuid
           : toField (regexM mQuery)
           : toField (regexM mQuery)
           : toField (regexM mQuery)
-          : toField (regexM mQuery)
-          : fmap toField (mapToDBCoordinatesParams mOrganizationId mTemplateId)
+          : fmap toField (mapToDBIdParams mId)
           ++ (maybeToList . fmap toField $ mOutdated)
-          ++ [toField tenantUuid, toField $ regexM mQuery, toField $ regexM mQuery, toField $ regexM mQuery, toField $ regexM mQuery]
+          ++ [toField tenantUuid, toField $ regexM mQuery, toField $ regexM mQuery, toField $ regexM mQuery]
   logQuery sql params
   let action conn = query conn sql params
   result <- runDB action
@@ -202,6 +200,7 @@ countDocumentTemplatesPage mQuery mOrganizationId mTemplateId mOutdated outdated
 findDocumentTemplatesFiltered :: WizardRequestContextC s m => [(String, String)] -> m [DocumentTemplate]
 findDocumentTemplatesFiltered queryParams = do
   tenantUuid <- asks (.tenantUuid')
+  workspaceCondition <- tenantOrWorkspaceCondition Nothing "workspace_uuid"
   let queryCondition =
         case queryParams of
           [] -> ""
@@ -211,8 +210,8 @@ findDocumentTemplatesFiltered queryParams = do
           f'
             "SELECT * \
             \FROM document_template \
-            \WHERE tenant_uuid = ? AND (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') %s"
-            [queryCondition]
+            \WHERE tenant_uuid = ? AND (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') %s %s"
+            [workspaceCondition, queryCondition]
   let params = U.toString tenantUuid : fmap snd queryParams
   logQuery sql params
   let action conn = query conn sql params

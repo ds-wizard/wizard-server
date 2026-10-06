@@ -25,7 +25,6 @@ import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardServerContext
 import Shared.Util.Jinja (verifyJinja)
-import Shared.Worker.CronWorkers
 import WizardServer.Api.Sentry
 import WizardServer.Api.Web
 import WizardServer.Constant.ASCIIArt
@@ -33,6 +32,7 @@ import qualified WizardServer.Database.Migration.Production.Migration as ProdDB
 import WizardServer.Model.Context.ContextMappers
 import WizardServer.Model.Context.ServerContext
 import WizardServer.Service.Config.Server.ServerConfigValidation
+import WizardServer.Worker.CronWorkers
 import WizardServer.Worker.PermanentWorkers
 
 runApplication :: IO ()

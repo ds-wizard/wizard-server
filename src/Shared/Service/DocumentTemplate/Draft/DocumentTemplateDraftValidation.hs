@@ -10,14 +10,16 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
+import Shared.Service.Coordinate.CoordinateValidation
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation (validateDocumentTemplateIdUniqueness)
 
 validateChangeDto :: WizardRequestContextC s m => DocumentTemplateDraftChangeDTO -> DocumentTemplate -> m ()
 validateChangeDto reqDto dt = do
-  let newCoordinate = Coordinate dt.organizationId reqDto.templateId reqDto.version
+  validateIdentifierFormat "id" reqDto.id
+  let newCoordinate = Coordinate reqDto.id reqDto.version
   when
-    (reqDto.templateId /= dt.templateId || reqDto.version /= dt.version)
-    (validateDocumentTemplateIdUniqueness newCoordinate)
+    (reqDto.id /= dt.id || reqDto.version /= dt.version)
+    (validateDocumentTemplateIdUniqueness newCoordinate dt.workspaceUuid)
   validatePhase dt.uuid reqDto.phase
 
 validatePhase :: WizardRequestContextC s m => U.UUID -> DocumentTemplatePhase -> m ()

@@ -17,11 +17,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-secrets/{uuid}
+-- GET /api/knowledge-model-secrets/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/knowledge-model-secrets/{uuid}" $ do
+  describe "DELETE /api/knowledge-model-secrets/{uuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -32,7 +32,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/knowledge-model-secrets/171635b5-d5e7-4bba-8dd0-93765866aea1"
+reqUrl = "/api/knowledge-model-secrets/171635b5-d5e7-4bba-8dd0-93765866aea1"
 
 reqHeaders = [reqAuthHeader]
 
@@ -66,7 +66,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "KnowledgeModelsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -74,7 +74,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-secrets/345fbf3b-06d5-4660-a108-fd30deb1a44f"
+    "/api/knowledge-model-secrets/345fbf3b-06d5-4660-a108-fd30deb1a44f"
     reqHeaders
     reqBody
     "knowledge_model_secret"

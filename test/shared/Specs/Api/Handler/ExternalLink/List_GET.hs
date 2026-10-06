@@ -19,10 +19,10 @@ import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/external-link?url=https://docs.ds-wizard.org/my-link
+-- GET /api/external-link?url=https://docs.ds-wizard.org/my-link
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
-list_GET requestContext = describe "GET /wizard-api/external-link" $ do
+list_GET requestContext = describe "GET /api/external-link" $ do
   test_302 requestContext
   test_403 requestContext
 
@@ -47,7 +47,7 @@ test_302 requestContext =
       let expDto = FoundError "https://guide.ds-wizard.org/my-link"
       let expBody = encode expDto
       -- WHEN: Call API
-      response <- request reqMethod "/wizard-api/external-link?url=https://guide.ds-wizard.org/my-link" reqHeaders reqBody
+      response <- request reqMethod "/api/external-link?url=https://guide.ds-wizard.org/my-link" reqHeaders reqBody
       -- THEN: Compare response with expectation
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
@@ -64,7 +64,7 @@ test_403 requestContext =
       let expDto = ForbiddenError _ERROR_SERVICE_EXTERNAL_LINK__URL_NOT_ALLOWED
       let expBody = encode expDto
       -- WHEN: Call API
-      response <- request reqMethod "/wizard-api/external-link?url=https://evil.com" reqHeaders reqBody
+      response <- request reqMethod "/api/external-link?url=https://evil.com" reqHeaders reqBody
       -- THEN: Compare response with expectation
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}

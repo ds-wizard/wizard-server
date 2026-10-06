@@ -12,13 +12,13 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.DocumentTemplate.Public
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
 import Shared.Model.PersistentCommand.DocumentTemplate.DocumentTemplateGeneratePotFileCommand
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.PersistentCommand.PersistentCommandMapper
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
@@ -32,12 +32,12 @@ cGeneratePotFileName = "generatePotFile"
 getTemporaryFileWithPotFile :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getTemporaryFileWithPotFile dtUuid =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToDocumentTemplate dtUuid
     dt <- findDocumentTemplateByUuid dtUuid
     if not dt.potFileReady
       then throwError . UserError $ _ERROR_SERVICE_DOC_TML__POT_FILE_NOT_READY
       else do
-        let fileName = potFileName dt.organizationId dt.templateId dt.version
+        let fileName = potFileName dt.id dt.version
         content <- retrievePotFile dt.uuid fileName
         mCurrentUserUuid <- getCurrentUserUuid
         url <- createTemporaryFile fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict content)
@@ -50,8 +50,7 @@ publishGeneratePotFileCommand dt = do
   let body =
         DocumentTemplateGeneratePotFileCommand
           { documentTemplateUuid = dt.uuid
-          , organizationId = dt.organizationId
-          , templateId = dt.templateId
+          , id = dt.id
           , version = dt.version
           , language = dt.language
           }

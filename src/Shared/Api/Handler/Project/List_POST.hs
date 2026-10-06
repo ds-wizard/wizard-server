@@ -1,5 +1,6 @@
 module Shared.Api.Handler.Project.List_POST where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -16,6 +17,8 @@ type List_POST =
     :> Header "Host" String
     :> ReqBody '[SafeJSON] ProjectCreateDTO
     :> "projects"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> Verb 'POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] ProjectDTO)
 
 list_POST
@@ -23,7 +26,9 @@ list_POST
   => Maybe String
   -> Maybe String
   -> ProjectCreateDTO
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> sm (Headers '[Header "x-trace-uuid" String] ProjectDTO)
-list_POST mTokenHeader mServerUrl reqDto =
-  getMaybeAuthServiceExecutor mTokenHeader mServerUrl $ \runInMaybeAuthService ->
+list_POST mTokenHeader mServerUrl reqDto mW mTenant =
+  getScopedMaybeAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInMaybeAuthService ->
     runInMaybeAuthService Transactional $ addTraceUuidHeader =<< createProject reqDto

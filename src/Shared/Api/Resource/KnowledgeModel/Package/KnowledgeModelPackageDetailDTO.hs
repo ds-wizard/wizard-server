@@ -5,16 +5,13 @@ import qualified Data.UUID as U
 import GHC.Generics
 
 import Shared.Api.Resource.Version.VersionDTO
-import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Locale.KnowledgeModelLocaleList
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.Registry.RegistryOrganization
 
 data KnowledgeModelPackageDetailDTO = KnowledgeModelPackageDetailDTO
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , phase :: KnowledgeModelPackagePhase
   , description :: String
@@ -23,15 +20,17 @@ data KnowledgeModelPackageDetailDTO = KnowledgeModelPackageDetailDTO
   , language :: String
   , metamodelVersion :: Int
   , previousPackageUuid :: Maybe U.UUID
-  , forkOfPackageId :: Maybe Coordinate
-  , mergeCheckpointPackageId :: Maybe Coordinate
+  , forkOfPackageId :: Maybe String
+  , forkOfPackageVersion :: Maybe String
+  , mergeCheckpointPackageId :: Maybe String
+  , mergeCheckpointPackageVersion :: Maybe String
   , nonEditable :: Bool
   , public :: Bool
   , versions :: [VersionDTO]
   , locales :: [KnowledgeModelLocaleList]
   , remoteLatestVersion :: Maybe String
-  , organization :: Maybe RegistryOrganization
   , registryLink :: Maybe String
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

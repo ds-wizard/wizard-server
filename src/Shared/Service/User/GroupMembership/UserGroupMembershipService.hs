@@ -12,4 +12,4 @@ removeUserGroupMembersFromOnlineUsers :: WizardRequestContextC s m => U.UUID -> 
 removeUserGroupMembersFromOnlineUsers userGroupUuid userUuids = do
   removeUserGroupFromUsers userGroupUuid userUuids
   projects <- findProjectsSimpleWithPermByUserGroupUuid userGroupUuid
-  traverse_ (\project -> updatePermsForOnlineUsers project.uuid project.visibility project.sharing project.permissions) projects
+  traverse_ (\project -> updatePermsForOnlineUsers project.uuid project.workspaceUuid project.visibility project.sharing project.permissions) projects

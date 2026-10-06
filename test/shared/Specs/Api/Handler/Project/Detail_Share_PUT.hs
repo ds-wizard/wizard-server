@@ -13,29 +13,40 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Project.ProjectShareChangeDTO
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
+import Shared.Database.DAO.User.UserGroupDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
+import Shared.Database.Migration.Development.User.Data.UserGroups
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Error.Error
+import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
+import Shared.Model.User.User
+import Shared.Model.User.UserGroup
 import Shared.Service.Project.ProjectMapper
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Project.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/projects/{projectUuid}/share
+-- PUT /api/projects/{projectUuid}/share
 -- ------------------------------------------------------------------------
 detail_share_PUT :: RequestContext -> SpecWith ((), Application)
 detail_share_PUT requestContext =
-  describe "PUT /wizard-api/projects/{projectUuid}/share" $ do
+  describe "PUT /api/projects/{projectUuid}/share" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -47,7 +58,7 @@ detail_share_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/share"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/share"
 
 reqHeadersT authHeader = authHeader ++ [reqCtHeader]
 
@@ -130,7 +141,72 @@ create_test_200 title requestContext project projectEdited projectEvents project
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400 requestContext = createInvalidJsonTest reqMethod (reqUrlT project3.uuid) "visibility"
+test_400 requestContext = do
+  createInvalidJsonTest reqMethod (reqUrlT project3.uuid) "visibility"
+  it "HTTP 400 BAD REQUEST (user is not a member of the workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project1.uuid
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqBody = reqBodyT (project1 {permissions = [project1AlbertEditProjectPerm, project1NikolaProjectPerm]} :: Project)
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__NOT_MEMBER)
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      runInContextIO (deleteWorkspaceMembership defaultWorkspaceUuid userNikola.uuid) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find a result in DB
+      assertExistenceOfProjectInDB requestContext project1 project1Events
+  it "HTTP 400 BAD REQUEST (user group of another workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project1.uuid
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqBody = reqBodyT (project1 {permissions = [project1AlbertEditProjectPerm, project1SecondWorkspaceGroupProjectPerm]} :: Project)
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__NOT_MEMBER)
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertUserGroup secondWorkspaceGroup) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find a result in DB
+      assertExistenceOfProjectInDB requestContext project1 project1Events
+
+project1NikolaProjectPerm :: ProjectPerm
+project1NikolaProjectPerm = project1AlbertEditProjectPerm {memberUuid = userNikola.uuid} :: ProjectPerm
+
+secondWorkspaceGroup :: UserGroup
+secondWorkspaceGroup =
+  bioGroup
+    { uuid = u' "8d7c6b5a-4f3e-4d2c-9b1a-0f9e8d7c6b5a"
+    , workspaceUuid = secondWorkspaceUuid
+    }
+
+project1SecondWorkspaceGroupProjectPerm :: ProjectPerm
+project1SecondWorkspaceGroupProjectPerm =
+  project1AlbertEditProjectPerm
+    { memberType = UserGroupProjectPermType
+    , memberUuid = secondWorkspaceGroup.uuid
+    }
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -191,7 +267,7 @@ create_test_403 title requestContext project projectEdited reason =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/share"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/share"
     (reqHeadersT [reqAuthHeader])
     (reqBodyT project1)
     "project"

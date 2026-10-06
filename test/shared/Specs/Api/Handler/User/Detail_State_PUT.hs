@@ -26,11 +26,11 @@ import Specs.Api.Handler.User.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/{uuid}/state?hash={hash}
+-- PUT /api/users/{uuid}/state?hash={hash}
 -- ------------------------------------------------------------------------
 detail_state_PUT :: RequestContext -> SpecWith ((), Application)
 detail_state_PUT requestContext =
-  describe "PUT /wizard-api/users/{uuid}/state?hash={hash}" $ do
+  describe "PUT /api/users/{uuid}/state?hash={hash}" $ do
     test_200 requestContext
     test_400 requestContext
     test_404 requestContext
@@ -40,7 +40,7 @@ detail_state_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66/state?hash=1ba90a0f-845e-41c7-9f1c-a55fc5a0554a"
+reqUrl = "/api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66/state?hash=1ba90a0f-845e-41c7-9f1c-a55fc5a0554a"
 
 reqHeaders = [reqCtHeader]
 
@@ -84,7 +84,7 @@ test_400 requestContext = createInvalidJsonTest reqMethod reqUrl "active"
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66/state?hash=c996414a-b51d-4c8c-bc10-5ee3dab85fa8"
+    "/api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66/state?hash=c996414a-b51d-4c8c-bc10-5ee3dab85fa8"
     reqHeaders
     reqBody
     "user_email_link"

@@ -115,3 +115,9 @@ instance FromJSON ServerConfigCronWorker where
     cron <- o .: "cron"
     return ServerConfigCronWorker {..}
   parseJSON _ = mzero
+
+instance FromJSON ServerConfigUserEmailLink where
+  parseJSON (Object o) = do
+    clean <- o .:? "clean" .!= defaultUserEmailLink.clean
+    return ServerConfigUserEmailLink {..}
+  parseJSON _ = mzero

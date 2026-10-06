@@ -20,6 +20,7 @@ import Shared.Model.Error.Error
 import Shared.Model.Locale.Locale
 import Shared.Model.Locale.LocaleSimple
 import Shared.S3.Locale.LocaleS3
+import Shared.Service.Coordinate.CoordinateValidation
 import Shared.Service.Locale.Bundle.LocaleBundleAudit
 import Shared.Service.Locale.Bundle.LocaleBundleMapper
 import Shared.Service.Locale.LocaleMapper
@@ -41,7 +42,7 @@ getTemporaryFileWithBundle uuid =
 exportBundle :: WizardRequestContextC s m => U.UUID -> m (Coordinate, BSL.ByteString)
 exportBundle uuid =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findLocaleByUuid uuid
     wizardTranslation <- retrieveLocale locale.uuid "wizard.json"
     mailTranslation <- retrieveLocale locale.uuid "mail.po"
@@ -50,7 +51,7 @@ exportBundle uuid =
 pullBundleFromRegistry :: WizardRequestContextC s m => Coordinate -> m LocaleSimple
 pullBundleFromRegistry coordinate =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     lb <- catchError (retrieveLocaleBundleByCoordinate coordinate) handleError
     importBundle lb True
   where
@@ -63,7 +64,8 @@ importBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool -> m LocaleS
 importBundle contentS fromRegistry =
   case fromLocaleArchive contentS of
     Right (bundle, wizardTranslation, mailTranslation) -> do
-      checkLocaleLimit bundle.organizationId bundle.localeId
+      validateIdentifierFormat "id" bundle.id
+      checkLocaleLimit bundle.id
       validateLocaleIdUniqueness (createCoordinate bundle)
       uuid <- liftIO generateUuid
       tenantUuid <- asks (.tenantUuid')

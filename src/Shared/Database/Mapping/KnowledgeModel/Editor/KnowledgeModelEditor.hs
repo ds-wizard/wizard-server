@@ -11,7 +11,7 @@ instance FromRow KnowledgeModelEditor where
   fromRow = do
     uuid <- field
     name <- field
-    kmId <- field
+    id <- field
     previousPackageUuid <- field
     createdBy <- field
     createdAt <- field
@@ -24,13 +24,14 @@ instance FromRow KnowledgeModelEditor where
     metamodelVersion <- field
     squashed <- field
     language <- field
+    workspaceUuid <- field
     return $ KnowledgeModelEditor {..}
 
 instance ToRow KnowledgeModelEditor where
   toRow KnowledgeModelEditor {..} =
     [ toField uuid
     , toField name
-    , toField kmId
+    , toField id
     , toField previousPackageUuid
     , toField createdBy
     , toField createdAt
@@ -43,4 +44,5 @@ instance ToRow KnowledgeModelEditor where
     , toField metamodelVersion
     , toField squashed
     , toField language
+    , toField workspaceUuid
     ]

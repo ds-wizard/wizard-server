@@ -5,7 +5,7 @@ import GHC.Generics
 
 data DocumentTemplateDraftCreateDTO = DocumentTemplateDraftCreateDTO
   { name :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , basedOn :: Maybe U.UUID
   }

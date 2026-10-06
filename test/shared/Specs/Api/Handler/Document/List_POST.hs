@@ -15,6 +15,7 @@ import Shared.Api.Resource.Document.DocumentDTO
 import Shared.Api.Resource.Document.DocumentJM ()
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.DocumentTemplate
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.Migration.Development.Document.Data.Documents
@@ -25,6 +26,7 @@ import Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Mig
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.DocumentTemplate.Public
 import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Common.Lens
 import Shared.Model.Common.SemVer2Tuple
 import Shared.Model.Coordinate.Coordinate
@@ -35,30 +37,33 @@ import Shared.Model.Error.Error
 import Shared.Model.Project.Event.ProjectEventLenses ()
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectSimple
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Document.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/documents
+-- POST /api/documents
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/documents" $ do
+  describe "POST /api/documents" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
     test_403 requestContext
+    test_404 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/documents"
+reqUrl = "/api/documents"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 
@@ -211,3 +216,41 @@ create_test_403 title requestContext project projectEvents authHeader errorMessa
       response `shouldRespondWith` responseMatcher
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findDocuments requestContext 0
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_404 requestContext =
+  it "HTTP 404 NOT FOUND (document template of another workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqDto = (reqDtoT project1 project1Events) {documentTemplateUuid = secondWorkspaceDocumentTemplate.uuid} :: DocumentCreateDTO
+      let reqBody = encode reqDto
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError _ERROR_VALIDATION__TEMPLATE_ABSENCE
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO deleteDocuments requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertDocumentTemplate secondWorkspaceDocumentTemplate) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findDocuments requestContext 0
+
+secondWorkspaceDocumentTemplate :: DocumentTemplate
+secondWorkspaceDocumentTemplate =
+  wizardDocumentTemplate
+    { uuid = u' "6b5a4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d"
+    , workspaceUuid = Just secondWorkspaceUuid
+    }

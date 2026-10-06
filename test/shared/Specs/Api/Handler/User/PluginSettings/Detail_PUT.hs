@@ -19,16 +19,16 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
-import Specs.Api.Handler.Config.Common
+import Specs.Api.Handler.Settings.Common (compareDtos)
 import Specs.Api.Handler.User.PluginSettings.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/current/plugin-settings/{uuid}
+-- PUT /api/users/current/plugin-settings/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/users/current/plugin-settings/{uuid}" $ do
+  describe "PUT /api/users/current/plugin-settings/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -37,7 +37,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = BS.pack $ "/wizard-api/users/current/plugin-settings/" ++ U.toString plugin1.uuid
+reqUrl = BS.pack $ "/api/users/current/plugin-settings/" ++ U.toString plugin1.uuid
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

@@ -5,7 +5,7 @@ import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Service.KnowledgeModel.Squash.Event.Common
 
 instance SimpleEventSquash EditChapterEvent where
-  isSimpleEventSquashApplicable = not . isChanged questionUuids
+  isSimpleEventSquashApplicable = not . isChanged (.questionUuids)
   isReorderEventSquashApplicable (previousEvent, _) (newEvent, _) = previousEvent.entityUuid == newEvent.entityUuid
   isTypeChanged _ _ = False
   simpleSquashEvent mPreviousEvent (oldEvent, oldContent) (newEvent, newContent) =

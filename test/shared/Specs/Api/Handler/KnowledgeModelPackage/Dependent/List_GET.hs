@@ -13,6 +13,7 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Api.Resource.Library.LibraryDependentsJM ()
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
@@ -20,7 +21,9 @@ import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.Knowled
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelPackageMigration as KnowledgeModelPackage
 import Shared.Database.Migration.Development.Project.Data.Projects
+import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Model.Library.LibraryDependents
 import WizardServer.Model.Context.RequestContext
 
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
@@ -32,20 +35,22 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages/{uuid}/dependents
+-- GET /api/knowledge-model-packages/{uuid}/dependents
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-packages/{uuid}/dependents" $ do
+  describe "GET /api/knowledge-model-packages/{uuid}/dependents" $ do
     test_200 requestContext
+    test_200_hidden requestContext
     test_401 requestContext
+    test_403 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ U.toString netherlandsKmPackage.uuid ++ "/dependents"
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ U.toString netherlandsKmPackage.uuid ++ "/dependents"
 
 reqHeaders = [reqAuthHeader]
 
@@ -60,14 +65,10 @@ test_200 requestContext = do
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = [netherlandsKmPackageDeletionImpact, netherlandsKmPackageV2DeletionImpact]
+      let expDto = netherlandsKmPackageDependents
       let expBody = encode expDto
       -- AND: Run migrations
-      runInContextIO KnowledgeModelPackage.runMigration requestContext
-      runInContextIO (insertDocumentTemplate wizardDocumentTemplate) requestContext
-      runInContextIO (traverse_ insertDocumentTemplateFormat wizardDocumentTemplateFormats) requestContext
-      runInContextIO (insertProject project4) requestContext
-      runInContextIO (insertKnowledgeModelEditor amsterdamKnowledgeModelEditor) requestContext
+      runMigrations requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -75,7 +76,37 @@ test_200 requestContext = do
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
 
+test_200_hidden requestContext = do
+  it "HTTP 200 OK (private project of someone else is only counted)" $
+    -- GIVEN: Prepare request
+    do
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = netherlandsKmPackageDependents {projects = [], hidden = netherlandsKmPackageHiddenDependents, deleteAllowed = False}
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runMigrations requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl [reqNonAdminAuthHeader] reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+runMigrations requestContext = do
+  runInContextIO U.runMigration requestContext
+  runInContextIO KnowledgeModelPackage.runMigration requestContext
+  runInContextIO (insertDocumentTemplate wizardDocumentTemplate) requestContext
+  runInContextIO (traverse_ insertDocumentTemplateFormat wizardDocumentTemplateFormats) requestContext
+  runInContextIO (insertProject project4) requestContext
+  runInContextIO (insertKnowledgeModelEditor amsterdamKnowledgeModelEditor) requestContext
+
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "knowledgeModels.manage"

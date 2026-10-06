@@ -10,12 +10,14 @@ import Specs.Api.Handler.KnowledgeModelEditor.Detail_Locales_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_PUT
 import Specs.Api.Handler.KnowledgeModelEditor.List_GET
 import Specs.Api.Handler.KnowledgeModelEditor.List_POST
+import Specs.Api.Handler.KnowledgeModelEditor.List_Suggestions_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Migration.ApiSpec
 
 knowledgeModelEditorAPI serverContext requestContext =
   with (startWebApp serverContext requestContext) $
     describe "KNOWLEDGE MODEL EDITOR API Spec" $ do
       list_GET requestContext
+      list_suggestions_GET requestContext
       list_POST requestContext
       detail_GET requestContext
       detail_PUT requestContext

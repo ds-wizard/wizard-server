@@ -42,6 +42,7 @@ instance ToRow Document where
     , toField tenantUuid
     , toField fileSize
     , toField language
+    , toField workspaceUuid
     ]
 
 instance FromRow Document where
@@ -65,4 +66,5 @@ instance FromRow Document where
     tenantUuid <- field
     fileSize <- field
     language <- field
+    workspaceUuid <- field
     return $ Document {..}

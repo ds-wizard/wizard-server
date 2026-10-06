@@ -1,5 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelPackage.List_Suggestions_GET where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -19,6 +20,8 @@ type List_Suggestions_GET =
     :> Header "Host" String
     :> "knowledge-model-packages"
     :> "suggestions"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> QueryParam "q" String
     :> QueryParam "select" [Coordinate]
     :> QueryParam "exclude" [Coordinate]
@@ -33,6 +36,8 @@ list_suggestions_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> Maybe [Coordinate]
   -> Maybe [Coordinate]
@@ -42,8 +47,8 @@ list_suggestions_GET
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page KnowledgeModelPackageSuggestion))
-list_suggestions_GET mTokenHeader mServerUrl mQuery mSelectCoordinates mExcludeCoordinates mPhase mNonEditable mPage mSize mSort =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_suggestions_GET mTokenHeader mServerUrl mW mTenant mQuery mSelectCoordinates mExcludeCoordinates mPhase mNonEditable mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< do
         getPackageSuggestions mQuery mSelectCoordinates mExcludeCoordinates mPhase mNonEditable (Pageable mPage mSize) (parseSortQuery mSort)

@@ -13,10 +13,12 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.User.UserChangeDTO
 import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserJM ()
+import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Error.Error
+import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Service.User.WizardUserMapper
 import WizardServer.Model.Context.RequestContext
@@ -27,11 +29,11 @@ import Specs.Api.Handler.User.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/{uuid}
+-- PUT /api/users/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/users/{uuid}" $ do
+  describe "PUT /api/users/{uuid}" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -43,7 +45,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66"
+reqUrl = "/api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -77,6 +79,23 @@ test_200 requestContext =
 -- ----------------------------------------------------
 test_400 requestContext = do
   createInvalidJsonTest reqMethod reqUrl "password"
+  it "HTTP 400 BAD REQUEST if the role is a workspace role" $
+    -- GIVEN: Prepare request
+    do
+      let reqDto = userIsaacEditedChange {roleUuid = defaultWorkspaceAdminRole.uuid} :: UserChangeDTO
+      let reqBody = encode reqDto
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_VALIDATION__USER_ROLE_NOT_ORGANIZATION)
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- AND: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
   it "HTTP 400 BAD REQUEST if email is already registered" $
     -- GIVEN: Prepare request
     do
@@ -104,7 +123,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl reqHeaders reqBody "UsersManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl reqHeaders reqBody "users.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -112,7 +131,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "user_entity"

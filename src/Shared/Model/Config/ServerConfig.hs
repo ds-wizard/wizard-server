@@ -90,3 +90,8 @@ data ServerConfigCronWorker = ServerConfigCronWorker
   , cron :: String
   }
   deriving (Generic, Show)
+
+data ServerConfigUserEmailLink = ServerConfigUserEmailLink
+  { clean :: ServerConfigCronWorker
+  }
+  deriving (Generic, Show)

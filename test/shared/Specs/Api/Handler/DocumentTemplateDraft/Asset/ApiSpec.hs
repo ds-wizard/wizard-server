@@ -4,6 +4,7 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Asset.Detail_Content_GET
 import Specs.Api.Handler.DocumentTemplateDraft.Asset.Detail_DELETE
 import Specs.Api.Handler.DocumentTemplateDraft.Asset.Detail_GET
 import Specs.Api.Handler.DocumentTemplateDraft.Asset.Detail_PUT
@@ -14,5 +15,6 @@ documentTemplateDraftAssetAPI serverContext requestContext =
     describe "DOCUMENT TEMPLATE DRAFT ASSET API Spec" $ do
       list_GET requestContext
       detail_GET requestContext
+      detail_content_GET requestContext
       detail_PUT requestContext
       detail_DELETE requestContext

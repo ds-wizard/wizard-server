@@ -25,11 +25,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/document-templates/{uuid}/locales/{localeUuid}
+-- DELETE /api/document-templates/{uuid}/locales/{localeUuid}
 -- ------------------------------------------------------------------------
 detail_locales_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_locales_DELETE requestContext =
-  describe "DELETE /wizard-api/document-templates/{uuid}/locales/{localeUuid}" $ do
+  describe "DELETE /api/document-templates/{uuid}/locales/{localeUuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -40,7 +40,7 @@ detail_locales_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/" ++ show czechWizardDocumentTemplateLocale.uuid
+reqUrl = BS.pack $ "/api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/" ++ show czechWizardDocumentTemplateLocale.uuid
 
 reqHeaders = [reqAuthHeader]
 
@@ -84,8 +84,8 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    (BS.pack $ "/wizard-api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")
+    (BS.pack $ "/api/document-templates/" ++ show wizardDocumentTemplate.uuid ++ "/locales/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")
     reqHeaders
     reqBody
-    "document_template_locale"
-    [("document_template_uuid", show wizardDocumentTemplate.uuid), ("uuid", "78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e")]
+    "document_template"
+    [("uuid", show wizardDocumentTemplate.uuid)]

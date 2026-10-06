@@ -17,11 +17,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/locales/{uuid}
+-- GET /api/locales/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/locales/{uuid}" $ do
+  describe "DELETE /api/locales/{uuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -32,7 +32,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/locales/d9894fb9-c6a5-4294-98d6-b46d75684d53"
+reqUrl = "/api/locales/d9894fb9-c6a5-4294-98d6-b46d75684d53"
 
 reqHeaders = [reqAuthHeader]
 
@@ -66,7 +66,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "organizationSettings.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -74,7 +74,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/locales/99193032-99e3-4676-acd8-222983ea0b88"
+    "/api/locales/99193032-99e3-4676-acd8-222983ea0b88"
     reqHeaders
     reqBody
     "locale"

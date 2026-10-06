@@ -1,9 +1,11 @@
 module Shared.Model.Common.Page where
 
 import qualified Data.List as L
+import Data.Maybe (fromMaybe)
 import GHC.Generics
 
 import Shared.Model.Common.PageMetadata
+import Shared.Model.Common.Pageable
 
 data Page entity = Page
   { name :: String
@@ -12,23 +14,26 @@ data Page entity = Page
   }
   deriving (Show, Eq, Generic)
 
+emptyPage :: String -> Pageable -> Page entity
+emptyPage name pageable = Page name (PageMetadata (fromMaybe 20 pageable.size) 0 0 (fromMaybe 0 pageable.page)) []
+
 instance Functor Page where
   fmap _ (Page name page []) = Page name page []
   fmap f (Page name page (x : xs)) = Page name page (f x : fmap f xs)
 
 instance Foldable Page where
-  elem e = L.elem e . entities
-  foldl fn e = L.foldl fn e . entities
-  foldl' fn e = L.foldl' fn e . entities
-  foldl1 fn = L.foldl1 fn . entities
-  foldr fn e = L.foldr fn e . entities
-  foldr1 fn = L.foldr1 fn . entities
-  length = L.length . entities
-  maximum = L.maximum . entities
-  minimum = L.minimum . entities
-  null = L.null . entities
-  product = L.product . entities
-  sum = L.sum . entities
+  elem e = L.elem e . (.entities)
+  foldl fn e = L.foldl fn e . (.entities)
+  foldl' fn e = L.foldl' fn e . (.entities)
+  foldl1 fn = L.foldl1 fn . (.entities)
+  foldr fn e = L.foldr fn e . (.entities)
+  foldr1 fn = L.foldr1 fn . (.entities)
+  length = L.length . (.entities)
+  maximum = L.maximum . (.entities)
+  minimum = L.minimum . (.entities)
+  null = L.null . (.entities)
+  product = L.product . (.entities)
+  sum = L.sum . (.entities)
 
 instance Traversable Page where
   traverse f (Page name metadata entities) = Page name metadata <$> L.foldr cons_f (pure []) entities
@@ -46,5 +51,5 @@ mapMaybeP _ (Page name metadata []) = Page name metadata []
 mapMaybeP f (Page name metadata (x : xs)) =
   let Page name' metadata' xs' = mapMaybeP f (Page name metadata xs)
    in case f x of
-        Nothing -> Page name' (metadata' {totalElements = totalElements metadata' - 1}) xs'
+        Nothing -> Page name' (metadata' {totalElements = metadata'.totalElements - 1}) xs'
         Just x' -> Page name' metadata' (x' : xs')

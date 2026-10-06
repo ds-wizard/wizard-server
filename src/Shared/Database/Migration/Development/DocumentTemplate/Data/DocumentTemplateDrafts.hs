@@ -36,7 +36,7 @@ wizardDocumentTemplateDraftCreateDTO :: DocumentTemplateDraftCreateDTO
 wizardDocumentTemplateDraftCreateDTO =
   DocumentTemplateDraftCreateDTO
     { name = "New Document Template"
-    , templateId = wizardDocumentTemplateNlDraft.templateId
+    , id = wizardDocumentTemplateNlDraft.id
     , version = "3.0.0"
     , basedOn = Just wizardDocumentTemplateDraft.uuid
     }

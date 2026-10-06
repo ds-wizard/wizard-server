@@ -7,7 +7,7 @@ import GHC.Int
 import Shared.Database.DAO.Common
 import Shared.Database.Mapping.Tenant.Config.TenantConfigMail ()
 import Shared.Model.Context.RequestContext
-import Shared.Model.Tenant.Config.TenantConfig
+import Shared.Model.Tenant.Config.TenantConfigMail
 
 entityName = "config_mail"
 

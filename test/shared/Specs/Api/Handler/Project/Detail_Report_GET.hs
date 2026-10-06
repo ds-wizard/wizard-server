@@ -38,11 +38,11 @@ import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/{projectUuid}/report
+-- GET /api/projects/{projectUuid}/report
 -- ------------------------------------------------------------------------
 detail_report_GET :: RequestContext -> SpecWith ((), Application)
 detail_report_GET requestContext =
-  describe "GET /wizard-api/projects/{projectUuid}/report" $ do
+  describe "GET /api/projects/{projectUuid}/report" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -52,7 +52,7 @@ detail_report_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/report"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/report"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 
@@ -149,7 +149,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/report"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/report"
     (reqHeadersT [reqAuthHeader])
     reqBody
     "project"

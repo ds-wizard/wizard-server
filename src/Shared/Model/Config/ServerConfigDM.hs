@@ -86,3 +86,10 @@ defaultPersistentCommandRetryJob =
 defaultPersistentCommandRetryLambdaJob :: ServerConfigCronWorker
 defaultPersistentCommandRetryLambdaJob =
   ServerConfigCronWorker {enabled = True, cron = "* * * * *"}
+
+defaultUserEmailLink :: ServerConfigUserEmailLink
+defaultUserEmailLink = ServerConfigUserEmailLink {clean = defaultUserEmailLinkClean}
+
+defaultUserEmailLinkClean :: ServerConfigCronWorker
+defaultUserEmailLinkClean =
+  ServerConfigCronWorker {enabled = True, cron = "20 0 * * *"}

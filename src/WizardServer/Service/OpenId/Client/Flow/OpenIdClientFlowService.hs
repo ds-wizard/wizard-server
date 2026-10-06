@@ -19,6 +19,7 @@ import Shared.Api.Resource.OpenId.Client.Flow.OpenIdClientAuthenticationUrlDTO
 import Shared.Api.Resource.UserToken.UserTokenDTO
 import Shared.Database.DAO.OpenId.OpenIdClientDefinitionDAO
 import Shared.Database.DAO.OpenId.OpenIdClientSessionDAO
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserOpenIdIdentityDAO
 import Shared.Database.DAO.WizardCommon
@@ -40,7 +41,7 @@ import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
 import Shared.Service.OpenId.Client.Flow.OpenIdClientFlowService
 import Shared.Service.OpenId.Client.Flow.OpenIdClientFlowUtil (parseIdToken)
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.TenantHelper
 import Shared.Service.User.UserRegistrationPendingService (upsertPendingExternalRegistration)
 import Shared.Service.User.UserService
@@ -108,7 +109,7 @@ loginUser providerUuid mClientUrl _mError mCode mState mIdToken mUserAgent mSess
     (openIdClient, oidc) <- buildOidcClient providerUuid mClientUrl
     (externalId, mEmailRaw, mFirstName, mLastName, mPicture, mUserUuid) <- resolveExternalIdentity oidc mCode mState mIdToken
     let mEmail = fmap (fmap toLower) mEmailRaw
-    tcAuthentication <- getCurrentTenantConfigAuthentication
+    tcAuthentication <- getCurrentSettings findSettingsAuthentication
     mIdentity <- findUserOpenIdIdentityByExternalIdAndProvider' externalId providerUuid
     case mIdentity of
       Just identity -> do

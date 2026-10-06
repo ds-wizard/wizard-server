@@ -9,8 +9,7 @@ import Shared.Api.Handler.Common
 type List_GET =
   Header "Authorization" String
     :> "locales"
-    :> QueryParam "organizationId" String
-    :> QueryParam "templateId" String
+    :> QueryParam "id" String
     :> QueryParam "recommendedAppVersion" String
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] [LocaleDTO])
 

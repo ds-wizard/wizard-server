@@ -162,7 +162,6 @@ pythonpath
 qtn
 qtns
 rabbitmq
-rdfs
 recomp
 recompiles
 resourcet
@@ -191,7 +190,6 @@ typehints
 uindex
 uncurry
 unlines
-unode
 Unpadded
 unpushed
 Unrender

@@ -3,8 +3,6 @@ module Shared.Service.User.UserService where
 import Control.Monad (unless, void, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
-import qualified Crypto.PasswordStore as PasswordStore
-import qualified Data.ByteString.Char8 as BS
 import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
@@ -16,6 +14,8 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserPasswordDTO
 import Shared.Api.Resource.UserEmailLink.UserEmailLinkDTO
 import Shared.Api.Resource.UserToken.UserTokenDTO
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
+import Shared.Database.DAO.Settings.SettingsRolesDAO
 import Shared.Database.DAO.User.RoleDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserOpenIdIdentityDAO
@@ -27,14 +27,13 @@ import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
 import Shared.Model.Config.ServerConfig
-import Shared.Model.Config.SimpleFeature
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.OpenId.OpenIdClient
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.Role
 import Shared.Model.User.UserSubmissionPropEM ()
 import Shared.Model.User.UserSuggestion
@@ -42,16 +41,19 @@ import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
 import Shared.Service.Common
 import Shared.Service.Mail.Mailer
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
+import Shared.Service.User.RoleAcl
 import Shared.Service.User.UserAudit
 import qualified Shared.Service.User.UserOpenIdIdentityMapper as UserOpenIdIdentityMapper
 import Shared.Service.User.UserValidation
 import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.Login.LoginService
+import Shared.Service.Workspace.WorkspaceMembershipService
 import Shared.Util.Crypto (generateRandomString)
+import Shared.Util.Password
 import Shared.Util.String
 import Shared.Util.Uuid
 
@@ -86,8 +88,8 @@ createUserByAdminWithUuid :: WizardRequestContextC s m => UserCreateDTO -> U.UUI
 createUserByAdminWithUuid reqDto uUuid tenantUuid clientUrl shouldSendRegistrationEmail =
   runInTransaction $ do
     uPasswordHash <- generatePasswordHash reqDto.password
-    tcAuthentication <- getCurrentTenantConfigAuthentication
-    let role = fromMaybe tcAuthentication.defaultRoleUuid reqDto.roleUuid
+    settingsRoles <- getCurrentSettings findSettingsRoles
+    let role = fromMaybe settingsRoles.defaultRoleUuid reqDto.roleUuid
     uRole <- getRoleForUserInTenant tenantUuid role
     userDto <- createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name tenantUuid clientUrl shouldSendRegistrationEmail
     auditUserCreateByAdmin userDto
@@ -100,8 +102,8 @@ registerUser reqDto =
     checkIfRegistrationIsEnabled
     uUuid <- liftIO generateUuid
     uPasswordHash <- generatePasswordHash reqDto.password
-    tcAuthentication <- getCurrentTenantConfigAuthentication
-    let role = tcAuthentication.defaultRoleUuid
+    settingsRoles <- getCurrentSettings findSettingsRoles
+    let role = settingsRoles.defaultRoleUuid
     uRole <- getRoleForUser role
     clientUrl <- getClientUrl
     tenantUuid <- asks (.tenantUuid')
@@ -122,6 +124,7 @@ createUser reqDto uUuid uPasswordHash role uPermissions uRoleName tenantUuid cli
     now <- liftIO getCurrentTime
     let user = fromUserCreateDTO reqDto uUuid uPasswordHash role uPermissions uRoleName tenantUuid now shouldSendRegistrationEmail
     insertUser user
+    addUserToSingleWorkspace tenantUuid uUuid now
     userEmailLink <- createUserEmailLink uUuid RegistrationUserEmailLinkType tenantUuid
     when
       shouldSendRegistrationEmail
@@ -155,8 +158,8 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
         Nothing -> liftIO generateUuid
     password <- liftIO $ generateRandomString 40
     uPasswordHash <- generatePasswordHash password
-    tcAuthentication <- getCurrentTenantConfigAuthentication
-    let role = tcAuthentication.defaultRoleUuid
+    settingsRoles <- getCurrentSettings findSettingsRoles
+    let role = settingsRoles.defaultRoleUuid
     uRole <- getRoleForUser role
     let user =
           fromUserExternalDTO
@@ -173,6 +176,7 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
             tenantUuid
             now
     insertUser user
+    addUserToSingleWorkspace tenantUuid uUuid now
     identityUuid <- liftIO generateUuid
     let identity = UserOpenIdIdentityMapper.fromCreate identityUuid externalId Nothing user.uuid openIdClient.uuid openIdClient.tenantUuid now
     _ <- insertUserOpenIdIdentity identity
@@ -228,12 +232,12 @@ changeUserPasswordByAdmin userUuid reqDto =
 changeUserPasswordByHash :: WizardRequestContextC s m => U.UUID -> String -> UserPasswordDTO -> m ()
 changeUserPasswordByHash userUuid hash userPasswordDto =
   runInTransaction $ do
-    (userEmailLink :: UserEmailLink U.UUID UserEmailLinkType) <- findUserEmailLinkByHash hash
+    (userEmailLink :: UserEmailLink U.UUID UserEmailLinkType) <- findUserEmailLinkByHashAndType hash ForgottenPasswordUserEmailLinkType
     validateUserEmailLinkNotExpired userEmailLink
     user <- findUserByUuid userEmailLink.identity
     passwordHash <- generatePasswordHash userPasswordDto.password
     now <- liftIO getCurrentTime
-    updateUserPasswordByUuid userUuid passwordHash now
+    updateUserPasswordByUuid user.uuid passwordHash now
     deleteUserEmailLinkByHash userEmailLink.hash
     return ()
 
@@ -243,8 +247,8 @@ resetUserPassword reqDto =
     mUser <- findUserByEmail' (toLower reqDto.email)
     case mUser of
       Just user -> do
-        tcAuthentication <- getCurrentTenantConfigAuthentication
-        unless (not tcAuthentication.internal.nonAdminLoginEnabled && notElem _USERS_MANAGE_ROLE_PERMISSION user.role.permissions) $ do
+        tcAuthentication <- getCurrentSettings findSettingsAuthentication
+        unless (not tcAuthentication.nonAdminLoginEnabled && notElem _USERS_MANAGE_ROLE_PERMISSION user.role.permissions) $ do
           tenantUuid <- asks (.tenantUuid')
           userEmailLink <- createUserEmailLink user.uuid ForgottenPasswordUserEmailLinkType tenantUuid
           catchError
@@ -327,12 +331,10 @@ getRoleForUser roleUuid = do
   getRoleForUserInTenant tenantUuid roleUuid
 
 getRoleForUserInTenant :: WizardRequestContextC s m => U.UUID -> U.UUID -> m Role
-getRoleForUserInTenant tenantUuid roleUuid = findRoleByUuidAndTenant roleUuid tenantUuid
-
-generatePasswordHash :: WizardRequestContextC s m => String -> m String
-generatePasswordHash password = do
-  hash <- liftIO $ BS.unpack <$> PasswordStore.makePasswordWith PasswordStore.pbkdf2 (BS.pack password) 17
-  return $ "pbkdf2:" ++ hash
+getRoleForUserInTenant tenantUuid roleUuid = do
+  role <- findRoleByUuidAndTenant roleUuid tenantUuid
+  checkOrganizationRole role
+  return role
 
 updateUserTimestamp :: WizardRequestContextC s m => User -> m User
 updateUserTimestamp user = do
@@ -345,7 +347,7 @@ sendAnalyticsEmailIfEnabled user = do
   when serverConfig.analyticalMails.enabled (sendRegistrationCreatedAnalyticsMail user)
 
 checkIfRegistrationIsEnabled :: WizardRequestContextC s m => m ()
-checkIfRegistrationIsEnabled = checkIfTenantFeatureIsEnabled "Registration" getCurrentTenantConfigAuthentication (.internal.registration.enabled)
+checkIfRegistrationIsEnabled = checkIfTenantFeatureIsEnabled "Registration" (getCurrentSettings findSettingsAuthentication) (.registrationEnabled)
 
 checkIfAdminIsDisabled :: WizardRequestContextC s m => m ()
 checkIfAdminIsDisabled =

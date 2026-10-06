@@ -18,19 +18,37 @@ dropTables = do
 
 dropConfigTables :: WizardRequestContextC s m => m Int64
 dropConfigTables = do
-  logInfo _CMP_MIGRATION "(Table/Config) drop table"
+  logInfo _CMP_MIGRATION "(Table/Settings) drop table"
   let sql =
         "DROP TABLE IF EXISTS tenant_module; \
         \DROP TABLE IF EXISTS tenant_plugin_settings; \
-        \DROP TABLE IF EXISTS config_owl;\
-        \DROP TABLE IF EXISTS config_mail;\
-        \DROP TABLE IF EXISTS config_features;\
-        \DROP TABLE IF EXISTS config_submission_service_supported_format;\
-        \DROP TABLE IF EXISTS config_submission_service_request_header;\
-        \DROP TABLE IF EXISTS config_submission_service;\
-        \DROP TABLE IF EXISTS config_submission;\
-        \DROP TABLE IF EXISTS config_project;\
-        \DROP TABLE IF EXISTS config_registry;\
+        \DROP TABLE IF EXISTS config_mail; \
+        \DROP TABLE IF EXISTS settings_features; \
+        \DROP TABLE IF EXISTS settings_submission_service_supported_format; \
+        \DROP TABLE IF EXISTS settings_submission_service_request_header; \
+        \DROP TABLE IF EXISTS settings_submission_service; \
+        \DROP TABLE IF EXISTS settings_submission; \
+        \DROP TABLE IF EXISTS settings_projects; \
+        \DROP TABLE IF EXISTS settings_registry; \
+        \DROP TABLE IF EXISTS settings_look_and_feel; \
+        \DROP TABLE IF EXISTS settings_dashboard_and_menu_custom_menu_link; \
+        \DROP TABLE IF EXISTS settings_dashboard_and_menu_announcement; \
+        \DROP TABLE IF EXISTS settings_dashboard_and_menu; \
+        \DROP TABLE IF EXISTS settings_login_screen_announcement; \
+        \DROP TABLE IF EXISTS settings_login_screen; \
+        \DROP TABLE IF EXISTS settings_support; \
+        \DROP TABLE IF EXISTS settings_roles; \
+        \DROP TABLE IF EXISTS settings_users; \
+        \DROP TABLE IF EXISTS settings_authentication; \
+        \DROP TYPE IF EXISTS settings_announcement_level_type; \
+        \DROP TABLE IF EXISTS config_owl; \
+        \DROP TABLE IF EXISTS config_features; \
+        \DROP TABLE IF EXISTS config_submission_service_supported_format; \
+        \DROP TABLE IF EXISTS config_submission_service_request_header; \
+        \DROP TABLE IF EXISTS config_submission_service; \
+        \DROP TABLE IF EXISTS config_submission; \
+        \DROP TABLE IF EXISTS config_project; \
+        \DROP TABLE IF EXISTS config_registry; \
         \DROP TABLE IF EXISTS config_look_and_feel_custom_menu_link; \
         \DROP TABLE IF EXISTS config_look_and_feel; \
         \DROP TABLE IF EXISTS config_dashboard_and_login_screen_announcement; \
@@ -63,6 +81,7 @@ createTenantTable = do
         \    updated_at    timestamptz NOT NULL, \
         \    server_url    varchar     NOT NULL, \
         \    state         varchar     NOT NULL DEFAULT 'ReadyForUseTenantState', \
+        \    multi_workspace bool      NOT NULL DEFAULT false, \
         \    CONSTRAINT tenant_pk PRIMARY KEY (uuid) \
         \);"
   let action conn = execute_ conn sql
@@ -70,297 +89,224 @@ createTenantTable = do
 
 createConfigTables :: WizardRequestContextC s m => m Int64
 createConfigTables = do
-  createTcOrganizationTable
-  createTcAuthenticationTable
-  createTcPrivacyAndSupportTable
-  createTcDashboardAndLoginScreenTable
-  createTcDashboardAndLoginScreenAnnouncementTable
-  createTcLookAndFeelTable
-  createTcLookAndFeelCustomMenuLinkTable
-  createTcRegistryTable
-  createTcProjectTable
-  createTcSubmissionTable
-  createTcFeaturesTable
+  createSettingsTables
   createTcMailTable
-  createTcOwlTable
   createTenantPluginSettingsTable
   createTenantModuleTable
 
-createTcOrganizationTable :: WizardRequestContextC s m => m Int64
-createTcOrganizationTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigOrganization) create tables"
-  let sql =
-        "CREATE TABLE config_organization \
-        \( \
-        \    tenant_uuid     uuid        NOT NULL, \
-        \    name            varchar     NOT NULL, \
-        \    description     varchar     NOT NULL, \
-        \    organization_id varchar     NOT NULL, \
-        \    affiliations    varchar[]   NOT NULL, \
-        \    created_at      timestamptz NOT NULL, \
-        \    updated_at      timestamptz NOT NULL, \
-        \    CONSTRAINT config_organization_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_organization_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
+createSettingsTables :: WizardRequestContextC s m => m Int64
+createSettingsTables = do
+  logInfo _CMP_MIGRATION "(Table/Settings) create tables"
+  let action conn = execute_ conn settingsTablesSql
   runDB action
 
-createTcAuthenticationTable :: WizardRequestContextC s m => m Int64
-createTcAuthenticationTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigAuthentication) create tables"
-  let sql =
-        "CREATE TABLE config_authentication \
-        \( \
-        \    tenant_uuid                              uuid        NOT NULL, \
-        \    default_role_uuid                        uuid        NOT NULL, \
-        \    internal_registration_enabled            bool        NOT NULL, \
-        \    internal_two_factor_auth_enabled         bool        NOT NULL, \
-        \    internal_two_factor_auth_code_length     int         NOT NULL, \
-        \    internal_two_factor_auth_code_expiration int         NOT NULL, \
-        \    created_at                               timestamptz NOT NULL, \
-        \    updated_at                               timestamptz NOT NULL, \
-        \    internal_non_admin_login_enabled         bool        NOT NULL, \
-        \    internal_session_expiration              bigint      NOT NULL, \
-        \    internal_user_email_link_expiration      bigint      NOT NULL, \
-        \    CONSTRAINT config_authentication_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_authentication_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcPrivacyAndSupportTable :: WizardRequestContextC s m => m Int64
-createTcPrivacyAndSupportTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigPrivacyAndSupport) create tables"
-  let sql =
-        "CREATE TABLE config_privacy_and_support \
-        \( \
-        \    tenant_uuid          uuid        NOT NULL, \
-        \    privacy_url          varchar, \
-        \    terms_of_service_url varchar, \
-        \    support_email        varchar, \
-        \    support_site_name    varchar, \
-        \    support_site_url     varchar, \
-        \    support_site_icon    varchar, \
-        \    created_at           timestamptz NOT NULL, \
-        \    updated_at           timestamptz NOT NULL, \
-        \    CONSTRAINT config_privacy_and_support_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_privacy_and_support_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcDashboardAndLoginScreenTable :: WizardRequestContextC s m => m Int64
-createTcDashboardAndLoginScreenTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigDashboardAndLoginScreen) create tables"
-  let sql =
-        "CREATE TABLE config_dashboard_and_login_screen \
-        \( \
-        \    tenant_uuid        uuid        NOT NULL, \
-        \    dashboard_type     varchar     NOT NULL, \
-        \    login_info         varchar, \
-        \    login_info_sidebar varchar, \
-        \    created_at         timestamptz NOT NULL, \
-        \    updated_at         timestamptz NOT NULL, \
-        \    CONSTRAINT config_dashboard_and_login_screen_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_dashboard_and_login_screen_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcDashboardAndLoginScreenAnnouncementTable :: WizardRequestContextC s m => m Int64
-createTcDashboardAndLoginScreenAnnouncementTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigDashboardAndLoginScreenAnnouncement) create tables"
-  let sql =
-        "CREATE TYPE config_dashboard_and_login_screen_announcement_type AS ENUM ('InfoAnnouncementLevelType', 'WarningAnnouncementLevelType', 'CriticalAnnouncementLevelType'); \
-        \CREATE TABLE config_dashboard_and_login_screen_announcement \
-        \( \
-        \    tenant_uuid  uuid                                                NOT NULL, \
-        \    position     int                                                 NOT NULL, \
-        \    content      varchar                                             NOT NULL, \
-        \    level        config_dashboard_and_login_screen_announcement_type NOT NULL, \
-        \    login_screen bool                                                NOT NULL, \
-        \    dashboard    bool                                                NOT NULL, \
-        \    created_at   timestamptz                                         NOT NULL, \
-        \    updated_at   timestamptz                                         NOT NULL, \
-        \    CONSTRAINT config_dashboard_and_login_screen_announcement_pk PRIMARY KEY (tenant_uuid, position), \
-        \    CONSTRAINT config_dashboard_and_login_screen_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcLookAndFeelTable :: WizardRequestContextC s m => m Int64
-createTcLookAndFeelTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigConfigLookAndFeel) create tables"
-  let sql =
-        "CREATE TABLE config_look_and_feel \
-        \( \
-        \    tenant_uuid         uuid        NOT NULL, \
-        \    app_title           varchar, \
-        \    app_title_short     varchar, \
-        \    logo_url            varchar, \
-        \    primary_color       varchar, \
-        \    illustrations_color varchar, \
-        \    created_at          timestamptz NOT NULL, \
-        \    updated_at          timestamptz NOT NULL, \
-        \    CONSTRAINT config_look_and_feel_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_look_and_feel_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcLookAndFeelCustomMenuLinkTable :: WizardRequestContextC s m => m Int64
-createTcLookAndFeelCustomMenuLinkTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigLookAndFeelCustomMenuLink) create tables"
-  let sql =
-        "CREATE TABLE config_look_and_feel_custom_menu_link \
-        \( \
-        \    tenant_uuid uuid        NOT NULL, \
-        \    position    int         NOT NULL, \
-        \    icon        varchar     NOT NULL, \
-        \    title       varchar     NOT NULL, \
-        \    url         varchar     NOT NULL, \
-        \    new_window  bool        NOT NULL, \
-        \    created_at  timestamptz NOT NULL, \
-        \    updated_at  timestamptz NOT NULL, \
-        \    CONSTRAINT config_look_and_feel_custom_menu_link_pk PRIMARY KEY (tenant_uuid, position), \
-        \    CONSTRAINT config_look_and_feel_custom_menu_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcRegistryTable :: WizardRequestContextC s m => m Int64
-createTcRegistryTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigRegistry) create tables"
-  let sql =
-        "CREATE TABLE config_registry \
-        \( \
-        \    tenant_uuid  uuid        NOT NULL, \
-        \    enabled      boolean     NOT NULL, \
-        \    token        varchar     NOT NULL, \
-        \    created_at   timestamptz NOT NULL, \
-        \    updated_at   timestamptz NOT NULL, \
-        \    CONSTRAINT config_registry_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_registry_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcProjectTable :: WizardRequestContextC s m => m Int64
-createTcProjectTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigProject) create tables"
-  let sql =
-        "CREATE TABLE config_project\
-        \( \
-        \    tenant_uuid               uuid        NOT NULL, \
-        \    visibility_enabled        boolean     NOT NULL, \
-        \    visibility_default_value  varchar     NOT NULL, \
-        \    sharing_enabled           boolean     NOT NULL, \
-        \    sharing_default_value     varchar     NOT NULL, \
-        \    sharing_anonymous_enabled BOOLEAN     NOT NULL, \
-        \    creation                  varchar     NOT NULL, \
-        \    project_tagging_enabled   boolean     NOT NULL, \
-        \    project_tagging_tags      varchar[]   NOT NULL, \
-        \    summary_report            boolean     NOT NULL, \
-        \    created_at                timestamptz NOT NULL, \
-        \    updated_at                timestamptz NOT NULL, \
-        \    CONSTRAINT config_project_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_project_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcSubmissionTable :: WizardRequestContextC s m => m Int64
-createTcSubmissionTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigSubmission) create tables"
-  let sql =
-        "CREATE TABLE config_submission \
-        \( \
-        \    tenant_uuid uuid        NOT NULL, \
-        \    enabled     boolean     NOT NULL, \
-        \    created_at  timestamptz NOT NULL, \
-        \    updated_at  timestamptz NOT NULL, \
-        \    CONSTRAINT config_submission_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \); \
-        \CREATE TABLE config_submission_service \
-        \( \
-        \    tenant_uuid                 uuid        NOT NULL, \
-        \    id                          varchar     NOT NULL, \
-        \    name                        varchar     NOT NULL, \
-        \    description                 varchar     NOT NULL, \
-        \    props                       varchar[]   NOT NULL, \
-        \    request_method              varchar     NOT NULL, \
-        \    request_url                 varchar     NOT NULL, \
-        \    request_multipart_enabled   boolean     NOT NULL, \
-        \    request_multipart_file_name varchar     NOT NULL, \
-        \    created_at                  timestamptz NOT NULL, \
-        \    updated_at                  timestamptz NOT NULL, \
-        \    CONSTRAINT config_submission_service_pk PRIMARY KEY (tenant_uuid, id), \
-        \    CONSTRAINT config_submission_service_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \); \
-        \CREATE TABLE config_submission_service_request_header \
-        \( \
-        \    tenant_uuid uuid    NOT NULL, \
-        \    service_id  varchar NOT NULL, \
-        \    name        varchar NOT NULL, \
-        \    value       varchar NOT NULL, \
-        \    CONSTRAINT config_submission_service_request_header_pk PRIMARY KEY (tenant_uuid, service_id, name), \
-        \    CONSTRAINT config_submission_service_request_header_service_id_fk FOREIGN KEY (service_id, tenant_uuid) REFERENCES config_submission_service (id, tenant_uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT config_submission_service_request_header_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \); \
-        \CREATE TABLE config_submission_service_supported_format \
-        \( \
-        \    tenant_uuid uuid       NOT NULL, \
-        \    service_id  varchar    NOT NULL, \
-        \    document_template_uuid uuid NOT NULL, \
-        \    format_uuid uuid       NOT NULL, \
-        \    CONSTRAINT config_submission_service_supported_format_pk PRIMARY KEY (tenant_uuid, service_id, document_template_uuid, format_uuid), \
-        \    CONSTRAINT config_submission_service_supported_format_service_id_fk FOREIGN KEY (service_id, tenant_uuid) REFERENCES config_submission_service (id, tenant_uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT config_submission_service_supported_format_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT config_submission_service_supported_format_format_uuid_fk FOREIGN KEY (document_template_uuid, format_uuid) REFERENCES document_template_format (document_template_uuid, uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT config_submission_service_supported_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcOwlTable :: WizardRequestContextC s m => m Int64
-createTcOwlTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigOwl) create tables"
-  let sql =
-        "CREATE TABLE config_owl \
-        \( \
-        \    tenant_uuid           uuid        NOT NULL, \
-        \    enabled               boolean     NOT NULL, \
-        \    name                  varchar     NOT NULL, \
-        \    organization_id       varchar     NOT NULL, \
-        \    km_id                 varchar     NOT NULL, \
-        \    version               varchar     NOT NULL, \
-        \    previous_package_uuid uuid, \
-        \    root_element          varchar     NOT NULL, \
-        \    created_at            timestamptz NOT NULL, \
-        \    updated_at            timestamptz NOT NULL, \
-        \    CONSTRAINT config_owl_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_owl_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTcFeaturesTable :: WizardRequestContextC s m => m Int64
-createTcFeaturesTable = do
-  logInfo _CMP_MIGRATION "(Table/ConfigFeatures) create tables"
-  let sql =
-        "CREATE TABLE config_features \
-        \( \
-        \    tenant_uuid          uuid        NOT NULL, \
-        \    ai_assistant_enabled bool        NOT NULL, \
-        \    tours_enabled        bool        NOT NULL, \
-        \    created_at           timestamptz NOT NULL, \
-        \    updated_at           timestamptz NOT NULL, \
-        \    CONSTRAINT config_features_pk PRIMARY KEY (tenant_uuid), \
-        \    CONSTRAINT config_features_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
+settingsTablesSql :: Query
+settingsTablesSql =
+  "CREATE TYPE settings_announcement_level_type AS ENUM ('InfoAnnouncementLevelType', 'WarningAnnouncementLevelType', 'CriticalAnnouncementLevelType'); \
+  \CREATE TABLE settings_authentication \
+  \( \
+  \    tenant_uuid                     uuid        NOT NULL, \
+  \    registration_enabled            bool        NOT NULL, \
+  \    non_admin_login_enabled         bool        NOT NULL, \
+  \    session_expiration              bigint      NOT NULL, \
+  \    user_email_link_expiration      bigint      NOT NULL, \
+  \    two_factor_auth_enabled         bool        NOT NULL, \
+  \    two_factor_auth_code_length     int         NOT NULL, \
+  \    two_factor_auth_code_expiration int         NOT NULL, \
+  \    created_at                      timestamptz NOT NULL, \
+  \    updated_at                      timestamptz NOT NULL, \
+  \    CONSTRAINT settings_authentication_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_authentication_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_users \
+  \( \
+  \    tenant_uuid  uuid        NOT NULL, \
+  \    affiliations varchar[]   NOT NULL, \
+  \    created_at   timestamptz NOT NULL, \
+  \    updated_at   timestamptz NOT NULL, \
+  \    CONSTRAINT settings_users_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_users_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_roles \
+  \( \
+  \    tenant_uuid       uuid        NOT NULL, \
+  \    default_role_uuid uuid        NOT NULL, \
+  \    created_at        timestamptz NOT NULL, \
+  \    updated_at        timestamptz NOT NULL, \
+  \    CONSTRAINT settings_roles_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_roles_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_login_screen \
+  \( \
+  \    tenant_uuid        uuid        NOT NULL, \
+  \    login_info         varchar, \
+  \    login_info_sidebar varchar, \
+  \    created_at         timestamptz NOT NULL, \
+  \    updated_at         timestamptz NOT NULL, \
+  \    CONSTRAINT settings_login_screen_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_login_screen_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_login_screen_announcement \
+  \( \
+  \    tenant_uuid uuid                             NOT NULL, \
+  \    position    int                              NOT NULL, \
+  \    content     varchar                          NOT NULL, \
+  \    level       settings_announcement_level_type NOT NULL, \
+  \    CONSTRAINT settings_login_screen_announcement_pk PRIMARY KEY (tenant_uuid, position), \
+  \    CONSTRAINT settings_login_screen_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_registry \
+  \( \
+  \    tenant_uuid uuid        NOT NULL, \
+  \    enabled     boolean     NOT NULL, \
+  \    api_key     varchar     NOT NULL, \
+  \    created_at  timestamptz NOT NULL, \
+  \    updated_at  timestamptz NOT NULL, \
+  \    CONSTRAINT settings_registry_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_registry_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_features \
+  \( \
+  \    tenant_uuid          uuid        NOT NULL, \
+  \    ai_assistant_enabled bool        NOT NULL, \
+  \    tours_enabled        bool        NOT NULL, \
+  \    created_at           timestamptz NOT NULL, \
+  \    updated_at           timestamptz NOT NULL, \
+  \    CONSTRAINT settings_features_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_features_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_look_and_feel \
+  \( \
+  \    tenant_uuid   uuid        NOT NULL, \
+  \    app_title     varchar, \
+  \    logo_url      varchar, \
+  \    primary_color varchar, \
+  \    created_at    timestamptz NOT NULL, \
+  \    updated_at    timestamptz NOT NULL, \
+  \    CONSTRAINT settings_look_and_feel_pk PRIMARY KEY (tenant_uuid), \
+  \    CONSTRAINT settings_look_and_feel_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_dashboard_and_menu \
+  \( \
+  \    tenant_uuid                uuid        NOT NULL, \
+  \    workspace_uuid             uuid, \
+  \    workspace_override_allowed bool        NOT NULL DEFAULT true, \
+  \    created_at                 timestamptz NOT NULL, \
+  \    updated_at                 timestamptz NOT NULL, \
+  \    CONSTRAINT settings_dashboard_and_menu_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid), \
+  \    CONSTRAINT settings_dashboard_and_menu_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_dashboard_and_menu_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_dashboard_and_menu_custom_menu_link \
+  \( \
+  \    tenant_uuid    uuid    NOT NULL, \
+  \    workspace_uuid uuid, \
+  \    position       int     NOT NULL, \
+  \    icon           varchar NOT NULL, \
+  \    title          varchar NOT NULL, \
+  \    url            varchar NOT NULL, \
+  \    new_window     bool    NOT NULL, \
+  \    CONSTRAINT settings_dashboard_and_menu_custom_menu_link_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid, position), \
+  \    CONSTRAINT settings_dashboard_and_menu_custom_menu_link_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_dashboard_and_menu_custom_menu_link_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_dashboard_and_menu_announcement \
+  \( \
+  \    tenant_uuid    uuid                             NOT NULL, \
+  \    workspace_uuid uuid, \
+  \    position       int                              NOT NULL, \
+  \    content        varchar                          NOT NULL, \
+  \    level          settings_announcement_level_type NOT NULL, \
+  \    CONSTRAINT settings_dashboard_and_menu_announcement_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid, position), \
+  \    CONSTRAINT settings_dashboard_and_menu_announcement_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_dashboard_and_menu_announcement_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_projects \
+  \( \
+  \    tenant_uuid                uuid        NOT NULL, \
+  \    workspace_uuid             uuid, \
+  \    workspace_override_allowed bool        NOT NULL DEFAULT true, \
+  \    visibility_enabled         boolean     NOT NULL, \
+  \    visibility_default_value   varchar     NOT NULL, \
+  \    sharing_enabled            boolean     NOT NULL, \
+  \    sharing_default_value      varchar     NOT NULL, \
+  \    sharing_anonymous_enabled  boolean     NOT NULL, \
+  \    creation                   varchar     NOT NULL, \
+  \    project_tagging_enabled    boolean     NOT NULL, \
+  \    project_tagging_tags       varchar[]   NOT NULL, \
+  \    summary_report             boolean     NOT NULL, \
+  \    created_at                 timestamptz NOT NULL, \
+  \    updated_at                 timestamptz NOT NULL, \
+  \    CONSTRAINT settings_projects_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid), \
+  \    CONSTRAINT settings_projects_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_projects_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_support \
+  \( \
+  \    tenant_uuid                uuid        NOT NULL, \
+  \    workspace_uuid             uuid, \
+  \    workspace_override_allowed bool        NOT NULL DEFAULT true, \
+  \    support_email              varchar, \
+  \    support_site_name          varchar, \
+  \    support_site_url           varchar, \
+  \    support_site_icon          varchar, \
+  \    created_at                 timestamptz NOT NULL, \
+  \    updated_at                 timestamptz NOT NULL, \
+  \    CONSTRAINT settings_support_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid), \
+  \    CONSTRAINT settings_support_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_support_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_submission \
+  \( \
+  \    tenant_uuid                uuid        NOT NULL, \
+  \    workspace_uuid             uuid, \
+  \    workspace_override_allowed bool        NOT NULL DEFAULT true, \
+  \    enabled                    boolean     NOT NULL, \
+  \    created_at                 timestamptz NOT NULL, \
+  \    updated_at                 timestamptz NOT NULL, \
+  \    CONSTRAINT settings_submission_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid), \
+  \    CONSTRAINT settings_submission_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_submission_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_submission_service \
+  \( \
+  \    tenant_uuid                 uuid      NOT NULL, \
+  \    workspace_uuid              uuid, \
+  \    id                          varchar   NOT NULL, \
+  \    name                        varchar   NOT NULL, \
+  \    description                 varchar   NOT NULL, \
+  \    props                       varchar[] NOT NULL, \
+  \    request_method              varchar   NOT NULL, \
+  \    request_url                 varchar   NOT NULL, \
+  \    request_multipart_enabled   boolean   NOT NULL, \
+  \    request_multipart_file_name varchar   NOT NULL, \
+  \    CONSTRAINT settings_submission_service_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid, id), \
+  \    CONSTRAINT settings_submission_service_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_submission_service_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_submission_service_request_header \
+  \( \
+  \    tenant_uuid    uuid    NOT NULL, \
+  \    workspace_uuid uuid, \
+  \    service_id     varchar NOT NULL, \
+  \    name           varchar NOT NULL, \
+  \    value          varchar NOT NULL, \
+  \    CONSTRAINT settings_submission_service_request_header_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid, service_id, name), \
+  \    CONSTRAINT settings_submission_service_request_header_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_submission_service_request_header_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \); \
+  \CREATE TABLE settings_submission_service_supported_format \
+  \( \
+  \    tenant_uuid    uuid    NOT NULL, \
+  \    workspace_uuid uuid, \
+  \    service_id     varchar NOT NULL, \
+  \    id             varchar NOT NULL, \
+  \    version        varchar NOT NULL, \
+  \    format_name    varchar NOT NULL, \
+  \    CONSTRAINT settings_submission_service_supported_format_key UNIQUE NULLS NOT DISTINCT (tenant_uuid, workspace_uuid, service_id, id, version, format_name), \
+  \    CONSTRAINT settings_submission_service_supported_format_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+  \    CONSTRAINT settings_submission_service_supported_format_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+  \);"
 
 createTcMailTable :: WizardRequestContextC s m => m Int64
 createTcMailTable = do

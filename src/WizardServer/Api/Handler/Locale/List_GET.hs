@@ -15,8 +15,7 @@ type List_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "locales"
-    :> QueryParam "organizationId" String
-    :> QueryParam "localeId" String
+    :> QueryParam "id" String
     :> QueryParam "q" String
     :> QueryParam "page" Int
     :> QueryParam "size" Int
@@ -29,13 +28,12 @@ list_GET
   -> Maybe String
   -> Maybe String
   -> Maybe String
-  -> Maybe String
   -> Maybe Int
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page LocaleDTO))
-list_GET mTokenHeader mServerUrl mOrganizationId mLocaleId mQuery mPage mSize mSort =
+list_GET mTokenHeader mServerUrl mId mQuery mPage mSize mSort =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
-        =<< getLocalesPage mOrganizationId mLocaleId mQuery (Pageable mPage mSize) (parseSortQuery mSort)
+        =<< getLocalesPage mId mQuery (Pageable mPage mSize) (parseSortQuery mSort)

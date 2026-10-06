@@ -7,7 +7,6 @@ import Shared.Model.DocumentTemplate.DocumentTemplateWithCoordinate
 fieldDocumentTemplateWithCoordinate = do
   uuid <- field
   name <- field
-  organizationId <- field
-  templateId <- field
+  id <- field
   version <- field
   return $ DocumentTemplateWithCoordinate {..}

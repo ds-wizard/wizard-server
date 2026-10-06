@@ -4,14 +4,12 @@ import qualified Data.List as L
 import Data.Time
 import qualified Data.UUID as U
 
-import RegistryPublic.Model.Organization.OrganizationSimple
 import Shared.Api.Resource.Locale.LocaleChangeDTO
 import Shared.Api.Resource.Locale.LocaleCreateDTO
 import Shared.Model.Locale.Locale
 import Shared.Model.Registry.RegistryLocale
-import Shared.Model.Registry.RegistryOrganization
 import Shared.Service.Version.VersionMapper
-import Shared.Util.Coordinate
+import Shared.Util.Reference
 import WizardServer.Api.Resource.Locale.LocaleDTO
 import WizardServer.Api.Resource.Locale.LocaleDetailDTO
 import WizardServer.Model.Locale.LocaleList
@@ -24,8 +22,7 @@ toDTO registryEnabled locale =
     , name = locale.name
     , description = locale.description
     , code = locale.code
-    , organizationId = locale.organizationId
-    , localeId = locale.localeId
+    , id = locale.id
     , version = locale.version
     , defaultLocale = locale.defaultLocale
     , enabled = locale.enabled
@@ -33,29 +30,18 @@ toDTO registryEnabled locale =
         if registryEnabled
           then locale.remoteVersion
           else Nothing
-    , organization =
-        case (registryEnabled, locale.remoteOrganizationName) of
-          (True, Just orgName) ->
-            Just $
-              OrganizationSimple
-                { organizationId = locale.organizationId
-                , name = orgName
-                , logo = locale.remoteOrganizationLogo
-                }
-          _ -> Nothing
     , createdAt = locale.createdAt
     , updatedAt = locale.updatedAt
     }
 
-toDetailDTO :: Locale -> Bool -> [RegistryLocale] -> [RegistryOrganization] -> [(U.UUID, String)] -> Maybe String -> LocaleDetailDTO
-toDetailDTO locale registryEnabled localeRs orgRs versionLs registryLink =
+toDetailDTO :: Locale -> Bool -> [RegistryLocale] -> [(U.UUID, String)] -> Maybe String -> LocaleDetailDTO
+toDetailDTO locale registryEnabled localeRs versionLs registryLink =
   LocaleDetailDTO
     { uuid = locale.uuid
     , name = locale.name
     , description = locale.description
     , code = locale.code
-    , organizationId = locale.organizationId
-    , localeId = locale.localeId
+    , id = locale.id
     , version = locale.version
     , defaultLocale = locale.defaultLocale
     , license = locale.license
@@ -64,16 +50,12 @@ toDetailDTO locale registryEnabled localeRs orgRs versionLs registryLink =
     , enabled = locale.enabled
     , versions = map toVersionDTO . L.sortBy (\(_, v1) (_, v2) -> compare v2 v1) $ versionLs
     , remoteLatestVersion =
-        case (registryEnabled, selectLocaleByOrgIdAndLocaleId locale localeRs) of
+        case (registryEnabled, selectLocaleById locale localeRs) of
           (True, Just localeR) -> Just localeR.remoteVersion
           _ -> Nothing
     , registryLink =
         if registryEnabled
           then registryLink
-          else Nothing
-    , organization =
-        if registryEnabled
-          then selectOrganizationByOrgId locale orgRs
           else Nothing
     , createdAt = locale.createdAt
     , updatedAt = locale.updatedAt
@@ -86,27 +68,23 @@ toLocaleList locale =
     , name = locale.name
     , description = locale.description
     , code = locale.code
-    , organizationId = locale.organizationId
-    , localeId = locale.localeId
+    , id = locale.id
     , version = locale.version
     , defaultLocale = locale.defaultLocale
     , enabled = locale.enabled
     , remoteVersion = Nothing
-    , remoteOrganizationName = Nothing
-    , remoteOrganizationLogo = Nothing
     , createdAt = locale.createdAt
     , updatedAt = locale.updatedAt
     }
 
-fromCreateDTO :: LocaleCreateDTO -> U.UUID -> String -> Bool -> U.UUID -> UTCTime -> Locale
-fromCreateDTO reqDto uuid organizationId defaultLocale tenantUuid now =
+fromCreateDTO :: LocaleCreateDTO -> U.UUID -> Bool -> U.UUID -> UTCTime -> Locale
+fromCreateDTO reqDto uuid defaultLocale tenantUuid now =
   Locale
     { uuid = uuid
     , name = reqDto.name
     , description = reqDto.description
     , code = reqDto.code
-    , organizationId = organizationId
-    , localeId = reqDto.localeId
+    , id = reqDto.id
     , version = reqDto.version
     , defaultLocale = defaultLocale
     , license = reqDto.license
@@ -125,8 +103,7 @@ fromChangeDTO locale reqDto now =
     , name = locale.name
     , description = locale.description
     , code = locale.code
-    , organizationId = locale.organizationId
-    , localeId = locale.localeId
+    , id = locale.id
     , version = locale.version
     , defaultLocale = reqDto.defaultLocale
     , license = locale.license
@@ -140,10 +117,10 @@ fromChangeDTO locale reqDto now =
 
 buildLocaleUrl :: String -> Locale -> [RegistryLocale] -> Maybe String
 buildLocaleUrl clientRegistryUrl locale localeRs =
-  case selectLocaleByOrgIdAndLocaleId locale localeRs of
+  case selectLocaleById locale localeRs of
     Just localeR ->
       Just $
         clientRegistryUrl
           ++ "/locales/"
-          ++ buildCoordinate localeR.organizationId localeR.localeId localeR.remoteVersion
+          ++ buildReference localeR.id localeR.remoteVersion
     Nothing -> Nothing

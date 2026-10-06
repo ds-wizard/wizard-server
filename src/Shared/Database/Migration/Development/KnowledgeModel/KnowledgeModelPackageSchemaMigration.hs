@@ -21,8 +21,8 @@ dropFunctions = do
   logInfo _CMP_MIGRATION "(Function/Package) drop functions"
   let sql =
         "DROP FUNCTION IF EXISTS get_newest_knowledge_model_package; \
-        \DROP FUNCTION IF EXISTS get_newest_knowledge_model_package_coordinate;\
-        \DROP FUNCTION IF EXISTS get_organization_id;\
+        \DROP FUNCTION IF EXISTS get_newest_knowledge_model_package_coordinate; \
+        \DROP FUNCTION IF EXISTS get_organization_id; \
         \DROP FUNCTION IF EXISTS get_km_id;"
   let action conn = execute_ conn sql
   runDB action
@@ -40,8 +40,7 @@ createKnowledgeModelPackageTable = do
         \( \
         \    uuid                        uuid        NOT NULL, \
         \    name                        varchar     NOT NULL, \
-        \    organization_id             varchar     NOT NULL, \
-        \    km_id                       varchar     NOT NULL, \
+        \    id                          varchar     NOT NULL, \
         \    version                     varchar     NOT NULL, \
         \    metamodel_version           integer     NOT NULL, \
         \    description                 varchar     NOT NULL, \
@@ -56,15 +55,20 @@ createKnowledgeModelPackageTable = do
         \    non_editable                bool        NOT NULL, \
         \    public                      bool        NOT NULL, \
         \    language                    varchar     NOT NULL DEFAULT 'en', \
+        \    workspace_uuid              uuid, \
+        \    fork_of_package_version     varchar, \
+        \    merge_checkpoint_package_version varchar, \
         \    CONSTRAINT knowledge_model_package_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT knowledge_model_package_previous_package_uuid_fk FOREIGN KEY (previous_package_uuid) REFERENCES knowledge_model_package (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT knowledge_model_package_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT knowledge_model_package_coordinate_unique UNIQUE (organization_id, km_id, version, tenant_uuid) \
+        \    CONSTRAINT knowledge_model_package_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT knowledge_model_package_coordinate_unique UNIQUE NULLS NOT DISTINCT (id, version, tenant_uuid, workspace_uuid) \
         \); \
         \ \
-        \CREATE INDEX knowledge_model_package_organization_id_km_id_index ON knowledge_model_package (organization_id, km_id, tenant_uuid); \
+        \CREATE INDEX knowledge_model_package_id_index ON knowledge_model_package (id, tenant_uuid); \
         \ \
-        \CREATE INDEX knowledge_model_package_previous_package_uuid_index ON knowledge_model_package (previous_package_uuid);"
+        \CREATE INDEX knowledge_model_package_previous_package_uuid_index ON knowledge_model_package (previous_package_uuid); \
+        \CREATE INDEX knowledge_model_package_workspace_uuid_index ON knowledge_model_package (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
@@ -92,14 +96,11 @@ createFunctions :: WizardRequestContextC s m => m Int64
 createFunctions = do
   logInfo _CMP_MIGRATION "(Function/Package) create functions"
   createGetNewestPackageFn
-  createGetNewestPackageCoordinateFn
-  createGetOrganizationIdFn
-  createGetKmIdFn
 
 createGetNewestPackageFn :: WizardRequestContextC s m => m Int64
 createGetNewestPackageFn = do
   let sql =
-        "CREATE OR REPLACE FUNCTION get_newest_knowledge_model_package(req_organization_id varchar, req_km_id varchar, req_tenant_uuid uuid, req_phase varchar[]) \
+        "CREATE OR REPLACE FUNCTION get_newest_knowledge_model_package(req_id varchar, req_tenant_uuid uuid, req_phase varchar[], req_workspace_uuid uuid) \
         \    RETURNS uuid \
         \    LANGUAGE plpgsql \
         \AS \
@@ -110,90 +111,17 @@ createGetNewestPackageFn = do
         \    SELECT uuid \
         \    INTO p_uuid \
         \    FROM knowledge_model_package \
-        \    WHERE organization_id = req_organization_id \
-        \      AND km_id = req_km_id \
+        \    WHERE id = req_id \
         \      AND tenant_uuid = req_tenant_uuid \
         \      AND phase = ANY (req_phase) \
+        \      AND (workspace_uuid IS NULL OR workspace_uuid = req_workspace_uuid) \
         \    ORDER BY (string_to_array(version, '.')::int[])[1] DESC, \
         \             (string_to_array(version, '.')::int[])[2] DESC, \
-        \             (string_to_array(version, '.')::int[])[3] DESC \
+        \             (string_to_array(version, '.')::int[])[3] DESC, \
+        \             workspace_uuid IS NOT NULL DESC \
         \    LIMIT 1; \
         \ \
         \    RETURN p_uuid; \
-        \END; \
-        \$$;"
-  let action conn = execute_ conn sql
-  runDB action
-
-createGetNewestPackageCoordinateFn :: WizardRequestContextC s m => m Int64
-createGetNewestPackageCoordinateFn = do
-  let sql =
-        "CREATE or REPLACE FUNCTION get_newest_knowledge_model_package_coordinate(req_coordinate varchar, req_tenant_uuid uuid, req_phase varchar[]) \
-        \    RETURNS varchar \
-        \    LANGUAGE plpgsql \
-        \AS \
-        \$$ \
-        \DECLARE \
-        \    target_uuid       uuid; \
-        \    result_coordinate varchar; \
-        \BEGIN \
-        \    IF req_coordinate IS NULL THEN \
-        \        RETURN NULL; \
-        \    END IF; \
-        \ \
-        \    target_uuid := get_newest_knowledge_model_package( \
-        \            get_organization_id(req_coordinate), \
-        \            get_km_id(req_coordinate), \
-        \            req_tenant_uuid, \
-        \            req_phase \
-        \                   ); \
-        \ \
-        \    IF target_uuid IS NOT NULL THEN \
-        \        SELECT concat(organization_id, ':', km_id, ':', version) \
-        \        INTO result_coordinate \
-        \        FROM knowledge_model_package \
-        \        WHERE uuid = target_uuid; \
-        \    END IF; \
-        \ \
-        \    RETURN result_coordinate; \
-        \END; \
-        \$$;"
-  let action conn = execute_ conn sql
-  runDB action
-
-createGetOrganizationIdFn :: WizardRequestContextC s m => m Int64
-createGetOrganizationIdFn = do
-  let sql =
-        "CREATE or REPLACE FUNCTION get_organization_id(req_p_id varchar) \
-        \    RETURNS varchar \
-        \    LANGUAGE plpgsql \
-        \AS \
-        \$$ \
-        \DECLARE \
-        \    organization_id varchar; \
-        \BEGIN \
-        \    SELECT split_part(req_p_id, ':', 1) \
-        \    INTO organization_id; \
-        \    RETURN organization_id; \
-        \END; \
-        \$$;"
-  let action conn = execute_ conn sql
-  runDB action
-
-createGetKmIdFn :: WizardRequestContextC s m => m Int64
-createGetKmIdFn = do
-  let sql =
-        "CREATE or REPLACE FUNCTION get_km_id(req_p_id varchar) \
-        \    RETURNS varchar \
-        \    LANGUAGE plpgsql \
-        \AS \
-        \$$ \
-        \DECLARE \
-        \    km_id varchar; \
-        \BEGIN \
-        \    SELECT split_part(req_p_id, ':', 2) \
-        \    INTO km_id; \
-        \    RETURN km_id;\
         \END; \
         \$$;"
   let action conn = execute_ conn sql

@@ -1,6 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelPackage.List_Bundle_POST where
 
-import qualified Data.List as L
+import qualified Data.UUID as U
 import Servant
 import Servant.Multipart
 
@@ -12,7 +12,6 @@ import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleJM 
 import Shared.Model.Context.TransactionState
 import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundleFile
 import Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleService
-import Shared.Service.Owl.OwlService
 
 type List_Bundle_POST =
   Header "Authorization" String
@@ -20,6 +19,8 @@ type List_Bundle_POST =
     :> MultipartForm Mem KnowledgeModelBundleFile
     :> "knowledge-model-packages"
     :> "bundle"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> Post '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
 
 list_bundle_POST
@@ -27,11 +28,10 @@ list_bundle_POST
   => Maybe String
   -> Maybe String
   -> KnowledgeModelBundleFile
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
-list_bundle_POST mTokenHeader mServerUrl reqDto =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_bundle_POST mTokenHeader mServerUrl reqDto mW mTenant =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $
-      addTraceUuidHeader
-        =<< if L.isSuffixOf ".ttl" reqDto.fileName || L.isSuffixOf ".owl" reqDto.fileName
-          then importOwl reqDto
-          else importAndConvertBundle reqDto.content False
+      addTraceUuidHeader =<< importAndConvertBundle reqDto.content False

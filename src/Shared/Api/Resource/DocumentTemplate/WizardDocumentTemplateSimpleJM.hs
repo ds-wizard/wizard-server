@@ -2,7 +2,6 @@ module Shared.Api.Resource.DocumentTemplate.WizardDocumentTemplateSimpleJM where
 
 import Data.Aeson
 
-import RegistryPublic.Api.Resource.Organization.OrganizationSimpleJM ()
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateStateJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleJM ()

@@ -25,11 +25,11 @@ import Specs.Api.Handler.DocumentTemplate.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/document-templates/{uuid}
+-- PUT /api/document-templates/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/document-templates/{uuid}" $ do
+  describe "PUT /api/document-templates/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -40,7 +40,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ U.toString wizardDocumentTemplate.uuid
+reqUrl = BS.pack $ "/api/document-templates/" ++ U.toString wizardDocumentTemplate.uuid
 
 reqHeadersT reqAuthHeader = [reqCtHeader, reqAuthHeader]
 
@@ -82,7 +82,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "DocumentTemplatesManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "documentTemplates.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -90,7 +90,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-templates/3db4265e-8ba2-433d-97fb-6cc504866bbd"
+    "/api/document-templates/3db4265e-8ba2-433d-97fb-6cc504866bbd"
     (reqHeadersT reqAuthHeader)
     reqBody
     "document_template"

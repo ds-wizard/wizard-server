@@ -16,10 +16,17 @@ type TokenAPI =
     :> ( List_GET
            :<|> List_POST
            :<|> List_DELETE
-           :<|> List_System_POST
            :<|> List_Current_DELETE
            :<|> Detail_DELETE
        )
+
+type TokenSystemAPI = Tags "Token" :> List_System_POST
+
+tokenSystemApi :: Proxy TokenSystemAPI
+tokenSystemApi = Proxy
+
+tokenSystemServer :: WizardHandlerC s sm r rm => ServerT TokenSystemAPI sm
+tokenSystemServer = list_system_POST
 
 tokenApi :: Proxy TokenAPI
 tokenApi = Proxy
@@ -29,6 +36,5 @@ tokenServer =
   list_GET
     :<|> list_POST
     :<|> list_DELETE
-    :<|> list_system_POST
     :<|> list_current_DELETE
     :<|> detail_DELETE

@@ -16,8 +16,7 @@ instance FromRow DocumentTemplateSuggestion where
   fromRow = do
     uuid <- field
     name <- field
-    organizationId <- field
-    templateId <- field
+    id <- field
     version <- field
     phase <- field
     metamodelVersion <- field

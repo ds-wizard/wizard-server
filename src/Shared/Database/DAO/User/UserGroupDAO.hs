@@ -8,13 +8,13 @@ import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 import GHC.Int
 
-import Shared.Database.DAO.Common
+import Shared.Database.DAO.WizardCommon
 import Shared.Database.Mapping.User.UserGroup ()
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
-import Shared.Model.Context.RequestContext
+import Shared.Model.Context.WizardRequestContext
 import Shared.Model.User.UserGroup
 import Shared.Util.String
 
@@ -22,23 +22,19 @@ entityName = "user_group"
 
 pageLabel = "userGroups"
 
-createFindUserGroupPage :: (RequestContextC s sc m, FromRow userGroup) => String -> U.UUID -> Bool -> Maybe String -> String -> Pageable -> [Sort] -> m (Page userGroup)
-createFindUserGroupPage fields currentUserUuid isAdmin mQuery additionalCondition pageable sort =
+createFindUserGroupPage :: (WizardRequestContextC s m, FromRow userGroup) => String -> U.UUID -> String -> Maybe String -> String -> Pageable -> [Sort] -> m (Page userGroup)
+createFindUserGroupPage fields currentUserUuid manageCondition mQuery additionalCondition pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
+    workspaceCondition <- workspaceOnlyCondition Nothing "ug.workspace_uuid"
     let membershipTable = "user_group_membership"
     let (nameCondition, nameRegex) =
           case mQuery of
             Just query -> (" AND ug.name ~* ?", [regex query])
             Nothing -> ("", [])
-    let (aclJoins, aclCondition) =
-          if isAdmin
-            then ("", "")
-            else
-              ( f' "LEFT JOIN %s ugm ON ugm.user_group_uuid = ug.uuid AND ugm.tenant_uuid = ug.tenant_uuid" [membershipTable]
-              , f' "AND (ug.private IS FALSE OR ugm.user_uuid = '${userUuid}')" [U.toString currentUserUuid]
-              )
+    let aclJoins = f' "LEFT JOIN %s ugm ON ugm.user_group_uuid = ug.uuid AND ugm.tenant_uuid = ug.tenant_uuid" [membershipTable]
+    let aclCondition = f' "AND (ug.private IS FALSE OR ugm.user_uuid = '%s' OR %s)" [U.toString currentUserUuid, manageCondition]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
     let countSql =
@@ -47,11 +43,12 @@ createFindUserGroupPage fields currentUserUuid isAdmin mQuery additionalConditio
               "SELECT COUNT(DISTINCT ug.uuid) \
               \FROM ${userGroup} ug \
               \${aclJoin} \
-              \WHERE ug.tenant_uuid = '${tenantUuid}' ${nameCondition} ${aclCondition} ${additionalCondition}"
+              \WHERE ug.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${nameCondition} ${aclCondition} ${additionalCondition}"
               [ ("userGroup", entityName)
               , ("userUuid", U.toString currentUserUuid)
               , ("aclJoin", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
+              , ("workspaceCondition", workspaceCondition)
               , ("nameCondition", nameCondition)
               , ("aclCondition", aclCondition)
               , ("additionalCondition", additionalCondition)
@@ -71,7 +68,7 @@ createFindUserGroupPage fields currentUserUuid isAdmin mQuery additionalConditio
               "SELECT DISTINCT ${fields} \
               \FROM ${userGroup} ug \
               \${aclJoin} \
-              \WHERE ug.tenant_uuid = '${tenantUuid}' ${nameCondition} ${aclCondition} ${additionalCondition} \
+              \WHERE ug.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${nameCondition} ${aclCondition} ${additionalCondition} \
               \${sort} \
               \OFFSET ${offset} \
               \LIMIT ${limit}"
@@ -80,6 +77,7 @@ createFindUserGroupPage fields currentUserUuid isAdmin mQuery additionalConditio
               , ("userUuid", U.toString currentUserUuid)
               , ("aclJoin", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
+              , ("workspaceCondition", workspaceCondition)
               , ("nameCondition", nameCondition)
               , ("aclCondition", aclCondition)
               , ("additionalCondition", additionalCondition)
@@ -100,32 +98,32 @@ createFindUserGroupPage fields currentUserUuid isAdmin mQuery additionalConditio
             }
     return $ Page pageLabel metadata entities
 
-findUserGroupByUuid :: RequestContextC s sc m => U.UUID -> m UserGroup
+findUserGroupByUuid :: WizardRequestContextC s m => U.UUID -> m UserGroup
 findUserGroupByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
-insertUserGroup :: RequestContextC s sc m => UserGroup -> m Int64
+insertUserGroup :: WizardRequestContextC s m => UserGroup -> m Int64
 insertUserGroup userGroup = do
   createInsertFn entityName userGroup
 
-updateUserGroupByUuid :: RequestContextC s sc m => UserGroup -> m Int64
+updateUserGroupByUuid :: WizardRequestContextC s m => UserGroup -> m Int64
 updateUserGroupByUuid userGroup = do
   let sql =
         fromString $
           f'
-            "UPDATE %s SET uuid = ?, name = ?, description = ?, private = ?, tenant_uuid = ?, created_at = ?, updated_at = ? WHERE uuid = ? AND tenant_uuid = ?"
+            "UPDATE %s SET uuid = ?, name = ?, description = ?, private = ?, tenant_uuid = ?, created_at = ?, updated_at = ?, workspace_uuid = ? WHERE uuid = ? AND tenant_uuid = ?"
             [entityName]
   let params = toRow userGroup ++ [toField userGroup.uuid, toField userGroup.tenantUuid]
   logQuery sql params
   let action conn = execute conn sql params
   runDB action
 
-deleteUserGroups :: RequestContextC s sc m => m Int64
+deleteUserGroups :: WizardRequestContextC s m => m Int64
 deleteUserGroups = do
   createDeleteEntitiesFn entityName
 
-deleteUserGroupByUuid :: RequestContextC s sc m => U.UUID -> m ()
+deleteUserGroupByUuid :: WizardRequestContextC s m => U.UUID -> m ()
 deleteUserGroupByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createDeleteEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]

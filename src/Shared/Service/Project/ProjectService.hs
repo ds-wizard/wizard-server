@@ -1,6 +1,6 @@
 module Shared.Service.Project.ProjectService where
 
-import Control.Monad (void, when)
+import Control.Monad (forM_, void, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Char (toLower)
@@ -56,7 +56,7 @@ import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectContent
 import Shared.Model.Project.ProjectReply
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import qualified Shared.Service.DocumentTemplate.DocumentTemplateMapper as STM
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper as KnowledgeModelLocaleMapper
@@ -73,8 +73,9 @@ import Shared.Service.Project.ProjectMapper
 import Shared.Service.Project.ProjectUtil
 import Shared.Service.Project.ProjectValidation
 import Shared.Service.Project.Version.ProjectVersionService
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
@@ -119,15 +120,18 @@ createProject reqDto =
 createProjectWithGivenUuid :: WizardRequestContextC s m => ProjectCreateDTO -> U.UUID -> m ProjectDTO
 createProjectWithGivenUuid reqDto projectUuid =
   runInTransaction $ do
+    workspaceUuid <- requireWorkspaceScope
     checkProjectLimit
-    checkCreatePermissionToProject
+    checkCreatePermissionToProject workspaceUuid
     pkg <- findPackageByUuid reqDto.knowledgeModelPackageUuid
-    knowledgeModelState <- getKnowledgeModelProjectState pkg
-    documentTemplateState <- getDocumentTemplateProjectState reqDto.documentTemplateUuid
+    checkPackageWorkspace workspaceUuid pkg.workspaceUuid
+    forM_ reqDto.documentTemplateUuid (checkTemplateWorkspaceByUuid workspaceUuid)
+    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just workspaceUuid)
+    documentTemplateState <- getDocumentTemplateProjectState reqDto.documentTemplateUuid (Just workspaceUuid)
     now <- liftIO getCurrentTime
     tenantUuid <- asks (.tenantUuid')
-    visibility <- extractVisibility reqDto
-    sharing <- extractSharing reqDto
+    visibility <- extractVisibility workspaceUuid reqDto
+    sharing <- extractSharing workspaceUuid reqDto
     mCurrentUser <- asks (.currentUser')
     knowledgeModel <- compileKnowledgeModel [] (Just pkg.uuid) reqDto.questionTagUuids
     phaseEventUuid <- liftIO generateUuid
@@ -142,6 +146,7 @@ createProjectWithGivenUuid reqDto projectUuid =
             phaseEventUuid
             (headSafe knowledgeModel.phaseUuids)
             tenantUuid
+            workspaceUuid
             now
     insertProject project
     insertProjectEvents projectEvents
@@ -153,16 +158,17 @@ createProjectFromTemplate reqDto =
   runInTransaction $ do
     checkProjectLimit
     originProject <- findProjectByUuid reqDto.projectUuid
-    checkCreateFromTemplatePermissionToProject originProject.isTemplate
+    checkViewPermissionToProject originProject.workspaceUuid originProject.visibility originProject.sharing originProject.permissions
+    checkCreateFromTemplatePermissionToProject originProject.workspaceUuid originProject.isTemplate
     pkg <- findPackageByUuid originProject.knowledgeModelPackageUuid
     newProjectUuid <- liftIO generateUuid
     currentUser <- getCurrentUser
     now <- liftIO getCurrentTime
-    tcProject <- getCurrentTenantConfigProject
+    tcProject <- getEffectiveSettingsProjects (Just originProject.workspaceUuid)
     originProjectEvents <- findProjectEventListsByProjectUuid reqDto.projectUuid
     let newVisibility = tcProject.projectVisibility.defaultValue
     let newSharing = tcProject.projectSharing.defaultValue
-    let newPermissions = [toUserProjectPerm newProjectUuid currentUser.uuid ownerPermissions tcProject.tenantUuid]
+    let newPermissions = [toUserProjectPerm newProjectUuid currentUser.uuid ownerPermissions originProject.tenantUuid]
     let newProject =
           originProject
             { uuid = newProjectUuid
@@ -185,8 +191,8 @@ createProjectFromTemplate reqDto =
     insertProjectEvents (fmap (toEvent newProjectUuid newProject.tenantUuid) newProjectEventsWithReplacedFiles)
     duplicateCommentThreads reqDto.projectUuid newProjectUuid
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
-    knowledgeModelState <- getKnowledgeModelProjectState pkg
-    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid
+    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
+    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
     permissionDtos <- traverse enhanceProjectPerm newProject.permissions
     return $ toSimpleDTO newProject pkg knowledgeModelState documentTemplateState permissionDtos
 
@@ -195,7 +201,7 @@ cloneProject cloneUuid =
   runInTransaction $ do
     checkProjectLimit
     originProject <- findProjectByUuid cloneUuid
-    checkClonePermissionToProject originProject.visibility originProject.sharing originProject.permissions
+    checkClonePermissionToProject originProject.workspaceUuid originProject.visibility originProject.sharing originProject.permissions
     pkg <- findPackageByUuid originProject.knowledgeModelPackageUuid
     newProjectUuid <- liftIO generateUuid
     currentUser <- getCurrentUser
@@ -220,8 +226,8 @@ cloneProject cloneUuid =
     insertProjectEvents (fmap (toEvent newProjectUuid newProject.tenantUuid) newProjectEventsWithReplacedFiles)
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
     duplicateCommentThreads cloneUuid newProjectUuid
-    knowledgeModelState <- getKnowledgeModelProjectState pkg
-    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid
+    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
+    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
     permissionDtos <- traverse enhanceProjectPerm newProject.permissions
     return $ toSimpleDTO newProject pkg knowledgeModelState documentTemplateState permissionDtos
 
@@ -232,10 +238,12 @@ createProjectsFromCommands = runInTransaction . traverse_ create
       uuid <- liftIO generateUuid
       currentUser <- getCurrentUser
       now <- liftIO getCurrentTime
-      tcProject <- getCurrentTenantConfigProject
       users <- findUsersByEmails (fmap (fmap toLower) command.emails)
+      workspaceUuid <- resolveCommandWorkspaceUuid command.workspaceUuid
+      tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
+      tenantUuid <- asks (.tenantUuid')
       let permissions = fmap (createPermission uuid) users
-      let project = fromCreateProjectCommand command uuid permissions tcProject currentUser.uuid now
+      let project = fromCreateProjectCommand command uuid permissions tcProject tenantUuid currentUser.uuid workspaceUuid now
       insertProject project
       return ()
     createPermission :: U.UUID -> User -> ProjectPerm
@@ -244,15 +252,15 @@ createProjectsFromCommands = runInTransaction . traverse_ create
 getProjectDetailByUuid :: WizardRequestContextC s m => U.UUID -> m ProjectDetailDTO
 getProjectDetailByUuid projectUuid = do
   project <- findProjectDetail projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   return $ toDetailDTO project
 
 getProjectDetailQuestionnaireByUuid :: WizardRequestContextC s m => U.UUID -> m ProjectDetailQuestionnaireDTO
 getProjectDetailQuestionnaireByUuid projectUuid = do
   project <- findProjectDetailQuestionnaire projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
-  editor <- catchError (hasEditPermissionToProject project.visibility project.sharing project.permissions) (\_ -> return False)
-  commenter <- catchError (hasCommentPermissionToProject project.visibility project.sharing project.permissions) (\_ -> return False)
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
+  editor <- catchError (hasEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions) (\_ -> return False)
+  commenter <- catchError (hasCommentPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions) (\_ -> return False)
   compileProjectDetailQuestionnaire project editor commenter
 
 compileProjectDetailQuestionnaire :: WizardRequestContextC s m => ProjectDetailQuestionnaire -> Bool -> Bool -> m ProjectDetailQuestionnaireDTO
@@ -278,13 +286,13 @@ compileProjectDetailQuestionnaire project editor commenter = do
 getProjectDetailPreviewById :: WizardRequestContextC s m => U.UUID -> m ProjectDetailPreview
 getProjectDetailPreviewById projectUuid = do
   project <- findProjectDetailPreview projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   return project
 
 getProjectDetailSettingsById :: WizardRequestContextC s m => U.UUID -> m ProjectDetailSettings
 getProjectDetailSettingsById projectUuid = do
   project <- findProjectDetailSettings projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   knowledgeModel <- compileKnowledgeModel [] (Just project.knowledgeModelPackage.uuid) project.selectedQuestionTagUuids
   availableLocales <- findKnowledgeModelLocalesByPackageUuid project.knowledgeModelPackage.uuid
   return $
@@ -300,14 +308,14 @@ getProjectEventsPage projectUuid pageable sort = do
   -- PostgreSQL versions, so default to the chronological order of the events.
   let appliedSort = if null sort then [Sort "createdAt" Ascending] else sort
   events <- findProjectEventsPage projectUuid pageable appliedSort
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   auditProjectListEvents projectUuid
   return events
 
 getProjectEventForProjectUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ProjectEventDTO
 getProjectEventForProjectUuid projectUuid eventUuid = do
   project <- findProjectByUuid projectUuid
-  checkViewPermissionToProject project.visibility project.sharing project.permissions
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   auditProjectDetailEvent projectUuid
   event <- findProjectEventByUuid eventUuid
   mUser <-
@@ -320,13 +328,14 @@ modifyProjectShare :: WizardRequestContextC s m => U.UUID -> ProjectShareChangeD
 modifyProjectShare projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    skipIfAssigningProject project (checkOwnerPermissionToProject project.visibility project.permissions)
+    skipIfAssigningProject project (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
+    validateProjectShareChangeDTO project.workspaceUuid reqDto
     now <- liftIO getCurrentTime
-    qVisibility <- extractVisibility reqDto
-    qSharing <- extractSharing reqDto
+    qVisibility <- extractVisibility project.workspaceUuid reqDto
+    qSharing <- extractSharing project.workspaceUuid reqDto
     let updatedProject = fromShareChangeDTO project reqDto qVisibility qSharing now
     updateProjectByUuid updatedProject
-    updatePermsForOnlineUsers projectUuid updatedProject.visibility updatedProject.sharing updatedProject.permissions
+    updatePermsForOnlineUsers projectUuid project.workspaceUuid updatedProject.visibility updatedProject.sharing updatedProject.permissions
     permissionDtos <- traverse enhanceProjectPerm updatedProject.permissions
     skipIfAssigningProject
       project
@@ -359,10 +368,10 @@ modifyProjectSettings :: WizardRequestContextC s m => U.UUID -> ProjectSettingsC
 modifyProjectSettings projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    validateProjectSettingsChangeDTO reqDto
-    skipIfAssigningProject project (checkOwnerPermissionToProject project.visibility project.permissions)
+    skipIfAssigningProject project (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
+    validateProjectSettingsChangeDTO project.workspaceUuid reqDto
     now <- liftIO getCurrentTime
-    hasPermission <- hasPermission _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION
+    hasPermission <- hasPermissionInWorkspace _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION (Just project.workspaceUuid)
     let updatedProject = fromSettingsChangeDTO project reqDto hasPermission now
     updateProjectByUuid updatedProject
     permissionDtos <- traverse enhanceProjectPerm updatedProject.permissions
@@ -392,7 +401,7 @@ deleteProject :: WizardRequestContextC s m => U.UUID -> Bool -> m ()
 deleteProject projectUuid shouldValidatePermission =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    when shouldValidatePermission (checkOwnerPermissionToProject project.visibility project.permissions)
+    when shouldValidatePermission (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
     deleteProjectByUuid projectUuid
     void $ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuid
 
@@ -400,7 +409,7 @@ modifyContent :: WizardRequestContextC s m => U.UUID -> ProjectContentChangeDTO 
 modifyContent projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
-    checkEditPermissionToProject project.visibility project.sharing project.permissions
+    checkEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     mCurrentUser <- asks (.currentUser')
     now <- liftIO getCurrentTime
     projectEvents <- findProjectEventsByProjectUuid projectUuid

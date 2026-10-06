@@ -26,11 +26,11 @@ import Specs.Api.Handler.DocumentTemplate.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/{uuid}
+-- GET /api/document-templates/{uuid}
 -- ------------------------------------------------------------------------
 detail_pull_POST :: RequestContext -> SpecWith ((), Application)
 detail_pull_POST requestContext =
-  describe "POST /wizard-api/document-templates/{uuid}/pull" $ do
+  describe "POST /api/document-templates/{uuid}/pull" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -41,7 +41,7 @@ detail_pull_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ show (createCoordinate wizardDocumentTemplate) ++ "/pull"
+reqUrl = BS.pack $ "/api/document-templates/" ++ show (createCoordinate wizardDocumentTemplate) ++ "/pull"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 
@@ -56,6 +56,7 @@ create_test_201 title requestContext reqAuthHeader =
   it title $
     -- GIVEN: Prepare request
     do
+      pendingUntilRegistryTestUpgrade
       let reqHeaders = reqHeadersT reqAuthHeader
       -- AND: Prepare expectation
       let expStatus = 201
@@ -83,12 +84,13 @@ test_400 requestContext =
   it "HTTP 400 BAD REQUEST - DocumentTemplate was not found in Registry" $
     -- GIVEN: Prepare request
     do
-      let reqUrl = "/wizard-api/document-templates/global:non-existing-template:1.0.0/pull"
+      pendingUntilRegistryTestUpgrade
+      let reqUrl = "/api/document-templates/global.non-existing-template:1.0.0/pull"
       let reqHeaders = reqHeadersT reqAuthHeader
       -- AND: Prepare expectation
       let expStatus = 400
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = UserError (_ERROR_SERVICE_TB__PULL_NON_EXISTING_TML "global:non-existing-template:1.0.0")
+      let expDto = UserError (_ERROR_SERVICE_TB__PULL_NON_EXISTING_TML "global.non-existing-template:1.0.0")
       let expBody = encode expDto
       -- WHEN: Call APIA
       response <- request reqMethod reqUrl reqHeaders reqBody
@@ -105,4 +107,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "DocumentTemplatesManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "documentTemplates.manage"

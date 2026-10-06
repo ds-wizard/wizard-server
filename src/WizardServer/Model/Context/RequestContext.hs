@@ -5,8 +5,9 @@ import Control.Monad (unless)
 import Control.Monad.Except (ExceptT, MonadError, runExceptT, throwError)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Logger (LoggingT, MonadLogger)
-import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
+import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
 import Data.IORef (IORef)
+import qualified Data.Map.Strict as M
 import Data.Pool (Pool)
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple (Connection)
@@ -23,6 +24,7 @@ import Shared.Model.Config.BuildInfoConfig
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContext
+import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.Sentry.SentryEvent
@@ -45,6 +47,9 @@ data RequestContext = RequestContext
   , currentUser :: Maybe UserDTO
   , shutdownFlag :: MVar ()
   , cache :: ServerCache
+  , scope :: Scope
+  , tenantMultiWorkspace :: Bool
+  , workspaceRoles :: M.Map U.UUID RoleSimple
   }
 
 newtype RequestContextM a = RequestContextM
@@ -110,10 +115,19 @@ instance HasField "registryClient'" RequestContext ClientEnv where
 instance HasField "shutdownFlag'" RequestContext (MVar ()) where
   getField = (.shutdownFlag)
 
+instance HasField "scope'" RequestContext Scope where
+  getField = (.scope)
+
+instance HasField "tenantMultiWorkspace'" RequestContext Bool where
+  getField = (.tenantMultiWorkspace)
+
+instance HasField "workspaceRoles'" RequestContext (M.Map U.UUID RoleSimple) where
+  getField = (.workspaceRoles)
+
 instance WizardRequestContextC RequestContext RequestContextM where
   runRequestContextWithRequestContext function requestContext = do
     let loggingLevel = requestContext.serverConfig.logging.level
-    eResult <- runExceptT . runLogging loggingLevel $ runReaderT (runRequestContextM function) requestContext
+    eResult <- runExceptT . runLogging loggingLevel $ runReaderT function.runRequestContextM requestContext
     case eResult of
       Right result -> return . Right $ result
       Left error ->
@@ -123,31 +137,51 @@ instance WizardRequestContextC RequestContext RequestContextM where
 
 instance AclContext RequestContextM where
   checkPermission perm = do
-    mCurrentUser <- asks currentUser
-    case mCurrentUser of
-      Nothing -> throwError . ForbiddenError $ _ERROR_SERVICE_USER__MISSING_USER
-      Just user ->
-        unless
-          (perm `elem` user.role.permissions)
-          (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ perm))
+    perms <- scopePermissions
+    unless
+      (perm `elem` perms)
+      (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ perm))
   checkPermissionsAny perms = do
-    mCurrentUser <- asks currentUser
-    case mCurrentUser of
-      Nothing -> throwError . ForbiddenError $ _ERROR_SERVICE_USER__MISSING_USER
-      Just user ->
-        unless
-          (any (`elem` user.role.permissions) perms)
-          (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission (need any): " ++ show perms))
+    userPerms <- scopePermissions
+    unless
+      (any (`elem` userPerms) perms)
+      (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission (need any): " ++ show perms))
   checkPermissionsAll perms = do
-    mCurrentUser <- asks currentUser
-    case mCurrentUser of
-      Nothing -> throwError . ForbiddenError $ _ERROR_SERVICE_USER__MISSING_USER
-      Just user ->
-        unless
-          (all (`elem` user.role.permissions) perms)
-          (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permissions (need all): " ++ show perms))
+    userPerms <- scopePermissions
+    unless
+      (all (`elem` userPerms) perms)
+      (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permissions (need all): " ++ show perms))
   hasPermission perm = do
-    mCurrentUser <- asks currentUser
+    mCurrentUser <- asks (.currentUser)
     case mCurrentUser of
       Nothing -> return False
-      Just user -> return $ perm `elem` user.role.permissions
+      Just _ -> (perm `elem`) <$> scopePermissions
+  checkPermissionInWorkspace perm mWorkspaceUuid = do
+    perms <- currentPermissionsInWorkspace mWorkspaceUuid
+    unless
+      (perm `elem` perms)
+      (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ perm))
+  hasPermissionInWorkspace perm mWorkspaceUuid = do
+    mCurrentUser <- asks (.currentUser)
+    case mCurrentUser of
+      Nothing -> return False
+      Just _ -> (perm `elem`) <$> currentPermissionsInWorkspace mWorkspaceUuid
+
+scopePermissions :: RequestContextM [String]
+scopePermissions = do
+  context <- ask
+  user <- currentUserOrForbidden
+  return $ effectivePermissions user context.workspaceRoles context.tenantMultiWorkspace context.scope
+
+currentPermissionsInWorkspace :: Maybe U.UUID -> RequestContextM [String]
+currentPermissionsInWorkspace mWorkspaceUuid = do
+  context <- ask
+  user <- currentUserOrForbidden
+  return $ permissionsInWorkspace user context.workspaceRoles context.tenantMultiWorkspace mWorkspaceUuid
+
+currentUserOrForbidden :: RequestContextM UserDTO
+currentUserOrForbidden = do
+  mCurrentUser <- asks (.currentUser)
+  case mCurrentUser of
+    Nothing -> throwError . ForbiddenError $ _ERROR_SERVICE_USER__MISSING_USER
+    Just user -> return user

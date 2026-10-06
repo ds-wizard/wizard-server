@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/document-templates/{uuid}
+-- GET /api/document-templates/{uuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/document-templates/{uuid}" $ do
+  describe "GET /api/document-templates/{uuid}" $ do
     test_200 requestContext
     test_404 requestContext
 
@@ -37,7 +37,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/document-templates/" ++ U.toString wizardDocumentTemplate.uuid
+reqUrl = BS.pack $ "/api/document-templates/" ++ U.toString wizardDocumentTemplate.uuid
 
 reqHeadersT reqAuthHeader = reqAuthHeader
 
@@ -76,7 +76,7 @@ create_test_200 title requestContext reqAuthHeader =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/document-templates/3db4265e-8ba2-433d-97fb-6cc504866bbd"
+    "/api/document-templates/3db4265e-8ba2-433d-97fb-6cc504866bbd"
     (reqHeadersT [reqAuthHeader])
     reqBody
     "document_template"

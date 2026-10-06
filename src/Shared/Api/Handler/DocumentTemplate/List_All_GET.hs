@@ -1,6 +1,7 @@
 module Shared.Api.Handler.DocumentTemplate.List_All_GET where
 
-import Data.Maybe (catMaybes)
+import Data.Maybe (maybeToList)
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -14,20 +15,22 @@ type List_All_GET =
     :> Header "Host" String
     :> "document-templates"
     :> "all"
-    :> QueryParam "organizationId" String
-    :> QueryParam "templateId" String
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
+    :> QueryParam "id" String
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] [DocumentTemplateSuggestionDTO])
 
 list_all_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
-  -> Maybe String
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] [DocumentTemplateSuggestionDTO])
-list_all_GET mTokenHeader mServerUrl mOrganizationId mTmlId =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_all_GET mTokenHeader mServerUrl mW mTenant mId =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< do
-        let queryParams = catMaybes [(,) "organization_id" <$> mOrganizationId, (,) "template_id" <$> mTmlId]
+        let queryParams = maybeToList ((,) "id" <$> mId)
         getDocumentTemplatesDto queryParams

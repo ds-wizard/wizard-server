@@ -12,6 +12,7 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretMapper
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 
 getKnowledgeModelSecrets :: WizardRequestContextC s m => m [KnowledgeModelSecret]
@@ -22,11 +23,12 @@ getKnowledgeModelSecrets = do
 createKnowledgeModelSecret :: WizardRequestContextC s m => KnowledgeModelSecretChangeDTO -> m KnowledgeModelSecret
 createKnowledgeModelSecret reqDto =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkPermissionInWorkspace _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION workspaceUuid
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     tenantUuid <- asks (.tenantUuid')
-    let kmSecret = fromCreateDTO reqDto uuid tenantUuid now
+    let kmSecret = fromCreateDTO reqDto uuid tenantUuid workspaceUuid now
     insertKnowledgeModelSecret kmSecret
     return kmSecret
 
@@ -35,6 +37,7 @@ modifyKnowledgeModelSecret uuid reqDto =
   runInTransaction $ do
     checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
     kmSecret <- findKnowledgeModelSecretByUuid uuid
+    checkPermissionInWorkspace _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION kmSecret.workspaceUuid
     now <- liftIO getCurrentTime
     tenantUuid <- asks (.tenantUuid')
     let kmSecretUpdated = fromChangeDTO kmSecret reqDto now
@@ -44,5 +47,6 @@ modifyKnowledgeModelSecret uuid reqDto =
 deleteKnowledgeModelSecret :: WizardRequestContextC s m => U.UUID -> m ()
 deleteKnowledgeModelSecret uuid = do
   checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
-  _ <- findKnowledgeModelSecretByUuid uuid
+  kmSecret <- findKnowledgeModelSecretByUuid uuid
+  checkPermissionInWorkspace _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION kmSecret.workspaceUuid
   void $ deleteKnowledgeModelSecretByUuid uuid

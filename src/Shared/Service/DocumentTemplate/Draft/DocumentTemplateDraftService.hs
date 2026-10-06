@@ -2,7 +2,7 @@ module Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftService where
 
 import Control.Monad (void, when)
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (liftIO)
+import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
 import Data.Time
 import qualified Data.UUID as U
@@ -20,7 +20,6 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFileDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFormatDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.Project.ProjectDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.KnowledgeModel.Public
 import Shared.Model.Common.Page
@@ -34,8 +33,8 @@ import Shared.Model.DocumentTemplate.DocumentTemplateDraftDetail
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
 import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetService
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation hiding (validateChangeDto)
 import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftMapper
@@ -43,6 +42,7 @@ import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftValidation
 import Shared.Service.DocumentTemplate.File.DocumentTemplateFileService
 import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 
 getDraftsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page DocumentTemplateDraftList)
@@ -53,19 +53,21 @@ getDraftsPage mQuery pageable sort = do
 createDraft :: WizardRequestContextC s m => DocumentTemplateDraftCreateDTO -> m DocumentTemplateSimple
 createDraft reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkPermissionInWorkspace _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION workspaceUuid
     checkDocumentTemplateDraftLimit
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
-    tcOrganization <- findTenantConfigOrganization
+    tenantUuid <- asks (.tenantUuid')
     case reqDto.basedOn of
       Just dtUuid -> do
         tml <- findDocumentTemplateByUuid dtUuid
+        checkTemplateInWorkspace workspaceUuid tml.workspaceUuid
         formats <- findDocumentTemplateFormats dtUuid
         when
           tml.nonEditable
           (throwError . UserError $ _ERROR_SERVICE_DOC_TML__NON_EDITABLE_DOC_TML)
-        let (draft, draftFormats) = fromCreateDTO reqDto uuid tml formats tcOrganization.organizationId now
+        let (draft, draftFormats) = fromCreateDTO reqDto uuid tml formats workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         traverse_ insertDocumentTemplateFormat draftFormats
@@ -77,7 +79,7 @@ createDraft reqDto =
         insertDraftData draftData
         return $ toSimple draft
       Nothing -> do
-        let draft = fromCreateDTO' reqDto uuid tcOrganization.organizationId tcOrganization.tenantUuid now
+        let draft = fromCreateDTO' reqDto uuid tenantUuid workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         let draftData = fromCreateDraftData draft
@@ -86,7 +88,7 @@ createDraft reqDto =
 
 getDraft :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateDraftDetail
 getDraft dtUuid = do
-  checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+  checkEditorPermissionToDocumentTemplate dtUuid
   draft <- findDraftByUuid dtUuid
   formats <- findDocumentTemplateFormats draft.uuid
   draftData <- findDraftDataByUuid dtUuid
@@ -103,7 +105,7 @@ getDraft dtUuid = do
 modifyDraft :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftChangeDTO -> m DocumentTemplateDraftDetail
 modifyDraft dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate dtUuid
     -- Update draft
     now <- liftIO getCurrentTime
     draft <- findDraftByUuid dtUuid
@@ -127,7 +129,7 @@ modifyDraft dtUuid reqDto =
 modifyDraftData :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftDataChangeDTO -> m DocumentTemplateDraftDataDTO
 modifyDraftData dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate dtUuid
     draftData <- findDraftDataByUuid dtUuid
     let updatedDraftData = fromDraftDataChangeDTO draftData reqDto
     updateDraftDataById updatedDraftData
@@ -144,6 +146,6 @@ modifyDraftData dtUuid reqDto =
 deleteDraft :: WizardRequestContextC s m => U.UUID -> m ()
 deleteDraft uuid =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate uuid
     draft <- findDraftByUuid uuid
     void $ deleteDraftByUuid uuid

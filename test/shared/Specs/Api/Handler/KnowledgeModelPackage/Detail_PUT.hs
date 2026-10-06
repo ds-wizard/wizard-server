@@ -23,11 +23,11 @@ import Specs.Api.Handler.KnowledgeModelPackage.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/knowledge-model-packages/{uuid}
+-- PUT /api/knowledge-model-packages/{uuid}
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/knowledge-model-packages/{uuid}" $ do
+  describe "PUT /api/knowledge-model-packages/{uuid}" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -38,7 +38,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-packages/" ++ show globalKmPackage.uuid
+reqUrl = BS.pack $ "/api/knowledge-model-packages/" ++ show globalKmPackage.uuid
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 
@@ -85,7 +85,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-packages/deab6c38-aeac-4b17-a501-4365a0a70176"
+    "/api/knowledge-model-packages/deab6c38-aeac-4b17-a501-4365a0a70176"
     reqHeaders
     reqBody
     "knowledge_model_package"

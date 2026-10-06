@@ -1,5 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelEditor.List_GET where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -15,6 +16,8 @@ type List_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "knowledge-model-editors"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> QueryParam "q" String
     :> QueryParam "page" Int
     :> QueryParam "size" Int
@@ -25,12 +28,14 @@ list_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> Maybe Int
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page KnowledgeModelEditorList))
-list_GET mTokenHeader mServerUrl mQuery mPage mSize mSort =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_GET mTokenHeader mServerUrl mW mTenant mQuery mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< getEditorsPage mQuery (Pageable mPage mSize) (parseSortQuery mSort)

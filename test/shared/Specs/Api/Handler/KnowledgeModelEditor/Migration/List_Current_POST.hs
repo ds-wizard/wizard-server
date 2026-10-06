@@ -11,6 +11,8 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorCreateDTO
+import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationCreateDTO
+import Shared.Constant.Workspace
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
@@ -26,19 +28,21 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Tenant.Tenant
 import Shared.Service.KnowledgeModel.Editor.EditorService
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelEditor.Migration.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-editors/{uuid}/migrations/current
+-- POST /api/knowledge-model-editors/{uuid}/migrations/current
 -- ------------------------------------------------------------------------
 list_current_POST :: RequestContext -> SpecWith ((), Application)
 list_current_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-editors/{uuid}/migrations/current" $ do
+  describe "POST /api/knowledge-model-editors/{uuid}/migrations/current" $ do
     test_201 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -50,7 +54,7 @@ list_current_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -128,7 +132,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -156,3 +160,32 @@ test_404 requestContext = do
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+  it "HTTP 404 NOT FOUND when target package belongs to another workspace" $
+    -- GIVEN: Prepare request
+    do
+      let reqDto = KnowledgeModelMigrationCreateDTO {targetPackageUuid = secondWorkspaceKmPackage.uuid}
+      let reqBody = encode reqDto
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError (_ERROR_VALIDATION__ABSENCE "knowledge_model_package")
+      let expBody = encode expDto
+      -- AND: Prepare database
+      runMigrationWithEmptyDB requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertPackage secondWorkspaceKmPackage) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- AND: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findKnowledgeModelMigrations requestContext 0
+
+secondWorkspaceKmPackage :: KnowledgeModelPackage
+secondWorkspaceKmPackage =
+  netherlandsKmPackageV2
+    { uuid = u' "2b1c0d9e-8f7a-4b6c-9d5e-4f3a2b1c0d9e"
+    , workspaceUuid = Just secondWorkspaceUuid
+    }

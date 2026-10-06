@@ -4,7 +4,7 @@ import GHC.Generics
 
 data KnowledgeModelEditorChangeDTO = KnowledgeModelEditorChangeDTO
   { name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
   , readme :: String

@@ -27,11 +27,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-packages/suggestions
+-- GET /api/knowledge-model-packages/suggestions
 -- ------------------------------------------------------------------------
 list_suggestions_GET :: RequestContext -> SpecWith ((), Application)
 list_suggestions_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-packages/suggestions" $ do
+  describe "GET /api/knowledge-model-packages/suggestions" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -40,7 +40,7 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/knowledge-model-packages/suggestions"
+reqUrl = "/api/knowledge-model-packages/suggestions"
 
 reqHeaders = [reqNonAdminAuthHeader]
 
@@ -53,7 +53,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/wizard-api/knowledge-model-packages/suggestions?sort=organizationId,asc"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
@@ -65,7 +65,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (select)"
     requestContext
-    "/wizard-api/knowledge-model-packages/suggestions?sort=organizationId,asc&select=org.de:core-de:all,org.nl:core-nl:all"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc&select=org.de.core-de:all,org.nl.core-nl:all"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 2 1 0)
@@ -76,17 +76,17 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (exclude)"
     requestContext
-    "/wizard-api/knowledge-model-packages/suggestions?sort=organizationId,asc&exclude=org.de:core-de:all,org.nl:core-nl:all"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc&exclude=org.de.core-de:all,org.nl.core-nl:all"
     (Page "knowledgeModelPackages" (PageMetadata 20 1 1 0) [toSuggestion globalKmPackage])
   create_test_200
     "HTTP 200 OK (query - q)"
     requestContext
-    "/wizard-api/knowledge-model-packages/suggestions?q=Germany Knowledge Model"
+    "/api/knowledge-model-packages/suggestions?q=Germany Knowledge Model"
     (Page "knowledgeModelPackages" (PageMetadata 20 1 1 0) [toSuggestion germanyKmPackage])
   create_test_200
     "HTTP 200 OK (phase)"
     requestContext
-    "/wizard-api/knowledge-model-packages/suggestions?sort=organizationId,asc&phase=ReleasedKnowledgeModelPackagePhase"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc&phase=ReleasedKnowledgeModelPackagePhase"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
@@ -98,7 +98,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (query for non-existing)"
     requestContext
-    "/wizard-api/knowledge-model-packages/suggestions?q=Non-existing Knowledge Model"
+    "/api/knowledge-model-packages/suggestions?q=Non-existing Knowledge Model"
     (Page "knowledgeModelPackages" (PageMetadata 20 0 0 0) ([] :: [KnowledgeModelPackageSuggestion]))
 
 create_test_200 title requestContext reqUrl expDto =

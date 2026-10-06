@@ -12,7 +12,7 @@ instance FromMultipart Mem LocaleCreateDTO where
       <$> fmap T.unpack (lookupInput "name" form)
       <*> fmap T.unpack (lookupInput "description" form)
       <*> fmap T.unpack (lookupInput "code" form)
-      <*> fmap T.unpack (lookupInput "localeId" form)
+      <*> fmap T.unpack (lookupInput "id" form)
       <*> fmap T.unpack (lookupInput "version" form)
       <*> fmap T.unpack (lookupInput "license" form)
       <*> fmap T.unpack (lookupInput "readme" form)

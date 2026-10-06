@@ -30,14 +30,14 @@ import Specs.Api.Handler.KnowledgeModelEditor.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/knowledge-model-editors/uuid
+-- PUT /api/knowledge-model-editors/uuid
 -- ------------------------------------------------------------------------
 detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
-  describe "PUT /wizard-api/knowledge-model-editors/uuid" $ do
+  describe "PUT /api/knowledge-model-editors/uuid" $ do
     test_200 requestContext
     test_400_invalid_json requestContext
-    test_400_not_valid_kmId requestContext
+    test_400_not_valid_id requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -47,7 +47,7 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -97,21 +97,21 @@ test_200 requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400_invalid_json requestContext = createInvalidJsonTest reqMethod reqUrl "kmId"
+test_400_invalid_json requestContext = createInvalidJsonTest reqMethod reqUrl "id"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400_not_valid_kmId requestContext =
-  it "HTTP 400 BAD REQUEST when kmId is not in valid format" $
+test_400_not_valid_id requestContext =
+  it "HTTP 400 BAD REQUEST when id is not in valid format" $
     -- GIVEN: Prepare request
     do
-      let reqDto = amsterdamKnowledgeModelEditorChange {kmId = "amsterdam:km"} :: KnowledgeModelEditorChangeDTO
+      let reqDto = amsterdamKnowledgeModelEditorChange {id = "amsterdam:km"} :: KnowledgeModelEditorChangeDTO
       let reqBody = encode reqDto
       -- AND: Prepare expectation
       let expStatus = 400
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = ValidationError [] (M.singleton "kmId" [_ERROR_VALIDATION__INVALID_COORDINATE_PART_FORMAT "kmId" "amsterdam:km"])
+      let expDto = ValidationError [] (M.singleton "id" [_ERROR_VALIDATION__INVALID_COORDINATE_PART_FORMAT "id" "amsterdam:km"])
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO
@@ -144,7 +144,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -152,7 +152,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-editors/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/knowledge-model-editors/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "knowledge_model_editor"

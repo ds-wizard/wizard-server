@@ -22,6 +22,7 @@ data ProjectDTO = ProjectDTO
   , isTemplate :: Bool
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Generic)
 
@@ -37,3 +38,4 @@ instance Eq ProjectDTO where
       && a.knowledgeModelPackage == b.knowledgeModelPackage
       && a.permissions == b.permissions
       && a.isTemplate == b.isTemplate
+      && a.workspaceUuid == b.workspaceUuid

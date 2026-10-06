@@ -17,11 +17,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/open-id-clients/{uuid}
+-- DELETE /api/open-id-clients/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/open-id-clients/{uuid}" $ do
+  describe "DELETE /api/open-id-clients/{uuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -32,7 +32,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/open-id-clients/cb7558d8-5e78-4494-9b94-0e9d64676923"
+reqUrl = "/api/open-id-clients/cb7558d8-5e78-4494-9b94-0e9d64676923"
 
 reqHeaders = [reqAuthHeader]
 
@@ -66,7 +66,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "organizationSettings.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -74,7 +74,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/open-id-clients/99193032-99e3-4676-acd8-222983ea0b88"
+    "/api/open-id-clients/99193032-99e3-4676-acd8-222983ea0b88"
     reqHeaders
     reqBody
     "openid_client"

@@ -19,6 +19,8 @@ type List_Suggestions_GET =
     :> Header "Host" String
     :> "document-templates"
     :> "suggestions"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> QueryParam "knowledgeModelPackageUuid" U.UUID
     :> QueryParam "includeUnsupportedMetamodelVersion" Bool
     :> QueryParam "phase" DocumentTemplatePhase
@@ -35,6 +37,8 @@ list_suggestions_GET
   -> Maybe String
   -> Maybe U.UUID
   -> Maybe Bool
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe DocumentTemplatePhase
   -> Maybe String
   -> Maybe Bool
@@ -42,8 +46,8 @@ list_suggestions_GET
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page DocumentTemplateSuggestionDTO))
-list_suggestions_GET mTokenHeader mServerUrl mPkgUuid mIncludeUnsupportedMetamodelVersion mPhase mQuery mNonEditable mPage mSize mSort =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_suggestions_GET mTokenHeader mServerUrl mW mTenant mPkgUuid mIncludeUnsupportedMetamodelVersion mPhase mQuery mNonEditable mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader =<< do
         let includeUnsupportedMetamodelVersion = fromMaybe False mIncludeUnsupportedMetamodelVersion

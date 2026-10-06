@@ -2,14 +2,12 @@ module Shared.Service.KnowledgeModel.Editor.EditorUtil where
 
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorState
 import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.Tenant.Config.WizardTenantConfig
 
 getEditorPreviousPackage :: WizardRequestContextC s m => KnowledgeModelEditor -> m (Maybe KnowledgeModelPackage)
 getEditorPreviousPackage editor =
@@ -24,8 +22,7 @@ getEditorForkOfPackageId editor = do
   mPreviousPkg <- getEditorPreviousPackage editor
   case mPreviousPkg of
     Just previousPkg -> do
-      tcOrganization <- findTenantConfigOrganization
-      if (previousPkg.organizationId == tcOrganization.organizationId) && (previousPkg.kmId == editor.kmId)
+      if previousPkg.id == editor.id
         then return previousPkg.forkOfPackageId
         else return . Just . createCoordinate $ previousPkg
     Nothing -> return Nothing
@@ -35,8 +32,7 @@ getEditorMergeCheckpointPackageId editor = do
   mPreviousPkg <- getEditorPreviousPackage editor
   case mPreviousPkg of
     Just previousPkg -> do
-      tcOrganization <- findTenantConfigOrganization
-      if (previousPkg.organizationId == tcOrganization.organizationId) && (previousPkg.kmId == editor.kmId)
+      if previousPkg.id == editor.id
         then return previousPkg.mergeCheckpointPackageId
         else return . Just . createCoordinate $ previousPkg
     Nothing -> return Nothing
@@ -67,7 +63,7 @@ getEditorState editor eventSize mForkOfPackageId = do
     isOutdated continue =
       case mForkOfPackageId of
         Just forkOfPackageId -> do
-          mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' forkOfPackageId.organizationId forkOfPackageId.entityId Nothing
+          mLatestPkg <- findLatestPackageById' forkOfPackageId.id Nothing (Just editor.workspaceUuid)
           case mLatestPkg of
             Just latestPkg ->
               if createCoordinate latestPkg /= forkOfPackageId

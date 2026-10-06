@@ -26,11 +26,11 @@ import Specs.Api.Handler.DocumentTemplateDraft.File.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/document-template-drafts/{dtUuid}/folders/move
+-- POST /api/document-template-drafts/{dtUuid}/folders/move
 -- ------------------------------------------------------------------------
 list_move_POST :: RequestContext -> SpecWith ((), Application)
 list_move_POST requestContext =
-  describe "POST /wizard-api/document-template-drafts/{dtUuid}/folders/move" $ do
+  describe "POST /api/document-template-drafts/{dtUuid}/folders/move" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -40,7 +40,7 @@ list_move_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = BS.pack $ "/wizard-api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/folders/move"
+reqUrl = BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/folders/move"
 
 reqHeadersT reqAuthHeader = [reqCtHeader, reqAuthHeader]
 
@@ -82,4 +82,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "DocumentTemplateEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "documentTemplates.useEditor"

@@ -4,7 +4,6 @@ import Servant
 import Servant.Swagger.Tags
 
 import Shared.Api.Handler.WizardCommon
-import WizardServer.Api.Handler.Tenant.Config.Api
 import WizardServer.Api.Handler.Tenant.Detail_DELETE
 import WizardServer.Api.Handler.Tenant.Detail_GET
 import WizardServer.Api.Handler.Tenant.Detail_PUT
@@ -12,7 +11,6 @@ import WizardServer.Api.Handler.Tenant.Limit.Api
 import WizardServer.Api.Handler.Tenant.List_GET
 import WizardServer.Api.Handler.Tenant.List_POST
 import WizardServer.Api.Handler.Tenant.List_Suggestions_GET
-import WizardServer.Api.Handler.Tenant.PluginSettings.Api
 import WizardServer.Api.Handler.Tenant.Usage.Api
 
 type TenantAPI =
@@ -23,9 +21,7 @@ type TenantAPI =
            :<|> Detail_GET
            :<|> Detail_PUT
            :<|> Detail_DELETE
-           :<|> TenantConfigAPI
            :<|> TenantLimitAPI
-           :<|> TenantPluginSettingsAPI
            :<|> TenantUsageAPI
        )
 
@@ -40,7 +36,5 @@ tenantServer =
     :<|> detail_GET
     :<|> detail_PUT
     :<|> detail_DELETE
-    :<|> tenantConfigServer
     :<|> tenantLimitServer
-    :<|> tenantPluginSettingsServer
     :<|> tenantUsageServer

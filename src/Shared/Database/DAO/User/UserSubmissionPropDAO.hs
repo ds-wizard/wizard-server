@@ -36,8 +36,10 @@ findUserSubmissionPropsList userUuid = do
           \             service.name, \
           \             service.tenant_uuid, \
           \             unnest(service.props) AS key \
-          \      FROM config_submission_service AS service \
-          \      WHERE service.tenant_uuid = ?) AS nested \
+          \      FROM (SELECT DISTINCT ON (id) id, name, tenant_uuid, props \
+          \            FROM settings_submission_service \
+          \            WHERE tenant_uuid = ? \
+          \            ORDER BY id, workspace_uuid NULLS FIRST) AS service) AS nested \
           \LEFT JOIN user_entity_submission_prop AS submission_prop \
           \          ON submission_prop.service_id = nested.id AND \
           \             submission_prop.tenant_uuid = nested.tenant_uuid AND \

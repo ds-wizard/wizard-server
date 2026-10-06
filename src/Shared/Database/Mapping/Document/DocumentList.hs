@@ -25,4 +25,5 @@ instance FromRow DocumentList where
     workerLog <- field
     createdBy <- field
     createdAt <- field
+    workspaceUuid <- field
     return $ DocumentList {..}

@@ -10,25 +10,30 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Workspace
 import Shared.Database.DAO.User.RoleDAO (insertRole)
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.User.Data.Roles
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Error.Error
 import Shared.Model.User.Role
+import Shared.Model.User.User
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Role.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/roles/{uuid}
+-- DELETE /api/roles/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/roles/{uuid}" $ do
+  describe "DELETE /api/roles/{uuid}" $ do
     test_204 requestContext
     test_400_admin requestContext
     test_400_default requestContext
@@ -42,7 +47,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/roles/a0000000-0000-0000-0000-0000000000ff"
+reqUrl = "/api/roles/a0000000-0000-0000-0000-0000000000ff"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -76,7 +81,10 @@ test_400_admin requestContext = createDeleteValidationTest requestContext "the a
 
 test_400_default requestContext = createDeleteValidationTest requestContext "the default role is deleted" "a0000000-0000-0000-0000-000000000003" _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT
 
-test_400_in_use requestContext = createDeleteValidationTest requestContext "the role is assigned to users" "a0000000-0000-0000-0000-000000000002" _ERROR_VALIDATION__USER_ROLE_IN_USE
+test_400_in_use requestContext = do
+  createDeleteValidationTest requestContext "the role is assigned to users" "a0000000-0000-0000-0000-000000000002" _ERROR_VALIDATION__USER_ROLE_IN_USE
+  createDeleteValidationTest requestContext "the workspace role is the workspace default" "a0000000-0000-0000-0000-000000000022" _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT
+  createDeleteValidationTest requestContext "the workspace role has members" "a0000000-0000-0000-0000-000000000021" _ERROR_VALIDATION__USER_ROLE_IN_USE
 
 createDeleteValidationTest requestContext title roleUuid expError =
   it ("HTTP 400 BAD REQUEST when " ++ title) $ do
@@ -87,8 +95,10 @@ createDeleteValidationTest requestContext title roleUuid expError =
     let expBody = encode expDto
     -- AND: Run migrations
     runInContextIO U_Migration.runMigration requestContext
+    runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userAlbert.uuid defaultWorkspaceAdminRole.uuid) requestContext
+    enableMultiWorkspace requestContext
     -- WHEN: Call API
-    response <- request reqMethod ("/wizard-api/roles/" `mappend` roleUuid) reqHeaders reqBody
+    response <- request reqMethod ("/api/roles/" `mappend` roleUuid) reqHeaders reqBody
     -- THEN: Compare response with expectation
     let responseMatcher =
           ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
@@ -102,7 +112,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "SettingsManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "roles.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -110,7 +120,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest
     reqMethod
-    "/wizard-api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/roles/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "role"

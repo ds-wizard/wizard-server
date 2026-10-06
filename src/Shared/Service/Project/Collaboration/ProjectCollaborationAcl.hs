@@ -20,15 +20,16 @@ getPermission
   -> Maybe U.UUID
   -> [String]
   -> [U.UUID]
+  -> Bool
   -> WebsocketPerm
-getPermission visibility sharing permissions mCurrentUserUuid mCurrentUserPermissions mCurrentUserGroupUuids
+getPermission visibility sharing permissions mCurrentUserUuid mCurrentUserPermissions mCurrentUserGroupUuids workspaceReachable
   | or
       [ _PROJECTS_EDIT_ROLE_PERMISSION `elem` mCurrentUserPermissions
       , isLogged && isExplicitlyOwner
       , isLogged && isExplicitlyEditor
       , isLogged && isInOwnerGroup
       , isLogged && isInEditorGroup
-      , isLogged && visibility == VisibleEditProjectVisibility
+      , isLogged && workspaceReachable && visibility == VisibleEditProjectVisibility
       , sharing == AnyoneWithLinkEditProjectSharing
       ] =
       EditorWebsocketPerm
@@ -36,7 +37,7 @@ getPermission visibility sharing permissions mCurrentUserUuid mCurrentUserPermis
       [ _PROJECTS_COMMENT_ROLE_PERMISSION `elem` mCurrentUserPermissions
       , isLogged && isExplicitlyCommenter
       , isLogged && isInCommenterGroup
-      , isLogged && visibility == VisibleCommentProjectVisibility
+      , isLogged && workspaceReachable && visibility == VisibleCommentProjectVisibility
       , sharing == AnyoneWithLinkCommentProjectSharing
       ] =
       CommenterWebsocketPerm
@@ -44,7 +45,7 @@ getPermission visibility sharing permissions mCurrentUserUuid mCurrentUserPermis
       [ _PROJECTS_VIEW_ROLE_PERMISSION `elem` mCurrentUserPermissions
       , isLogged && isExplicitlyViewer
       , isLogged && isInViewerGroup
-      , isLogged && visibility == VisibleViewProjectVisibility
+      , isLogged && workspaceReachable && visibility == VisibleViewProjectVisibility
       , sharing == AnyoneWithLinkViewProjectSharing
       ] =
       ViewerWebsocketPerm

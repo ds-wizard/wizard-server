@@ -11,6 +11,7 @@ import qualified Jose.Jwt as JWT
 
 import Shared.Api.Resource.UserToken.LoginDTO
 import Shared.Api.Resource.UserToken.UserTokenDTO
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Database.DAO.UserEmailLink.UserEmailLinkDAO
@@ -20,12 +21,12 @@ import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.User
 import Shared.Model.User.UserToken
 import Shared.Model.UserEmailLink.UserEmailLinkType
 import Shared.Service.Mail.Mailer
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.SettingsService
 import qualified Shared.Service.User.WizardUserMapper as UserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.Login.LoginMapper
@@ -43,16 +44,16 @@ createLoginTokenFromCredentials reqDto mUserAgent =
     case mUser of
       Just user -> do
         validate reqDto user
-        tcAuthentication <- getCurrentTenantConfigAuthentication
+        tcAuthentication <- getCurrentSettings findSettingsAuthentication
         validateLoginEnabled tcAuthentication user
         now <- liftIO getCurrentTime
-        case (tcAuthentication.internal.twoFactorAuth.enabled, reqDto.code) of
+        case (tcAuthentication.twoFactorAuth.enabled, reqDto.code) of
           (False, _) -> do
             updateUserLastVisitedAtByUuid user.uuid now
             createLoginToken user mUserAgent Nothing
           (True, Nothing) -> do
             deleteUserEmailLinkByIdentity (U.toString user.uuid)
-            let length = tcAuthentication.internal.twoFactorAuth.codeLength
+            let length = tcAuthentication.twoFactorAuth.codeLength
             let min = 10 ^ (length - 1)
             let max = (10 ^ length) - 1
             code <- liftIO $ generateIntInRange min max
@@ -70,8 +71,8 @@ createLoginToken :: WizardRequestContextC s m => User -> Maybe String -> Maybe S
 createLoginToken user mUserAgent mSessionState =
   runInTransaction $ do
     serverConfig <- asks (.serverConfig')
-    tcAuthentication <- getCurrentTenantConfigAuthentication
-    let expiration = tcAuthentication.internal.sessionExpiration
+    tcAuthentication <- getCurrentSettings findSettingsAuthentication
+    let expiration = tcAuthentication.sessionExpiration
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     let claims = toUserTokenClaims user.uuid uuid user.tenantUuid now expiration

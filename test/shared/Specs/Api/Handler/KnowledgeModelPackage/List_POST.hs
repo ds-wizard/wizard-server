@@ -13,6 +13,7 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.KnowledgeModel.Bundle.KnowledgeModelBundleJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Bundle.KnowledgeModelBundles
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
@@ -27,26 +28,31 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.User.RolePermission
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 import Shared.Util.String (replace)
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelPackage.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/knowledge-model-packages
+-- POST /api/knowledge-model-packages
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/knowledge-model-packages" $ do
+  describe "POST /api/knowledge-model-packages" $ do
     test_201_req_all_db_all requestContext
     test_201_req_all_db_no requestContext
     test_201_req_no_db_all requestContext
     test_201_req_one_db_rest requestContext
     test_201_without_readme requestContext
+    test_201_workspace requestContext
     test_400 requestContext
     test_400_main_package_duplication requestContext
+    test_400_workspace_duplicates_tenant requestContext
+    test_400_tenant_duplicates_workspace requestContext
     test_400_missing_previous_package requestContext
     test_401 requestContext
     test_403 requestContext
@@ -56,7 +62,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/knowledge-model-packages"
+reqUrl = "/api/knowledge-model-packages"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -210,6 +216,33 @@ test_201_without_readme requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
+test_201_workspace requestContext =
+  it "HTTP 201 CREATED - Into a workspace of a multi-workspace tenant" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 201
+      let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
+      let expDto = toSimpleDTO netherlandsKmPackageV2
+      -- AND: Run migrations
+      runInContextIO deletePackages requestContext
+      enableMultiWorkspace requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelPackageSimpleDTO)
+      assertResStatus status expStatus
+      assertResHeaders headers expHeaders
+      comparePackageDtos resBody expDto
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findPackages requestContext 3
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 0
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" (Just defaultWorkspaceUuid)) requestContext 2
+      ePackages <- runInContextIO findPackages requestContext
+      liftIO $ fmap (fmap (.workspaceUuid)) ePackages `shouldBe` Right (replicate 3 (Just defaultWorkspaceUuid))
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
 test_400 requestContext =
   it "HTTP 400 BAD REQUEST when json is not valid" $ do
     let reqHeaders = [reqAuthHeader, reqCtHeader]
@@ -250,6 +283,59 @@ test_400_main_package_duplication requestContext =
       response `shouldRespondWith` responseMatcher
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findPackages requestContext 3
+
+test_400_workspace_duplicates_tenant requestContext =
+  it "HTTP 400 BAD REQUEST when the tenant plane already has the main package" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ netherlandsKmPackageV2)
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO deletePackages requestContext
+      runInContextIO (insertPackage globalKmPackage) requestContext
+      runInContextIO (insertPackage netherlandsKmPackage) requestContext
+      runInContextIO (insertPackage netherlandsKmPackageV2) requestContext
+      enableMultiWorkspace requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findPackages requestContext 3
+
+test_400_tenant_duplicates_workspace requestContext =
+  it "HTTP 400 BAD REQUEST when a workspace already has the main package" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ netherlandsKmPackageV2)
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO deletePackages requestContext
+      runInContextIO (insertPackage globalKmPackage) requestContext
+      runInContextIO (insertPackage netherlandsKmPackage) requestContext
+      runInContextIO (insertPackage workspaceNetherlandsKmPackageV2) requestContext
+      enableMultiWorkspace requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?tenant=true") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findPackages requestContext 3
+
+workspaceNetherlandsKmPackageV2 :: KnowledgeModelPackage
+workspaceNetherlandsKmPackageV2 =
+  netherlandsKmPackageV2
+    { uuid = u' "f8a9b0c1-2d3e-4f4a-9b5c-6d7e8f9a0b1c"
+    , workspaceUuid = Just defaultWorkspaceUuid
+    }
 
 test_400_missing_previous_package requestContext =
   it "HTTP 400 BAD REQUEST when missing previous package" $

@@ -12,13 +12,29 @@ import Shared.Database.DAO.WizardCommon
 import Shared.Database.Mapping.KnowledgeModel.Secret.KnowledgeModelSecret ()
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
+import Shared.Model.User.RolePermission
+import Shared.Util.String
 
 entityName = "knowledge_model_secret"
 
 findKnowledgeModelSecrets :: WizardRequestContextC s m => m [KnowledgeModelSecret]
 findKnowledgeModelSecrets = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid]
+  workspaceCondition <- tenantOrWorkspaceCondition (Just _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION) "workspace_uuid"
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? %s ORDER BY workspace_uuid NULLS FIRST, name" [entityName, workspaceCondition]
+  let params = [toField tenantUuid]
+  logQuery sql params
+  let action conn = query conn sql params
+  runDB action
+
+findKnowledgeModelSecretsForWorkspace :: WizardRequestContextC s m => Maybe U.UUID -> m [KnowledgeModelSecret]
+findKnowledgeModelSecretsForWorkspace mWorkspaceUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND %s ORDER BY workspace_uuid IS NOT NULL, name" [entityName, workspaceVisibleCondition]
+  let params = [toField tenantUuid, toField mWorkspaceUuid]
+  logQuery sql params
+  let action conn = query conn sql params
+  runDB action
 
 findKnowledgeModelSecretByUuid :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelSecret
 findKnowledgeModelSecretByUuid uuid = do
@@ -33,7 +49,7 @@ updateKnowledgeModelSecretByUuid kmSecret = do
   tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString
-          "UPDATE knowledge_model_secret SET uuid = ?, name = ?, value = ?, tenant_uuid = ?, created_at = ?, updated_at = ? WHERE tenant_uuid = ? AND uuid = ?"
+          "UPDATE knowledge_model_secret SET uuid = ?, name = ?, value = ?, tenant_uuid = ?, created_at = ?, updated_at = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
   let params = toRow kmSecret ++ [toField tenantUuid, toField kmSecret.uuid]
   logQuery sql params
   let action conn = execute conn sql params

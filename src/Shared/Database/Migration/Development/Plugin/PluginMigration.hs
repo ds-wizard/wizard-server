@@ -11,5 +11,6 @@ runMigration = do
   logInfo _CMP_MIGRATION "(Plugin/Plugin) started"
   deletePlugins
   insertPlugin plugin1
+  insertPlugin plugin2
   insertPlugin differentPlugin1
   logInfo _CMP_MIGRATION "(Plugin/Plugin) ended"

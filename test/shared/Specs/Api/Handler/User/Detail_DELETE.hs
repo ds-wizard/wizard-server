@@ -30,11 +30,11 @@ import Specs.Api.Handler.User.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/users/{uUuid}
+-- DELETE /api/users/{uUuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/users/{uUuid}" $ do
+  describe "DELETE /api/users/{uUuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -45,7 +45,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66"
+reqUrl = "/api/users/ec6f8e90-2a91-49ec-aa3f-9eab2267fc66"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -86,7 +86,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "UsersManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "users.manage"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -94,7 +94,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
+    "/api/users/dc9fe65f-748b-47ec-b30c-d255bbac64a0"
     reqHeaders
     reqBody
     "user_entity"

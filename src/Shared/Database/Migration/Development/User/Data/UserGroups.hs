@@ -1,6 +1,7 @@
 module Shared.Database.Migration.Development.User.Data.UserGroups where
 
 import Shared.Constant.Tenant
+import Shared.Constant.Workspace
 import Shared.Model.User.UserGroup
 import Shared.Util.Date
 import Shared.Util.Uuid
@@ -13,6 +14,7 @@ bioGroup =
     , description = Just "Some description about bio group"
     , private = True
     , tenantUuid = defaultTenantUuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 21
     , updatedAt = dt' 2018 1 21
     }
@@ -25,6 +27,7 @@ plantGroup =
     , description = Just "Some description about plant group"
     , private = False
     , tenantUuid = defaultTenantUuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 21
     , updatedAt = dt' 2018 1 21
     }
@@ -37,6 +40,7 @@ animalGroup =
     , description = Nothing
     , private = False
     , tenantUuid = defaultTenantUuid
+    , workspaceUuid = defaultWorkspaceUuid
     , createdAt = dt' 2018 1 21
     , updatedAt = dt' 2018 1 21
     }

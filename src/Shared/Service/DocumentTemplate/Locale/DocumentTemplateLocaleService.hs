@@ -10,11 +10,11 @@ import Shared.Api.Resource.DocumentTemplate.Locale.DocumentTemplateLocaleCreateD
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateLocaleDAO
 import Shared.Database.DAO.WizardCommon
-import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocale
 import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocaleList
 import Shared.S3.DocumentTemplate.DocumentTemplateLocaleS3
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMapper
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleUtil
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleValidation
@@ -29,8 +29,7 @@ getLocalesForDocumentTemplate dtUuid = do
 createLocale :: WizardRequestContextC s m => U.UUID -> DocumentTemplateLocaleCreateDTO -> m DocumentTemplateLocaleList
 createLocale dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-    _ <- findDocumentTemplateByUuid dtUuid
+    checkManagePermissionToDocumentTemplate dtUuid
     code <- extractLanguageCode reqDto.poContent
     validateCodeUniqueness dtUuid code
     uuid <- liftIO generateUuid
@@ -58,6 +57,6 @@ getLocaleContent dtUuid localeUuid = do
 deleteLocale :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteLocale dtUuid localeUuid =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToDocumentTemplate dtUuid
     locale <- findDocumentTemplateLocaleByDocumentTemplateUuidAndUuid dtUuid localeUuid
     void $ deleteDocumentTemplateLocaleByUuid locale.uuid

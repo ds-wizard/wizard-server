@@ -274,3 +274,6 @@ data MatchResponse body = MatchResponse
   , body :: body
   }
   deriving (Show, Eq)
+
+pendingUntilRegistryTestUpgrade :: WaiSession st ()
+pendingUntilRegistryTestUpgrade = Test.Hspec.Wai.pendingWith "api.registry-test.ds-wizard.org still serves the pre-5.0 API"

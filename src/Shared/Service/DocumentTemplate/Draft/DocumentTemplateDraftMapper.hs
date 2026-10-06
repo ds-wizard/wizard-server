@@ -14,19 +14,18 @@ import Shared.Model.DocumentTemplate.DocumentTemplateDraftDetail
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorSuggestion
 import Shared.Model.Project.ProjectSuggestion
-import Shared.Util.Coordinate
 
 toDraftList :: DocumentTemplate -> DocumentTemplateDraftList
 toDraftList dt =
   DocumentTemplateDraftList
     { uuid = dt.uuid
     , name = dt.name
-    , organizationId = dt.organizationId
-    , templateId = dt.templateId
+    , id = dt.id
     , version = dt.version
     , description = dt.description
     , createdAt = dt.createdAt
     , updatedAt = dt.updatedAt
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toDraftDetail :: DocumentTemplate -> [DocumentTemplateFormat] -> DocumentTemplateDraftData -> Maybe ProjectSuggestion -> Maybe KnowledgeModelEditorSuggestion -> DocumentTemplateDraftDetail
@@ -34,7 +33,7 @@ toDraftDetail draft formats draftData mProject mKmEditor =
   DocumentTemplateDraftDetail
     { uuid = draft.uuid
     , name = draft.name
-    , templateId = draft.templateId
+    , id = draft.id
     , version = draft.version
     , description = draft.description
     , readme = draft.readme
@@ -47,6 +46,7 @@ toDraftDetail draft formats draftData mProject mKmEditor =
     , knowledgeModelEditorUuid = draftData.knowledgeModelEditorUuid
     , knowledgeModelEditor = mKmEditor
     , formatUuid = draftData.formatUuid
+    , workspaceUuid = draft.workspaceUuid
     , createdAt = draft.createdAt
     , updatedAt = draft.updatedAt
     }
@@ -56,7 +56,7 @@ toDraftDetail' draft formats =
   DocumentTemplateDraftDetail
     { uuid = draft.uuid
     , name = draft.name
-    , templateId = draft.templateId
+    , id = draft.id
     , version = draft.version
     , description = draft.description
     , readme = draft.readme
@@ -69,6 +69,7 @@ toDraftDetail' draft formats =
     , knowledgeModelEditorUuid = Nothing
     , knowledgeModelEditor = Nothing
     , formatUuid = Nothing
+    , workspaceUuid = draft.workspaceUuid
     , createdAt = draft.createdAt
     , updatedAt = draft.updatedAt
     }
@@ -87,7 +88,7 @@ toChangeDTO :: DocumentTemplate -> DocumentTemplateDraftChangeDTO
 toChangeDTO dt =
   DocumentTemplateDraftChangeDTO
     { name = dt.name
-    , templateId = dt.templateId
+    , id = dt.id
     , version = dt.version
     , phase = dt.phase
     , description = dt.description
@@ -98,58 +99,56 @@ toChangeDTO dt =
     , formats = []
     }
 
-fromCreateDTO :: DocumentTemplateDraftCreateDTO -> U.UUID -> DocumentTemplate -> [DocumentTemplateFormat] -> String -> UTCTime -> (DocumentTemplate, [DocumentTemplateFormat])
-fromCreateDTO dto uuid dt formats organizationId now =
-  let documentTemplateUuid = buildCoordinate organizationId dto.templateId dto.version
-   in ( DocumentTemplate
-          { uuid = uuid
-          , name = dto.name
-          , organizationId = organizationId
-          , templateId = dto.templateId
-          , version = dto.version
-          , phase = DraftDocumentTemplatePhase
-          , metamodelVersion = documentTemplateMetamodelVersion
-          , description = dt.description
-          , readme = dt.readme
-          , license = dt.license
-          , allowedPackages = dt.allowedPackages
-          , nonEditable = False
-          , language = dt.language
-          , potFileReady = False
-          , tenantUuid = dt.tenantUuid
-          , createdAt = now
-          , updatedAt = now
-          }
-      , fmap
-          ( \f ->
-              f
-                { documentTemplateUuid = uuid
-                , steps =
-                    fmap
-                      ( \s ->
-                          s
-                            { documentTemplateUuid = uuid
-                            , createdAt = now
-                            , updatedAt = now
-                            }
-                            :: DocumentTemplateFormatStep
-                      )
-                      (steps f)
-                , createdAt = now
-                , updatedAt = now
-                }
-                :: DocumentTemplateFormat
-          )
-          formats
+fromCreateDTO :: DocumentTemplateDraftCreateDTO -> U.UUID -> DocumentTemplate -> [DocumentTemplateFormat] -> Maybe U.UUID -> UTCTime -> (DocumentTemplate, [DocumentTemplateFormat])
+fromCreateDTO dto uuid dt formats workspaceUuid now =
+  ( DocumentTemplate
+      { uuid = uuid
+      , name = dto.name
+      , id = dto.id
+      , version = dto.version
+      , phase = DraftDocumentTemplatePhase
+      , metamodelVersion = documentTemplateMetamodelVersion
+      , description = dt.description
+      , readme = dt.readme
+      , license = dt.license
+      , allowedPackages = dt.allowedPackages
+      , nonEditable = False
+      , language = dt.language
+      , potFileReady = False
+      , tenantUuid = dt.tenantUuid
+      , createdAt = now
+      , updatedAt = now
+      , workspaceUuid = workspaceUuid
+      }
+  , fmap
+      ( \f ->
+          f
+            { documentTemplateUuid = uuid
+            , steps =
+                fmap
+                  ( \s ->
+                      s
+                        { documentTemplateUuid = uuid
+                        , createdAt = now
+                        , updatedAt = now
+                        }
+                        :: DocumentTemplateFormatStep
+                  )
+                  f.steps
+            , createdAt = now
+            , updatedAt = now
+            }
+            :: DocumentTemplateFormat
       )
+      formats
+  )
 
-fromCreateDTO' :: DocumentTemplateDraftCreateDTO -> U.UUID -> String -> U.UUID -> UTCTime -> DocumentTemplate
-fromCreateDTO' dto uuid organizationId tenantUuid now =
+fromCreateDTO' :: DocumentTemplateDraftCreateDTO -> U.UUID -> U.UUID -> Maybe U.UUID -> UTCTime -> DocumentTemplate
+fromCreateDTO' dto uuid tenantUuid workspaceUuid now =
   DocumentTemplate
     { uuid = uuid
     , name = dto.name
-    , organizationId = organizationId
-    , templateId = dto.templateId
+    , id = dto.id
     , version = dto.version
     , phase = DraftDocumentTemplatePhase
     , metamodelVersion = documentTemplateMetamodelVersion
@@ -163,6 +162,7 @@ fromCreateDTO' dto uuid organizationId tenantUuid now =
     , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = workspaceUuid
     }
 
 fromChangeDTO :: DocumentTemplateDraftChangeDTO -> DocumentTemplate -> UTCTime -> DocumentTemplate
@@ -170,8 +170,7 @@ fromChangeDTO dto dt now =
   DocumentTemplate
     { uuid = dt.uuid
     , name = dto.name
-    , organizationId = dt.organizationId
-    , templateId = dto.templateId
+    , id = dto.id
     , version = dto.version
     , phase = dto.phase
     , metamodelVersion = dt.metamodelVersion
@@ -185,6 +184,7 @@ fromChangeDTO dto dt now =
     , tenantUuid = dt.tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = dt.workspaceUuid
     }
 
 fromCreateDraftData :: DocumentTemplate -> DocumentTemplateDraftData

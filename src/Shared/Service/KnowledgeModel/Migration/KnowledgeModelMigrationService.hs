@@ -25,6 +25,7 @@ import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import qualified Shared.Service.KnowledgeModel.Editor.EditorMapper as EditorMapper
 import Shared.Service.KnowledgeModel.Editor.EditorUtil
 import Shared.Service.KnowledgeModel.KnowledgeModelService
@@ -33,11 +34,13 @@ import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationMapper
 import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationValidation
 import Shared.Service.KnowledgeModel.Migration.Migrator.Migrator
 import Shared.Service.KnowledgeModel.Package.Event.KnowledgeModelPackageEventService
+import Shared.Service.Workspace.WorkspaceScopeService
 
 getCurrentMigrationDto :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelMigrationDTO
 getCurrentMigrationDto editorUuid = do
   checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
   ms <- getCurrentMigration editorUuid
+  checkPermissionToEditor editorUuid
   editor <- findKnowledgeModelEditorByUuid editorUuid
   previousPackage <- findPackageSuggestionByUuid ms.editorPreviousPackageUuid
   targetPackage <- findPackageSuggestionByUuid ms.targetPackageUuid
@@ -56,16 +59,17 @@ getCurrentMigration editorUuid = do
 createMigration :: WizardRequestContextC s m => U.UUID -> KnowledgeModelMigrationCreateDTO -> m KnowledgeModelMigrationDTO
 createMigration kmEditorUuid reqDto =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
+    checkPermissionToEditor kmEditorUuid
     logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged kmEditorUuid
     let targetPkgUuid = reqDto.targetPackageUuid
     targetPkg <- findPackageByUuid targetPkgUuid
     editor <- findKnowledgeModelEditorByUuid kmEditorUuid
+    checkPackageWorkspace editor.workspaceUuid targetPkg.workspaceUuid
     previousPkg <- getPreviousPkg editor
     mergeCheckpointPkgId <- getMergeCheckpointPackageId editor
-    mergeCheckpointPkg <- findPackageByCoordinate mergeCheckpointPkgId
+    mergeCheckpointPkg <- findPackageByCoordinate mergeCheckpointPkgId (Just editor.workspaceUuid)
     forkOfPkgId <- getForkOfPackageId editor
-    forkOfPkg <- findPackageByCoordinate forkOfPkgId
+    forkOfPkg <- findPackageByCoordinate forkOfPkgId (Just editor.workspaceUuid)
     validateMigrationUniqueness kmEditorUuid
     validateIfTargetPackageVersionIsHigher forkOfPkgId (createCoordinate targetPkg)
     editorEvents <- getEditorEvents previousPkg.uuid mergeCheckpointPkg.uuid
@@ -105,6 +109,7 @@ deleteCurrentMigration editorUuid =
   runInTransaction $ do
     checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
     _ <- getCurrentMigration editorUuid
+    checkPermissionToEditor editorUuid
     deleteKnowledgeModelMigrationByEditorUuid editorUuid
     auditKmMigrationCancel editorUuid
     return ()
@@ -114,6 +119,7 @@ solveConflictAndMigrate editorUuid reqDto =
   runInTransaction $ do
     checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
     ms <- getCurrentMigration editorUuid
+    checkPermissionToEditor editorUuid
     validateMigrationState ms
     validateTargetPackageEvent ms
     validateReqDto ms.state reqDto
@@ -141,6 +147,7 @@ solveAllConflicts editorUuid =
   runInTransaction $ do
     checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
     migratorState <- getCurrentMigration editorUuid
+    checkPermissionToEditor editorUuid
     updatedState <- go migratorState
     updateKnowledgeModelMigration updatedState
     auditKmMigrationApplyAll editorUuid

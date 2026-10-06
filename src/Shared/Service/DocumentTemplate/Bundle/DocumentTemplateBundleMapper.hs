@@ -16,7 +16,6 @@ import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
 import Shared.Model.Error.Error
 import Shared.Model.Localization.LocaleRecord
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
-import Shared.Util.Coordinate
 import Shared.Util.String
 
 toDocumentTemplateArchive :: DocumentTemplateBundleDTO -> [(DocumentTemplateAsset, BS.ByteString)] -> BSL.ByteString
@@ -39,10 +38,8 @@ toAssetEntry (asset, content) = toEntry ("template/assets/" ++ asset.fileName) 0
 toBundle :: DocumentTemplate -> [DocumentTemplateFormat] -> [DocumentTemplateFile] -> [DocumentTemplateAsset] -> DocumentTemplateBundleDTO
 toBundle tml formats files assets =
   DocumentTemplateBundleDTO
-    { tId = buildCoordinate tml.organizationId tml.templateId tml.version
-    , name = tml.name
-    , organizationId = tml.organizationId
-    , templateId = tml.templateId
+    { name = tml.name
+    , id = tml.id
     , version = tml.version
     , metamodelVersion = tml.metamodelVersion
     , description = tml.description
@@ -83,13 +80,12 @@ fromAssetEntry tb archive asset =
     Just assetEntry -> Right (asset, BSL.toStrict . fromEntry $ assetEntry)
     Nothing -> Left $ UserError (_ERROR_SERVICE_TB__MISSING_ASSET asset.fileName)
 
-fromBundle :: DocumentTemplateBundleDTO -> U.UUID -> U.UUID -> DocumentTemplate
-fromBundle tb uuid tenantUuid =
+fromBundle :: DocumentTemplateBundleDTO -> U.UUID -> U.UUID -> Maybe U.UUID -> DocumentTemplate
+fromBundle tb uuid tenantUuid workspaceUuid =
   DocumentTemplate
     { uuid = uuid
     , name = tb.name
-    , organizationId = tb.organizationId
-    , templateId = tb.templateId
+    , id = tb.id
     , version = tb.version
     , phase = ReleasedDocumentTemplatePhase
     , metamodelVersion = tb.metamodelVersion
@@ -103,4 +99,5 @@ fromBundle tb uuid tenantUuid =
     , tenantUuid = tenantUuid
     , createdAt = tb.createdAt
     , updatedAt = tb.createdAt
+    , workspaceUuid = workspaceUuid
     }

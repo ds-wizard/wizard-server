@@ -1,5 +1,6 @@
 module Shared.Api.Handler.KnowledgeModelPackage.Detail_Pull_POST where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -15,10 +16,12 @@ type Detail_Pull_POST =
     :> "knowledge-model-packages"
     :> Capture "id" String
     :> "pull"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> Verb POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
 
-detail_pull_POST :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> String -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
-detail_pull_POST mTokenHeader mServerUrl pkgId =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+detail_pull_POST :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> String -> Maybe U.UUID -> Maybe Bool -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelPackageSimpleDTO)
+detail_pull_POST mTokenHeader mServerUrl pkgId mW mTenant =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $
       addTraceUuidHeader =<< pullBundleFromRegistry pkgId

@@ -28,14 +28,17 @@ import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
+import Shared.Service.Acl.LibraryAcl
 import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleAudit
 import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleMapper
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.String
 import Shared.Util.Uuid
 
@@ -50,6 +53,7 @@ getTemporaryFileWithBundle dtUuid =
 exportBundle :: WizardRequestContextC s m => U.UUID -> m (Coordinate, BSL.ByteString)
 exportBundle dtUuid =
   runInTransaction $ do
+    checkManagePermissionToDocumentTemplate dtUuid
     dt <- findDocumentTemplateByUuid dtUuid
     when
       dt.nonEditable
@@ -64,8 +68,9 @@ exportBundle dtUuid =
 pullBundleFromRegistry :: WizardRequestContextC s m => Coordinate -> m DocumentTemplateSimple
 pullBundleFromRegistry coordinate =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-    checkDocumentTemplateLimit coordinate.organizationId coordinate.entityId
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
+    checkDocumentTemplateLimit coordinate.id
     tb <- catchError (retrieveDocumentTemplateBundleByCoordinate coordinate) handleError
     importAndConvertBundle tb True
   where
@@ -78,15 +83,15 @@ importAndConvertBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool ->
 importAndConvertBundle contentS fromRegistry =
   runInTransaction $ case fromDocumentTemplateArchive contentS of
     Right (bundle, assetContents) -> do
-      checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
-      checkDocumentTemplateLimit bundle.organizationId bundle.templateId
+      workspaceUuid <- requireTenantOrWorkspaceScope
+      checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
+      checkDocumentTemplateLimit bundle.id
       let assetSize = foldl (\acc (_, content) -> acc + (fromIntegral . BS.length $ content)) 0 assetContents
       checkStorageSize assetSize
       uuid <- liftIO generateUuid
       tenantUuid <- asks (.tenantUuid')
-      let dt = fromBundle bundle uuid tenantUuid
+      let dt = fromBundle bundle uuid tenantUuid workspaceUuid
       validateNewDocumentTemplate dt True
-      deleteOldDocumentTemplateIfPresent bundle
       insertDocumentTemplate dt
       traverse_ (insertDocumentTemplateFormat . fromFormatDTO dt.uuid tenantUuid dt.createdAt dt.updatedAt) bundle.formats
       traverse_ (importFile dt) bundle.files
@@ -97,18 +102,6 @@ importAndConvertBundle contentS fromRegistry =
         else auditBundleImportFromFile (createCoordinate dt)
       return . toSimple $ dt
     Left error -> throwError error
-
-deleteOldDocumentTemplateIfPresent :: WizardRequestContextC s m => DocumentTemplateBundleDTO -> m ()
-deleteOldDocumentTemplateIfPresent bundle =
-  runInTransaction $ do
-    let coordinate = createCoordinate bundle
-    mOldDt <- findDocumentTemplateByCoordinate' coordinate
-    case mOldDt of
-      Just oldDt -> do
-        oldAssets <- findAssetsByDocumentTemplateUuid oldDt.uuid
-        traverse_ (\a -> removeAsset oldDt.uuid a.uuid) oldAssets
-        void $ deleteDocumentTemplateByUuid oldDt.uuid
-      Nothing -> return ()
 
 -- --------------------------------
 -- PRIVATE

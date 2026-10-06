@@ -21,11 +21,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/users
+-- GET /api/users
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/users" $ do
+  describe "GET /api/users" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -35,7 +35,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/users"
+reqUrl = "/api/users"
 
 reqHeaders = [reqAuthHeader]
 
@@ -48,27 +48,27 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin)"
     requestContext
-    "/wizard-api/users?sort=uuid,asc"
+    "/api/users?sort=uuid,asc"
     (Page "users" (PageMetadata 20 3 1 0) [toDTO userNikola, toDTO userIsaac, toDTO userAlbert])
   create_test_200
     "HTTP 200 OK (Admin - pagination)"
     requestContext
-    "/wizard-api/users?sort=uuid,asc&page=1&size=1"
+    "/api/users?sort=uuid,asc&page=1&size=1"
     (Page "users" (PageMetadata 1 3 3 1) [toDTO userIsaac])
   create_test_200
     "HTTP 200 OK (Admin - query)"
     requestContext
-    "/wizard-api/users?sort=uuid,asc&q=te"
+    "/api/users?sort=uuid,asc&q=te"
     (Page "users" (PageMetadata 20 2 1 0) [toDTO userNikola, toDTO userAlbert])
   create_test_200
     "HTTP 200 OK (Admin - sort asc)"
     requestContext
-    "/wizard-api/users?sort=first_name,asc"
+    "/api/users?sort=first_name,asc"
     (Page "users" (PageMetadata 20 3 1 0) [toDTO userAlbert, toDTO userIsaac, toDTO userNikola])
   create_test_200
     "HTTP 200 OK (Admin - sort desc)"
     requestContext
-    "/wizard-api/users?sort=first_name,desc"
+    "/api/users?sort=first_name,desc"
     (Page "users" (PageMetadata 20 3 1 0) [toDTO userNikola, toDTO userIsaac, toDTO userAlbert])
 
 create_test_200 title requestContext reqUrl expDto =
@@ -95,4 +95,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "UsersManageRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "users.manage"

@@ -24,11 +24,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/knowledge-model-editors/{uuid}/locales
+-- GET /api/knowledge-model-editors/{uuid}/locales
 -- ------------------------------------------------------------------------
 detail_locales_GET :: RequestContext -> SpecWith ((), Application)
 detail_locales_GET requestContext =
-  describe "GET /wizard-api/knowledge-model-editors/{uuid}/locales" $ do
+  describe "GET /api/knowledge-model-editors/{uuid}/locales" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -39,7 +39,7 @@ detail_locales_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = BS.pack $ "/wizard-api/knowledge-model-editors/" ++ show amsterdamKnowledgeModelEditor.uuid ++ "/locales"
+reqUrl = BS.pack $ "/api/knowledge-model-editors/" ++ show amsterdamKnowledgeModelEditor.uuid ++ "/locales"
 
 reqHeaders = [reqAuthHeader]
 
@@ -75,7 +75,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -83,7 +83,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/knowledge-model-editors/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales"
+    "/api/knowledge-model-editors/78d1ee0c-2df9-49ec-8f74-8fedf7a6c85e/locales"
     reqHeaders
     reqBody
     "knowledge_model_editor"

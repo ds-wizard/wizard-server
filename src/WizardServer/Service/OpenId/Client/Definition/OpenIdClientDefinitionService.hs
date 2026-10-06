@@ -17,20 +17,20 @@ import Shared.Util.Uuid
 
 getOpenIdClientDefinitions :: WizardRequestContextC s m => m [OpenIdClientSimple]
 getOpenIdClientDefinitions = do
-  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   openIdClients <- findOpenIdClientDefinitions
   return . fmap toSimple $ openIdClients
 
 getOpenIdClientDefinitionByUuid :: WizardRequestContextC s m => U.UUID -> m OpenIdClientDetailDTO
 getOpenIdClientDefinitionByUuid uuid = do
-  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   openIdClient <- findOpenIdClientDefinitionByUuid uuid
   return $ toDetailDTO openIdClient
 
 createOpenIdClientDefinition :: WizardRequestContextC s m => OpenIdClientChangeDTO -> m OpenIdClientDetailDTO
 createOpenIdClientDefinition reqDto =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     uuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
     now <- liftIO getCurrentTime
@@ -41,7 +41,7 @@ createOpenIdClientDefinition reqDto =
 modifyOpenIdClientDefinition :: WizardRequestContextC s m => U.UUID -> OpenIdClientChangeDTO -> m OpenIdClientDetailDTO
 modifyOpenIdClientDefinition uuid reqDto =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     openIdClient <- findOpenIdClientDefinitionByUuid uuid
     now <- liftIO getCurrentTime
     let updatedOpenIdClient = fromChangeDTO openIdClient reqDto now
@@ -51,6 +51,6 @@ modifyOpenIdClientDefinition uuid reqDto =
 deleteOpenIdClientDefinition :: WizardRequestContextC s m => U.UUID -> m ()
 deleteOpenIdClientDefinition uuid =
   runInTransaction $ do
-    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     _ <- findOpenIdClientDefinitionByUuid uuid
     deleteOpenIdClientDefinitionByUuid uuid

@@ -15,8 +15,8 @@ toSuggestion userGroup =
     , private = userGroup.private
     }
 
-fromCreate :: U.UUID -> String -> Maybe String -> Bool -> U.UUID -> UTCTime -> UserGroup
-fromCreate uuid name description private tenantUuid now =
+fromCreate :: U.UUID -> String -> Maybe String -> Bool -> U.UUID -> U.UUID -> UTCTime -> UserGroup
+fromCreate uuid name description private tenantUuid workspaceUuid now =
   UserGroup
     { uuid = uuid
     , name = name
@@ -25,6 +25,7 @@ fromCreate uuid name description private tenantUuid now =
     , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
+    , workspaceUuid = workspaceUuid
     }
 
 fromChange :: UserGroup -> String -> Maybe String -> Bool -> UTCTime -> UserGroup
@@ -37,4 +38,5 @@ fromChange userGroup name description private now =
     , tenantUuid = userGroup.tenantUuid
     , createdAt = userGroup.createdAt
     , updatedAt = now
+    , workspaceUuid = userGroup.workspaceUuid
     }

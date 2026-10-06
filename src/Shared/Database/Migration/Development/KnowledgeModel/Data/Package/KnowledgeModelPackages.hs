@@ -6,6 +6,7 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Constant.KnowledgeModel
+import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Event.KnowledgeModelEvents
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
@@ -21,8 +22,7 @@ globalKmPackageEmpty =
   KnowledgeModelPackage
     { uuid = u' "27e06879-3f42-40fa-901d-1849acf50888"
     , name = "Global Knowledge Model"
-    , organizationId = "global"
-    , kmId = "core"
+    , id = "global.core"
     , version = "0.0.1"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -36,6 +36,7 @@ globalKmPackageEmpty =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -50,8 +51,7 @@ globalKmPackage =
   KnowledgeModelPackage
     { uuid = u' "5afc40d0-f1a6-4d87-9325-286ce4193ea6"
     , name = "Global Knowledge Model"
-    , organizationId = "global"
-    , kmId = "core"
+    , id = "global.core"
     , version = "1.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -65,6 +65,7 @@ globalKmPackage =
     , nonEditable = False
     , public = True
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -102,8 +103,7 @@ globalKmPackageDeprecated =
 globalKmPackageGroup :: KnowledgeModelPackageGroup
 globalKmPackageGroup =
   KnowledgeModelPackageGroup
-    { organizationId = globalKmPackage.organizationId
-    , kmId = globalKmPackage.kmId
+    { id = globalKmPackage.id
     , versions = L.intercalate "," [globalKmPackageEmpty.version, globalKmPackage.version]
     }
 
@@ -112,8 +112,7 @@ netherlandsKmPackage =
   KnowledgeModelPackage
     { uuid = u' "e19181bd-a034-4e49-af95-7fe1791e6c0f"
     , name = "Netherlands Knowledge Model"
-    , organizationId = "org.nl"
-    , kmId = "core-nl"
+    , id = "org.nl.core-nl"
     , version = "1.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -127,6 +126,7 @@ netherlandsKmPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -141,8 +141,7 @@ netherlandsKmPackageV2 =
   KnowledgeModelPackage
     { uuid = u' "1463cde8-ddae-4171-bc5d-31252838026d"
     , name = "Netherlands Knowledge Model"
-    , organizationId = "org.nl"
-    , kmId = "core-nl"
+    , id = "org.nl.core-nl"
     , version = "2.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -156,6 +155,7 @@ netherlandsKmPackageV2 =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -170,8 +170,7 @@ amsterdamKmPackage =
   KnowledgeModelPackage
     { uuid = u' "e5528009-c172-4db6-afa0-cac1089d0f42"
     , name = "Amsterdam Knowledge Model"
-    , organizationId = "org.nl.amsterdam"
-    , kmId = "core-amsterdam"
+    , id = "org.nl.amsterdam.core-amsterdam"
     , version = "1.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -185,6 +184,7 @@ amsterdamKmPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -193,8 +193,7 @@ germanyKmPackage =
   KnowledgeModelPackage
     { uuid = u' "8ebf77b3-3e1e-42e3-8523-df8eb473227a"
     , name = "Germany Knowledge Model"
-    , organizationId = "org.de"
-    , kmId = "core-de"
+    , id = "org.de.core-de"
     , version = "1.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion
@@ -208,6 +207,7 @@ germanyKmPackage =
     , nonEditable = False
     , public = False
     , tenantUuid = U.nil
+    , workspaceUuid = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
     }
 
@@ -286,8 +286,7 @@ germanyEvents = fmap toEvent germanyKmPackageEvents
 kmPackagePatternAll :: KnowledgeModelPackagePattern
 kmPackagePatternAll =
   KnowledgeModelPackagePattern
-    { orgId = Nothing
-    , kmId = Nothing
+    { id = Nothing
     , minVersion = Nothing
     , maxVersion = Nothing
     }
@@ -295,8 +294,7 @@ kmPackagePatternAll =
 kmPackagePatternAllEdited :: KnowledgeModelPackagePattern
 kmPackagePatternAllEdited =
   KnowledgeModelPackagePattern
-    { orgId = Just "global"
-    , kmId = Nothing
+    { id = Just "global.core"
     , minVersion = Nothing
     , maxVersion = Nothing
     }
@@ -304,8 +302,17 @@ kmPackagePatternAllEdited =
 kmPackagePatternGlobal :: KnowledgeModelPackagePattern
 kmPackagePatternGlobal =
   KnowledgeModelPackagePattern
-    { orgId = Just "global"
-    , kmId = Just "core"
+    { id = Just "global.core"
     , minVersion = Just "1.0.0"
     , maxVersion = Just "1.0.0"
+    }
+
+netherlandsWorkspaceKmPackageV3 :: KnowledgeModelPackage
+netherlandsWorkspaceKmPackageV3 =
+  netherlandsKmPackageV2
+    { uuid = u' "e7f8a9b0-1c2d-4e3f-8a4b-5c6d7e8f9a0b"
+    , version = "3.0.0"
+    , description = "Workspace Release"
+    , previousPackageUuid = Nothing
+    , workspaceUuid = Just defaultWorkspaceUuid
     }

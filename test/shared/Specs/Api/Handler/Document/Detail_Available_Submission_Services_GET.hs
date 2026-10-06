@@ -10,34 +10,41 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Tenant
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.Project.ProjectDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigSubmissionDAO
+import Shared.Database.DAO.Settings.SettingsSubmissionDAO
 import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.Document.DocumentMigration as DOC_Migration
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
+import Shared.Database.Migration.Development.Settings.Data.Settings
+import Shared.Database.Migration.Development.Settings.SettingsMigration
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.Public
 import Shared.Model.Document.Document
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
-import Shared.Service.Tenant.Config.WizardConfigMapper
+import Shared.Model.Settings.Settings
+import Shared.Service.Submission.SubmissionService (toSubmissionServiceSimple)
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------------------
--- GET /wizard-api/documents/{docUuid}/available-submission-services
+-- GET /api/documents/{docUuid}/available-submission-services
 -- ------------------------------------------------------------------------------------
 detail_available_submission_Services_GET :: RequestContext -> SpecWith ((), Application)
 detail_available_submission_Services_GET requestContext =
-  describe "GET /wizard-api/documents/{docUuid}/available-submission-services" $ do
+  describe "GET /api/documents/{docUuid}/available-submission-services" $ do
     test_200 requestContext
+    test_200_format_mismatch requestContext
+    test_200_workspace_override requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -47,7 +54,7 @@ detail_available_submission_Services_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/available-submission-services"
+reqUrl = "/api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/available-submission-services"
 
 reqHeadersT authHeader = authHeader
 
@@ -68,7 +75,7 @@ create_test_200 title requestContext project authHeader =
       -- AND: Prepare expectation
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = [toSubmissionServiceSimple defaultSubmissionService]
+      let expDto = [toSubmissionServiceSimple settingsSubmissionService]
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO U_Migration.runMigration requestContext
@@ -78,13 +85,52 @@ create_test_200 title requestContext project authHeader =
       runInContextIO DOC_Migration.runMigration requestContext
       runInContextIO (deleteDocumentByUuid doc1.uuid) requestContext
       runInContextIO (insertDocument (doc1 {projectUuid = Just project.uuid})) requestContext
-      runInContextIO (insertOrUpdateConfigSubmissionService defaultSubmissionService) requestContext
+      runInContextIO seedSettingsSubmissionService requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+test_200_format_mismatch requestContext =
+  it "HTTP 200 OK (service whose supported format names another format is not offered)" $ do
+    -- GIVEN: Prepare expectation
+    let expHeaders = resCtHeader : resCorsHeaders
+    let format = settingsSubmissionServiceSupportedFormat {formatName = "Other format"} :: SettingsSubmissionServiceSupportedFormat
+    let service = settingsSubmissionService {supportedFormats = [format]} :: SettingsSubmissionService
+    -- AND: Run migrations
+    runInContextIO U_Migration.runMigration requestContext
+    runInContextIO TML_Migration.runMigration requestContext
+    runInContextIO PRJ_Migration.runMigration requestContext
+    runInContextIO DOC_Migration.runMigration requestContext
+    runInContextIO (saveSettingsSubmission defaultTenantUuid Nothing (settingsSubmission {services = [service]} :: SettingsSubmission)) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl [reqAuthHeader] reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = 200, matchBody = bodyEquals (encode ([] :: [SettingsSubmissionServiceSimple]))}
+    response `shouldRespondWith` responseMatcher
+
+test_200_workspace_override requestContext =
+  it "HTTP 200 OK (the submission override of the document's workspace replaces the organization services)" $ do
+    -- GIVEN: Prepare expectation
+    let expHeaders = resCtHeader : resCorsHeaders
+    let workspaceService = settingsSubmissionService {sId = "workspaceSubmissionServer", name = "Workspace Submission Server"} :: SettingsSubmissionService
+    -- AND: Run migrations
+    runInContextIO U_Migration.runMigration requestContext
+    runInContextIO TML_Migration.runMigration requestContext
+    runInContextIO PRJ_Migration.runMigration requestContext
+    runInContextIO DOC_Migration.runMigration requestContext
+    runInContextIO seedSettingsSubmissionService requestContext
+    enableMultiWorkspace requestContext
+    runInContextIO (saveSettingsSubmission defaultTenantUuid (Just defaultWorkspaceUuid) (settingsSubmission {services = [workspaceService]} :: SettingsSubmission)) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl [reqAuthHeader] reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = 200, matchBody = bodyEquals (encode [toSubmissionServiceSimple workspaceService])}
+    response `shouldRespondWith` responseMatcher
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -139,7 +185,7 @@ create_test_403 title requestContext project authHeader errorMessage =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/documents/dc9fe65f-748b-47ec-b30c-d255bbac64a0/available-submission-services"
+    "/api/documents/dc9fe65f-748b-47ec-b30c-d255bbac64a0/available-submission-services"
     (reqHeadersT [reqAuthHeader])
     reqBody
     "document"

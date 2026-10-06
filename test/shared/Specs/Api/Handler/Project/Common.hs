@@ -6,15 +6,17 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Tenant
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
+import Shared.Database.DAO.Settings.SettingsProjectsDAO
+import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Localization.Messages.Public
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Tenant
-import Shared.Service.Tenant.Config.ConfigService
 
 import Specs.Common
 
@@ -110,6 +112,5 @@ compareReportDtos resDto expDto = do
 -- HELPERS
 -- --------------------------------
 updateAnonymousProjectSharing requestContext value = do
-  (Right tcProject) <- runInContextIO getCurrentTenantConfigProject requestContext
-  let tcProjectUpdated = tcProject {projectSharing = tcProject.projectSharing {anonymousEnabled = value}}
-  runInContextIO (modifyTenantConfigProject tcProjectUpdated) requestContext
+  let updated = settingsProjects {projectSharing = settingsProjects.projectSharing {anonymousEnabled = value}} :: SettingsProjects
+  runInContextIO (saveSettingsProjects defaultTenantUuid Nothing updated) requestContext

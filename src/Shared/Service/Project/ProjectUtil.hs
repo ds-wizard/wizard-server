@@ -2,6 +2,7 @@ module Shared.Service.Project.ProjectUtil where
 
 import Control.Monad (when)
 import qualified Data.List as L
+import Data.Maybe (isJust)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Project.Acl.ProjectPermDTO
@@ -16,19 +17,19 @@ import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Event.ProjectEventLenses ()
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectState
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Service.Project.ProjectMapper
-import Shared.Service.Tenant.Config.ConfigService
-import Shared.Util.Coordinate
+import Shared.Service.Settings.WorkspaceSettingsService
+import Shared.Util.Reference
 
-extractVisibility dto = do
-  tcProject <- getCurrentTenantConfigProject
+extractVisibility workspaceUuid dto = do
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   if tcProject.projectVisibility.enabled
     then return dto.visibility
     else return tcProject.projectVisibility.defaultValue
 
-extractSharing dto = do
-  tcProject <- getCurrentTenantConfigProject
+extractSharing workspaceUuid dto = do
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   if tcProject.projectSharing.enabled
     then return dto.sharing
     else return tcProject.projectSharing.defaultValue
@@ -43,9 +44,9 @@ enhanceProjectPerm projectPerm =
       userGroup <- findUserGroupByUuid projectPerm.memberUuid
       return $ toUserGroupProjectPermDTO projectPerm userGroup
 
-getKnowledgeModelProjectState :: WizardRequestContextC s m => KnowledgeModelPackage -> m KnowledgeModelProjectState
-getKnowledgeModelProjectState pkg = do
-  mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' pkg.organizationId pkg.kmId (Just ReleasedKnowledgeModelPackagePhase)
+getKnowledgeModelProjectState :: WizardRequestContextC s m => KnowledgeModelPackage -> Maybe U.UUID -> m KnowledgeModelProjectState
+getKnowledgeModelProjectState pkg mWorkspaceUuid = do
+  mLatestPkg <- findLatestPackageById' pkg.id (Just ReleasedKnowledgeModelPackagePhase) mWorkspaceUuid
   case mLatestPkg of
     Just latestPkg ->
       if latestPkg.uuid == pkg.uuid
@@ -53,25 +54,25 @@ getKnowledgeModelProjectState pkg = do
         else return OutdatedKnowledgeModelProjectState
     Nothing -> return UpToDateKnowledgeModelProjectState
 
-getDocumentTemplateProjectState :: WizardRequestContextC s m => Maybe U.UUID -> m (Maybe DocumentTemplateProjectState)
-getDocumentTemplateProjectState mDocumentTemplateUuid =
+getDocumentTemplateProjectState :: WizardRequestContextC s m => Maybe U.UUID -> Maybe U.UUID -> m (Maybe DocumentTemplateProjectState)
+getDocumentTemplateProjectState mDocumentTemplateUuid mWorkspaceUuid =
   case mDocumentTemplateUuid of
     Nothing -> return Nothing
     Just documentTemplateUuid -> do
       documentTemplate <- findDocumentTemplateByUuid documentTemplateUuid
-      templates <- findDocumentTemplatesByOrganizationIdAndKmId documentTemplate.organizationId documentTemplate.templateId
+      templates <- findDocumentTemplatesById documentTemplate.id mWorkspaceUuid
       let releasedTemplates = filter (\t -> t.phase == ReleasedDocumentTemplatePhase) templates
       case releasedTemplates of
         [] -> return (Just UpToDateDocumentTemplateProjectState)
         _ ->
-          let latestTemplate = L.maximumBy (\t1 t2 -> compareVersion t1.version t2.version) releasedTemplates
+          let latestTemplate = L.maximumBy (\t1 t2 -> compareVersion t1.version t2.version <> compare (isJust t1.workspaceUuid) (isJust t2.workspaceUuid)) releasedTemplates
            in if latestTemplate.uuid == documentTemplate.uuid
                 then return (Just UpToDateDocumentTemplateProjectState)
                 else return (Just OutdatedDocumentTemplateProjectState)
 
 skipIfAssigningProject :: WizardRequestContextC s m => Project -> m () -> m ()
 skipIfAssigningProject project action = do
-  tcProject <- getCurrentTenantConfigProject
+  tcProject <- getEffectiveSettingsProjects (Just project.workspaceUuid)
   let projectSharingEnabled = tcProject.projectSharing.enabled
   let projectSharingAnonymousEnabled = tcProject.projectSharing.anonymousEnabled
   when

@@ -12,7 +12,7 @@ instance FromRow KnowledgeModelEditorList where
   fromRow = do
     uuid <- field
     name <- field
-    kmId <- field
+    id <- field
     version <- field
     state <- field
     previousPackageUuid <- field
@@ -20,4 +20,5 @@ instance FromRow KnowledgeModelEditorList where
     createdBy <- field
     createdAt <- field
     updatedAt <- field
+    workspaceUuid <- field
     return $ KnowledgeModelEditorList {..}

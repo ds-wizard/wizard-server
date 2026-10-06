@@ -1,27 +1,28 @@
 module Shared.Service.DocumentTemplate.DocumentTemplateValidation where
 
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Control.Monad.Except (throwError)
+import Data.Maybe (maybeToList)
 import qualified Data.UUID as U
 import GHC.Records
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeDTO
 import Shared.Constant.DocumentTemplate
-import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateAssetDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFileDAO
-import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Localization.Messages.DocumentTemplate.Public
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
+import Shared.Service.Coordinate.CoordinateValidation
 
 validateNewDocumentTemplate :: WizardRequestContextC s m => DocumentTemplate -> Bool -> m ()
 validateNewDocumentTemplate dt shouldValidateMetamodelVersion = do
-  validateDocumentTemplateIdUniqueness (createCoordinate dt)
+  validateIdentifierFormat "id" dt.id
+  validateDocumentTemplateIdUniqueness (createCoordinate dt) dt.workspaceUuid
   when shouldValidateMetamodelVersion (validateMetamodelVersion dt)
 
 validateChangeDto :: WizardRequestContextC s m => U.UUID -> DocumentTemplateChangeDTO -> m ()
@@ -33,35 +34,13 @@ validatePhase uuid newPhase = do
     (newPhase == DraftDocumentTemplatePhase)
     (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_UNSUPPORTED_STATE (U.toString uuid) (show newPhase))
 
-validateDocumentTemplateIdUniqueness :: WizardRequestContextC s m => Coordinate -> m ()
-validateDocumentTemplateIdUniqueness coordinate = do
-  mDt <- findDocumentTemplateByCoordinate' coordinate
-  case mDt of
-    Nothing -> return ()
-    Just _ -> throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate)
-
-validateDocumentTemplateDeletion :: WizardRequestContextC s m => U.UUID -> m ()
-validateDocumentTemplateDeletion dtUuid = do
-  validateUsageBySomeProject dtUuid
-  validateUsageBySomeDocument dtUuid
-
-validateUsageBySomeProject :: WizardRequestContextC s m => U.UUID -> m ()
-validateUsageBySomeProject dtUuid = do
-  projects <- findProjectsByDocumentTemplateUuid dtUuid
-  case projects of
-    [] -> return ()
-    _ ->
-      throwError . UserError $
-        _ERROR_VALIDATION__TML_CANT_BE_DELETED_BECAUSE_IT_IS_USED_BY_SOME_OTHER_ENTITY (U.toString dtUuid) "project"
-
-validateUsageBySomeDocument :: WizardRequestContextC s m => U.UUID -> m ()
-validateUsageBySomeDocument dtUuid = do
-  projects <- findDocumentsByDocumentTemplateUuid dtUuid
-  case projects of
-    [] -> return ()
-    _ ->
-      throwError . UserError $
-        _ERROR_VALIDATION__TML_CANT_BE_DELETED_BECAUSE_IT_IS_USED_BY_SOME_OTHER_ENTITY (U.toString dtUuid) "document"
+validateDocumentTemplateIdUniqueness :: WizardRequestContextC s m => Coordinate -> Maybe U.UUID -> m ()
+validateDocumentTemplateIdUniqueness coordinate mWorkspaceUuid = do
+  dts <-
+    case mWorkspaceUuid of
+      Just _ -> maybeToList <$> findDocumentTemplateByCoordinate' coordinate mWorkspaceUuid
+      Nothing -> findDocumentTemplatesFiltered [("id", coordinate.id), ("version", coordinate.version)]
+  unless (null dts) (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate))
 
 validateMetamodelVersion :: WizardRequestContextC s m => DocumentTemplate -> m ()
 validateMetamodelVersion dt =

@@ -15,14 +15,14 @@ import Shared.Api.Resource.Submission.SubmissionJM ()
 import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Submission.SubmissionDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigSubmissionDAO
 import Shared.Database.Migration.Development.Document.Data.Documents
 import qualified Shared.Database.Migration.Development.Document.DocumentMigration as DOC_Migration
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
+import Shared.Database.Migration.Development.Settings.Data.Settings
+import Shared.Database.Migration.Development.Settings.SettingsMigration
 import Shared.Database.Migration.Development.Submission.Data.Submissions
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.Public
@@ -38,11 +38,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/documents/{docUuid}/submissions
+-- POST /api/documents/{docUuid}/submissions
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/documents/{docUuid}/submissions" $ do
+  describe "POST /api/documents/{docUuid}/submissions" $ do
     test_201 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -52,7 +52,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/submissions"
+reqUrl = "/api/documents/264ca352-1a99-4ffd-860e-32aee9a98428/submissions"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 
@@ -80,7 +80,7 @@ create_test_201 title requestContext project authHeader user =
       -- AND: Prepare expectation
       let expStatus = 201
       let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
-      let expDto = toList submission2 defaultSubmissionService (Just user)
+      let expDto = toList submission2 settingsSubmissionService (Just user)
       let expBody = encode expDto
       let expType (a :: SubmissionList) = a
       -- AND: Run migrations
@@ -91,7 +91,7 @@ create_test_201 title requestContext project authHeader user =
       runInContextIO DOC_Migration.runMigration requestContext
       runInContextIO (deleteDocumentByUuid doc1.uuid) requestContext
       runInContextIO (insertDocument (doc1 {projectUuid = Just project.uuid})) requestContext
-      runInContextIO (insertOrUpdateConfigSubmissionService defaultSubmissionService) requestContext
+      runInContextIO seedSettingsSubmissionService requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

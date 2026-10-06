@@ -53,23 +53,13 @@ pageLabel = "projects"
 findProjects :: WizardRequestContextC s m => m [Project]
 findProjects = do
   tenantUuid <- asks (.tenantUuid')
-  currentUser <- getCurrentUser
-  hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-  if hasPermission
-    then createFindEntitiesBySortedFn entityName [tenantQueryUuid tenantUuid] [Sort "name" Ascending] >>= traverse enhance
-    else do
-      let sql = f' (projectSelectSql (U.toString tenantUuid) (U.toString currentUser.uuid) "['VIEW']") [""] ++ " ORDER BY project.name ASC"
-      logInfoI _CMP_DATABASE sql
-      let action conn = query_ conn (fromString sql)
-      entities <- runDB action
-      traverse enhance entities
+  createFindEntitiesBySortedFn entityName [tenantQueryUuid tenantUuid] [Sort "name" Ascending] >>= traverse enhance
 
 findProjectsForCurrentUserPage :: WizardRequestContextC s m => Maybe String -> Maybe Bool -> Maybe [String] -> Maybe String -> Maybe [U.UUID] -> Maybe String -> Maybe [U.UUID] -> Maybe String -> Maybe [Coordinate] -> Maybe String -> Pageable -> [Sort] -> m (Page ProjectList)
 findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mUserUuids mUserUuidsOp mUserGroupUuids mUserGroupUuidsOp mKnowledgeModelPackageCoordinates mKnowledgeModelPackageCoordinatesOp pageable sort =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
-    currentUser <- getCurrentUser
     let (nameCondition, nameRegex) =
           case mQuery of
             Just query -> (" AND project.name ~* ?", [regex query])
@@ -141,30 +131,13 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
             Just kmpCoordinates ->
               let operator = if isAndOperator mKnowledgeModelPackageCoordinatesOp then " AND " else " OR "
                in ( "LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND knowledge_model_package.tenant_uuid = '${tenantUuid}'"
-                  , f' " AND (%s)" [L.intercalate operator . fmap (\c -> if c.version == "all" then " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ?)" else " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ? AND knowledge_model_package.version = ?)") $ kmpCoordinates]
-                  , concatMap (\c -> if c.version == "all" then [c.organizationId, c.entityId] else [c.organizationId, c.entityId, c.version]) kmpCoordinates
+                  , f' " AND (%s)" [L.intercalate operator . fmap (\c -> if c.version == "all" then " (knowledge_model_package.id = ?)" else " (knowledge_model_package.id = ? AND knowledge_model_package.version = ?)") $ kmpCoordinates]
+                  , concatMap (\c -> if c.version == "all" then [c.id] else [c.id, c.version]) kmpCoordinates
                   )
-    hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-    let (aclJoins, aclCondition) =
-          if hasPermission
-            then (userUuidsJoin ++ userGroupUuidsJoin, "")
-            else
-              ( f''
-                  "LEFT JOIN project_perm_user ON project.uuid = project_perm_user.project_uuid AND project_perm_user.tenant_uuid = '${tenantUuid}' \
-                  \LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project_perm_group.tenant_uuid = '${tenantUuid}' \
-                  \LEFT JOIN user_group_membership ugm ON ugm.user_group_uuid = project_perm_group.user_group_uuid AND ugm.user_uuid = '${currentUserUuid}' AND ugm.tenant_uuid = '${tenantUuid}'"
-                  [ ("currentUserUuid", U.toString currentUser.uuid)
-                  , ("tenantUuid", U.toString tenantUuid)
-                  ]
-              , f'
-                  "AND (visibility = 'VisibleEditProjectVisibility' \
-                  \  OR visibility = 'VisibleCommentProjectVisibility' \
-                  \  OR visibility = 'VisibleViewProjectVisibility' \
-                  \  OR (visibility = 'PrivateProjectVisibility' AND project_perm_user.user_uuid = '%s' AND project_perm_user.perms @> ARRAY %s) \
-                  \  OR (visibility = 'PrivateProjectVisibility' AND project_perm_group.user_group_uuid = ugm.user_group_uuid AND project_perm_group.perms @> ARRAY %s) \
-                  \)"
-                  [U.toString currentUser.uuid, "['VIEW']", "['VIEW']"]
-              )
+    workspaceCondition <- workspaceScopeCondition "project.workspace_uuid"
+    visibleCondition <- projectVisibleCondition
+    let aclJoins = userUuidsJoin ++ userGroupUuidsJoin
+    let aclCondition = "AND " ++ visibleCondition
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
     let countSql =
@@ -174,10 +147,11 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \FROM project \
               \${knowledgeModelPackageJoin} \
               \${aclJoins} \
-              \WHERE project.tenant_uuid = '${tenantUuid}' ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}"
+              \WHERE project.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}"
               [ ("knowledgeModelPackageJoin", knowledgeModelPackageJoin)
               , ("aclJoins", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
+              , ("workspaceCondition", workspaceCondition)
               , ("aclCondition", aclCondition)
               , ("nameCondition", nameCondition)
               , ("isTemplateCondition", isTemplateCondition)
@@ -207,16 +181,16 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \                             project.created_at, \
               \                             project.updated_at, \
               \                             project.knowledge_model_package_uuid, \
-              \                             project.document_template_uuid \
+              \                             project.document_template_uuid, \
+              \                             project.workspace_uuid \
               \             FROM project \
               \             ${knowledgeModelPackageJoin} \
               \             ${aclJoins} \
-              \             WHERE project.tenant_uuid = '${tenantUuid}' ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}), \
+              \             WHERE project.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}), \
               \     pkg AS (SELECT knowledge_model_package.uuid, \
               \                    knowledge_model_package.name, \
               \                    knowledge_model_package.version, \
-              \                    knowledge_model_package.organization_id, \
-              \                    knowledge_model_package.km_id \
+              \                    knowledge_model_package.id \
               \             FROM knowledge_model_package \
               \             WHERE knowledge_model_package.tenant_uuid = '${tenantUuid}') \
               \SELECT  filtered_project.uuid, \
@@ -228,19 +202,20 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \        filtered_project.created_at, \
               \        filtered_project.updated_at, \
               \        CASE \
-              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase']) THEN 'OutdatedKnowledgeModelProjectState' \
+              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], filtered_project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
               \          ELSE 'UpToDateKnowledgeModelProjectState' END, \
               \        CASE \
               \          WHEN dt.uuid IS NULL THEN NULL \
               \          WHEN dt.uuid != (SELECT newest_dt.uuid \
               \                           FROM document_template newest_dt \
               \                           WHERE newest_dt.tenant_uuid = '${tenantUuid}' \
-              \                             AND newest_dt.organization_id = dt.organization_id \
-              \                             AND newest_dt.template_id = dt.template_id \
+              \                             AND newest_dt.id = dt.id \
               \                             AND newest_dt.phase = 'ReleasedDocumentTemplatePhase' \
+              \                             AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = filtered_project.workspace_uuid) \
               \                           ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
               \                                    split_part(newest_dt.version, '.', 2)::int DESC, \
-              \                                    split_part(newest_dt.version, '.', 3)::int DESC \
+              \                                    split_part(newest_dt.version, '.', 3)::int DESC, \
+              \                                    newest_dt.workspace_uuid IS NOT NULL DESC \
               \                           LIMIT 1) THEN 'OutdatedDocumentTemplateProjectState' \
               \          ELSE 'UpToDateDocumentTemplateProjectState' END, \
               \        pkg.uuid, \
@@ -255,7 +230,8 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \        FROM project_perm_group \
               \        JOIN user_group ug on ug.uuid = project_perm_group.user_group_uuid \
               \        WHERE project_uuid = filtered_project.uuid \
-              \        GROUP BY project_uuid) as group_permissions \
+              \        GROUP BY project_uuid) as group_permissions, \
+              \       filtered_project.workspace_uuid \
               \FROM filtered_project \
               \JOIN pkg ON filtered_project.knowledge_model_package_uuid = pkg.uuid \
               \LEFT JOIN document_template dt ON filtered_project.document_template_uuid = dt.uuid AND dt.tenant_uuid = '${tenantUuid}' \
@@ -264,6 +240,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               [ ("knowledgeModelPackageJoin", knowledgeModelPackageJoin)
               , ("aclJoins", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
+              , ("workspaceCondition", workspaceCondition)
               , ("aclCondition", aclCondition)
               , ("nameCondition", nameCondition)
               , ("isTemplateCondition", isTemplateCondition)
@@ -288,39 +265,48 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
             }
     return $ Page pageLabel metadata entities
 
-findProjectsByKnowledgeModelPackageUuid :: WizardRequestContextC s m => U.UUID -> m [Project]
-findProjectsByKnowledgeModelPackageUuid pkgUuid = do
-  tenantUuid <- asks (.tenantUuid')
-  currentUser <- getCurrentUser
-  hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-  if hasPermission
-    then createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("knowledge_model_package_uuid", U.toString pkgUuid)] >>= traverse enhance
-    else do
-      let sql =
-            fromString $
-              f' (projectSelectSql (U.toString tenantUuid) (U.toString currentUser.uuid) "['VIEW']") ["AND knowledge_model_package_uuid = ?"]
-      let params = [U.toString pkgUuid]
-      logQuery sql params
-      let action conn = query conn sql params
-      entities <- runDB action
-      traverse enhance entities
+projectVisibleCondition :: WizardRequestContextC s m => m String
+projectVisibleCondition = do
+  viewAccess <- workspaceAccess (Just _PROJECTS_VIEW_ROLE_PERMISSION)
+  memberAccess <- workspaceAccess Nothing
+  case viewAccess of
+    UnrestrictedWorkspaceAccess -> return "TRUE"
+    _ -> do
+      tenantUuid <- asks (.tenantUuid')
+      currentUser <- getCurrentUser
+      return $
+        f''
+          "(${viewAccess} OR (${memberAccess} AND (project.visibility IN ('VisibleEditProjectVisibility', 'VisibleCommentProjectVisibility', 'VisibleViewProjectVisibility') \
+          \  OR EXISTS (SELECT 1 \
+          \             FROM project_perm_user ppu \
+          \             WHERE ppu.project_uuid = project.uuid AND ppu.tenant_uuid = '${tenantUuid}' AND ppu.user_uuid = '${currentUserUuid}' AND ppu.perms @> ARRAY ['VIEW']) \
+          \  OR EXISTS (SELECT 1 \
+          \             FROM project_perm_group ppg \
+          \             JOIN user_group_membership ugm ON ugm.user_group_uuid = ppg.user_group_uuid AND ugm.user_uuid = '${currentUserUuid}' AND ugm.tenant_uuid = '${tenantUuid}' \
+          \             WHERE ppg.project_uuid = project.uuid AND ppg.tenant_uuid = '${tenantUuid}' AND ppg.perms @> ARRAY ['VIEW']))))"
+          [ ("viewAccess", workspaceAccessSql "project.workspace_uuid" viewAccess)
+          , ("memberAccess", workspaceAccessSql "project.workspace_uuid" memberAccess)
+          , ("tenantUuid", U.toString tenantUuid)
+          , ("currentUserUuid", U.toString currentUser.uuid)
+          ]
 
-findProjectsByDocumentTemplateUuid :: WizardRequestContextC s m => U.UUID -> m [Project]
-findProjectsByDocumentTemplateUuid documentTemplateUuid = do
+unsetDocumentTemplateInProjects :: WizardRequestContextC s m => U.UUID -> UTCTime -> m Int64
+unsetDocumentTemplateInProjects documentTemplateUuid now = do
   tenantUuid <- asks (.tenantUuid')
-  currentUser <- getCurrentUser
-  hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
-  if hasPermission
-    then createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("document_template_uuid", U.toString documentTemplateUuid)] >>= traverse enhance
-    else do
-      let sql =
-            fromString $
-              f' (projectSelectSql (U.toString tenantUuid) (U.toString currentUser.uuid) "['VIEW']") ["AND document_template_uuid = ?"]
-      let params = [documentTemplateUuid]
-      logQuery sql params
-      let action conn = query conn sql params
-      entities <- runDB action
-      traverse enhance entities
+  let sql = fromString "UPDATE project SET document_template_uuid = NULL, format_uuid = NULL, updated_at = ? WHERE tenant_uuid = ? AND document_template_uuid = ?"
+  let params = [toField now, toField tenantUuid, toField documentTemplateUuid]
+  logQuery sql params
+  let action conn = execute conn sql params
+  runDB action
+
+findProjectUuidsByWorkspaceUuid :: WizardRequestContextC s m => U.UUID -> m [U.UUID]
+findProjectUuidsByWorkspaceUuid workspaceUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString "SELECT uuid FROM project WHERE tenant_uuid = ? AND workspace_uuid = ?"
+  let params = [toField tenantUuid, toField workspaceUuid]
+  logQuery sql params
+  let action conn = query conn sql params
+  fmap (fmap fromOnly) (runDB action)
 
 findProjectsWithZeroAcl :: WizardRequestContextC s m => m [Project]
 findProjectsWithZeroAcl = do
@@ -332,6 +318,7 @@ findProjectsWithZeroAcl = do
           \LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid \
           \WHERE project_perm_user.user_uuid IS NULL \
           \AND project_perm_group.user_group_uuid IS NULL \
+          \AND NOT EXISTS (SELECT 1 FROM user_entity WHERE user_entity.uuid = project.created_by) \
           \AND project.updated_at < now() - INTERVAL '30 days'"
           [entityName]
   logInfoI _CMP_DATABASE (trim sql)
@@ -341,29 +328,44 @@ findProjectsWithZeroAcl = do
 findProjectsSimpleWithPermByUserGroupUuid :: WizardRequestContextC s m => U.UUID -> m [ProjectSimpleWithPerm]
 findProjectsSimpleWithPermByUserGroupUuid userGroupUuid = do
   tenantUuid <- asks (.tenantUuid')
+  findProjectsSimpleWithPerm
+    "LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project.tenant_uuid = project_perm_group.tenant_uuid \
+    \WHERE project_perm_group.user_group_uuid = ? AND project_perm_group.tenant_uuid = ?"
+    [toField userGroupUuid, toField tenantUuid]
+
+findProjectsSimpleWithPermByWorkspaceUuidAndUserUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m [ProjectSimpleWithPerm]
+findProjectsSimpleWithPermByWorkspaceUuidAndUserUuid workspaceUuid userUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  findProjectsSimpleWithPerm
+    "LEFT JOIN project_perm_user ON project.uuid = project_perm_user.project_uuid AND project.tenant_uuid = project_perm_user.tenant_uuid \
+    \WHERE project_perm_user.user_uuid = ? AND project.workspace_uuid = ? AND project.tenant_uuid = ?"
+    [toField userUuid, toField workspaceUuid, toField tenantUuid]
+
+findProjectsSimpleWithPerm :: WizardRequestContextC s m => String -> [Action] -> m [ProjectSimpleWithPerm]
+findProjectsSimpleWithPerm condition params = do
   let sql =
-        fromString
-          "SELECT \
-          \  nested_project.*, \
-          \  ( \
-          \    SELECT array_agg(CONCAT(user_uuid, '::', perms)) \
-          \    FROM project_perm_user \
-          \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
-          \    GROUP BY project_uuid \
-          \  ) as user_permissions, \
-          \  ( \
-          \    SELECT array_agg(CONCAT(user_group_uuid, '::', perms)) \
-          \    FROM project_perm_group \
-          \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
-          \    GROUP BY project_uuid \
-          \  ) as group_permissions \
-          \FROM ( \
-          \  SELECT project.uuid, project.visibility, project.sharing, project.tenant_uuid \
-          \  FROM project \
-          \  LEFT JOIN project_perm_group ON project.uuid = project_perm_group.project_uuid AND project.tenant_uuid = project_perm_group.tenant_uuid \
-          \  WHERE project_perm_group.user_group_uuid = ? AND project_perm_group.tenant_uuid = ? \
-          \) nested_project"
-  let params = [toField userGroupUuid, toField tenantUuid]
+        fromString $
+          f'
+            "SELECT \
+            \  nested_project.*, \
+            \  ( \
+            \    SELECT array_agg(CONCAT(user_uuid, '::', perms)) \
+            \    FROM project_perm_user \
+            \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
+            \    GROUP BY project_uuid \
+            \  ) as user_permissions, \
+            \  ( \
+            \    SELECT array_agg(CONCAT(user_group_uuid, '::', perms)) \
+            \    FROM project_perm_group \
+            \    WHERE project_uuid = nested_project.uuid AND tenant_uuid = nested_project.tenant_uuid \
+            \    GROUP BY project_uuid \
+            \  ) as group_permissions \
+            \FROM ( \
+            \  SELECT project.uuid, project.visibility, project.sharing, project.tenant_uuid, project.workspace_uuid \
+            \  FROM project \
+            \  %s \
+            \) nested_project"
+            [condition]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
@@ -407,8 +409,7 @@ findProjectDetail uuid = do
             \       project.sharing, \
             \       knowledge_model_package.uuid AS knowledge_model_package_uuid, \
             \       knowledge_model_package.name AS knowledge_model_package_name, \
-            \       knowledge_model_package.organization_id AS knowledge_model_package_organization_id, \
-            \       knowledge_model_package.km_id AS knowledge_model_package_km_id, \
+            \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
             \       project.selected_question_tag_uuids, \
@@ -418,7 +419,8 @@ findProjectDetail uuid = do
             \        SELECT count(*) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as file_count \
+            \       ) as file_count, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND project.tenant_uuid = knowledge_model_package.tenant_uuid \
             \WHERE project.tenant_uuid = ? AND project.uuid = ?"
@@ -444,8 +446,7 @@ findProjectDetailQuestionnaire uuid = do
             \       project.sharing, \
             \       knowledge_model_package.uuid AS knowledge_model_package_uuid, \
             \       knowledge_model_package.name AS knowledge_model_package_name, \
-            \       knowledge_model_package.organization_id AS knowledge_model_package_organization_id, \
-            \       knowledge_model_package.km_id AS knowledge_model_package_km_id, \
+            \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
             \       project.selected_question_tag_uuids, \
@@ -460,7 +461,8 @@ findProjectDetailQuestionnaire uuid = do
             \                        )) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as files \
+            \       ) as files, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND project.tenant_uuid = knowledge_model_package.tenant_uuid \
             \WHERE project.tenant_uuid = ? AND project.uuid = ?"
@@ -486,8 +488,7 @@ findProjectDetailPreview uuid = do
             \       project.sharing, \
             \       knowledge_model_package.uuid AS knowledge_model_package_uuid, \
             \       knowledge_model_package.name AS knowledge_model_package_name, \
-            \       knowledge_model_package.organization_id AS knowledge_model_package_organization_id, \
-            \       knowledge_model_package.km_id AS knowledge_model_package_km_id, \
+            \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
             \       project.is_template, \
@@ -500,7 +501,8 @@ findProjectDetailPreview uuid = do
             \        SELECT count(*) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as file_count \
+            \       ) as file_count, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND project.tenant_uuid = knowledge_model_package.tenant_uuid \
             \LEFT JOIN document_template dt ON project.document_template_uuid = dt.uuid AND project.tenant_uuid = dt.tenant_uuid \
@@ -536,8 +538,7 @@ findProjectDetailSettings uuid = do
             \       ${projectDetailPermSql}, \
             \       pkg.uuid                       as knowledge_model_package_uuid, \
             \       pkg.name                       as knowledge_model_package_name, \
-            \       pkg.organization_id            as knowledge_model_package_organization_id, \
-            \       pkg.km_id                      as knowledge_model_package_km_id, \
+            \       pkg.id            AS knowledge_model_package_id, \
             \       pkg.version                    as knowledge_model_package_version, \
             \       pkg.phase                      as knowledge_model_package_phase, \
             \       pkg.description                as knowledge_model_package_description, \
@@ -545,10 +546,10 @@ findProjectDetailSettings uuid = do
             \       pkg.public                     as knowledge_model_package_public, \
             \       pkg.language                   as knowledge_model_package_language, \
             \       pkg.created_at                 as knowledge_model_package_created_at, \
+            \       pkg.workspace_uuid             as knowledge_model_package_workspace_uuid, \
             \       dt.uuid                        as document_template_uuid, \
             \       dt.name                        as document_template_name, \
-            \       dt.organization_id             as document_template_organization_id, \
-            \       dt.template_id                 as document_template_template_id, \
+            \       dt.id             as document_template_id, \
             \       dt.version                     as document_template_version, \
             \       dt.phase                       as document_template_phase, \
             \       dt.description                 as document_template_description, \
@@ -569,26 +570,28 @@ findProjectDetailSettings uuid = do
             \       ) AS document_template_locales, \
             \       dt.metamodel_version           as document_template_metamodel_version, \
             \       CASE \
-            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase']) THEN 'OutdatedKnowledgeModelProjectState' \
+            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
             \         ELSE 'UpToDateKnowledgeModelProjectState' END as knowledge_model_state, \
             \       CASE \
             \         WHEN dt.uuid IS NULL THEN NULL \
             \         WHEN dt.uuid != (SELECT newest_dt.uuid \
             \                          FROM document_template newest_dt \
             \                          WHERE newest_dt.tenant_uuid = '${tenantUuid}' \
-            \                            AND newest_dt.organization_id = dt.organization_id \
-            \                            AND newest_dt.template_id = dt.template_id \
+            \                            AND newest_dt.id = dt.id \
             \                            AND newest_dt.phase = 'ReleasedDocumentTemplatePhase' \
+            \                            AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = project.workspace_uuid) \
             \                          ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
             \                                   split_part(newest_dt.version, '.', 2)::int DESC, \
-            \                                   split_part(newest_dt.version, '.', 3)::int DESC \
+            \                                   split_part(newest_dt.version, '.', 3)::int DESC, \
+            \                                   newest_dt.workspace_uuid IS NOT NULL DESC \
             \                          LIMIT 1) THEN 'OutdatedDocumentTemplateProjectState' \
             \         ELSE 'UpToDateDocumentTemplateProjectState' END as document_template_state, \
             \       ( \
             \        SELECT count(*) \
             \        FROM project_file \
             \        WHERE tenant_uuid = '${tenantUuid}' AND project_uuid = '${projectUuid}' \
-            \       ) as file_count \
+            \       ) as file_count, \
+            \       project.workspace_uuid \
             \FROM project \
             \LEFT JOIN knowledge_model_package pkg ON project.knowledge_model_package_uuid = pkg.uuid AND project.tenant_uuid = pkg.tenant_uuid \
             \LEFT JOIN document_template dt ON project.document_template_uuid = dt.uuid AND project.tenant_uuid = dt.tenant_uuid \
@@ -631,7 +634,7 @@ insertProject project = do
   -- Insert project
   let sql =
         fromString
-          "INSERT INTO project VALUES (?, ?, ?, ?, ?, ?::uuid[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::text[], ?, ?)"
+          "INSERT INTO project VALUES (?, ?, ?, ?, ?, ?::uuid[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::text[], ?, ?, ?)"
   let params = toRow project
   logQuery sql params
   let action conn = execute conn sql params
@@ -645,7 +648,7 @@ updateProjectByUuid project = do
   tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString
-          "UPDATE project SET uuid = ?, name = ?, visibility = ?, sharing = ?, knowledge_model_package_uuid = ?, selected_question_tag_uuids = ?::uuid[], document_template_uuid = ?, format_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, description = ?, is_template = ?, squashed = ?, tenant_uuid = ?, project_tags = ?::text[], language = ?, document_template_language = ? WHERE tenant_uuid = ? AND uuid = ?"
+          "UPDATE project SET uuid = ?, name = ?, visibility = ?, sharing = ?, knowledge_model_package_uuid = ?, selected_question_tag_uuids = ?::uuid[], document_template_uuid = ?, format_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, description = ?, is_template = ?, squashed = ?, tenant_uuid = ?, project_tags = ?::text[], language = ?, document_template_language = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
   let params = toRow project ++ [toField tenantUuid, toField . U.toText $ project.uuid]
   logInsertAndUpdate sql params
   let action conn = execute conn sql params

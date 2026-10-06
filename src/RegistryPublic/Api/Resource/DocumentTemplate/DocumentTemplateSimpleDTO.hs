@@ -4,16 +4,12 @@ import Data.Time
 import qualified Data.UUID as U
 import GHC.Generics
 
-import RegistryPublic.Model.Organization.OrganizationSimple
-
 data DocumentTemplateSimpleDTO = DocumentTemplateSimpleDTO
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , description :: String
-  , organization :: Maybe OrganizationSimple
   , createdAt :: UTCTime
   }
   deriving (Show, Eq, Generic)

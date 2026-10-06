@@ -22,6 +22,7 @@ import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.User.UserWithMembership
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.User.Group.UserGroupMapper
+import Shared.Service.Workspace.WorkspaceScopeService
 import WizardServer.Database.DAO.User.UserGroupDAO
 import WizardServer.Model.User.UserGroupSuggestion
 import WizardServer.Service.User.Group.UserGroupAcl
@@ -33,8 +34,9 @@ getUserGroupSuggestions = findUserGroupSuggestionsPage
 createUserGroup :: WizardRequestContextC s m => U.UUID -> String -> Maybe String -> Bool -> m ()
 createUserGroup uuid name description private = do
   tenantUuid <- asks (.tenantUuid')
+  workspaceUuid <- requireWorkspaceScope
   now <- liftIO getCurrentTime
-  let userGroup = fromCreate uuid name description private tenantUuid now
+  let userGroup = fromCreate uuid name description private tenantUuid workspaceUuid now
   insertUserGroup userGroup
   return ()
 
@@ -59,7 +61,7 @@ deleteUserGroup userGroupUuid =
     -- 1. Recompute all project permissions for websockets
     projects <- findProjectsSimpleWithPermByUserGroupUuid userGroupUuid
     let projectsWithoutUserGroup = fmap (\project -> project {permissions = filter (\projectPerm -> projectPerm.memberUuid /= userGroupUuid) project.permissions}) projects
-    traverse_ (\project -> updatePermsForOnlineUsers project.uuid project.visibility project.sharing project.permissions) projectsWithoutUserGroup
+    traverse_ (\project -> updatePermsForOnlineUsers project.uuid project.workspaceUuid project.visibility project.sharing project.permissions) projectsWithoutUserGroup
     -- 2. Delete project perm group
     deleteProjectCachesByUserGroupUuid userGroupUuid
     deleteProjectPermGroupByUserGroupUuid userGroupUuid

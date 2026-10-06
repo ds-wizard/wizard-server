@@ -17,11 +17,11 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelEditor.Migration.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/knowledge-model-editors/{uuid}/migrations/current
+-- DELETE /api/knowledge-model-editors/{uuid}/migrations/current
 -- ------------------------------------------------------------------------
 list_current_DELETE :: RequestContext -> SpecWith ((), Application)
 list_current_DELETE requestContext =
-  describe "DELETE /wizard-api/knowledge-model-editors/{uuid}/migrations/current" $ do
+  describe "DELETE /api/knowledge-model-editors/{uuid}/migrations/current" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -32,7 +32,7 @@ list_current_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
+reqUrl = "/api/knowledge-model-editors/6474b24b-262b-42b1-9451-008e8363f2b6/migrations/current"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -67,7 +67,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "KnowledgeModelEditorsUseRolePermission"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] "" "knowledgeModels.useEditor"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

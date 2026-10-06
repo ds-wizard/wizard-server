@@ -5,20 +5,20 @@ import Data.Time
 
 import Shared.Api.Resource.Submission.SubmissionCreateDTO
 import Shared.Database.Migration.Development.Document.Data.Documents
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
+import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Model.Document.Document
+import Shared.Model.Settings.Settings
 import Shared.Model.Submission.Submission
 import Shared.Model.Submission.SubmissionList
-import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.User
 import Shared.Service.Submission.SubmissionMapper
 import Shared.Util.Uuid
 
 submissionCreate :: SubmissionCreateDTO
-submissionCreate = SubmissionCreateDTO {serviceId = defaultSubmissionService.sId}
+submissionCreate = SubmissionCreateDTO {serviceId = settingsSubmissionService.sId}
 
 submission1 :: Submission
 submission1 =
@@ -27,7 +27,7 @@ submission1 =
     , state = DoneSubmissionState
     , location = Nothing
     , returnedData = Nothing
-    , serviceId = defaultSubmissionService.sId
+    , serviceId = settingsSubmissionService.sId
     , documentUuid = doc1.uuid
     , tenantUuid = defaultTenant.uuid
     , createdBy = Just userAlbert.uuid
@@ -36,7 +36,7 @@ submission1 =
     }
 
 submission1List :: SubmissionList
-submission1List = toList submission1 defaultSubmissionService (Just userAlbertSuggestion)
+submission1List = toList submission1 settingsSubmissionService (Just userAlbertSuggestion)
 
 submission2 :: Submission
 submission2 =
@@ -45,7 +45,7 @@ submission2 =
     , state = DoneSubmissionState
     , location = Nothing
     , returnedData = Nothing
-    , serviceId = defaultSubmissionService.sId
+    , serviceId = settingsSubmissionService.sId
     , documentUuid = doc1.uuid
     , tenantUuid = defaultTenant.uuid
     , createdBy = Just userAlbert.uuid
@@ -54,7 +54,7 @@ submission2 =
     }
 
 submission2Dto :: SubmissionList
-submission2Dto = toList submission2 defaultSubmissionService (Just userAlbertSuggestion)
+submission2Dto = toList submission2 settingsSubmissionService (Just userAlbertSuggestion)
 
 differentSubmission1 :: Submission
 differentSubmission1 =
@@ -63,7 +63,7 @@ differentSubmission1 =
     , state = DoneSubmissionState
     , location = Nothing
     , returnedData = Nothing
-    , serviceId = defaultSubmissionService.sId
+    , serviceId = settingsSubmissionService.sId
     , documentUuid = differentDoc.uuid
     , tenantUuid = differentTenant.uuid
     , createdBy = Just userCharles.uuid

@@ -11,13 +11,11 @@ import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateState
 import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocaleList
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
-import Shared.Model.Registry.RegistryOrganization
 
 data DocumentTemplateDetailDTO = DocumentTemplateDetailDTO
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , phase :: DocumentTemplatePhase
   , metamodelVersion :: SemVer2Tuple
@@ -33,9 +31,9 @@ data DocumentTemplateDetailDTO = DocumentTemplateDetailDTO
   , locales :: [DocumentTemplateLocaleList]
   , versions :: [VersionDTO]
   , remoteLatestVersion :: Maybe String
-  , organization :: Maybe RegistryOrganization
   , registryLink :: Maybe String
   , state :: DocumentTemplateState
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

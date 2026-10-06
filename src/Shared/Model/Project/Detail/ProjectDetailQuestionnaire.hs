@@ -19,5 +19,6 @@ data ProjectDetailQuestionnaire = ProjectDetailQuestionnaire
   , isTemplate :: Bool
   , permissions :: [ProjectPermDTO]
   , files :: [ProjectFileSimple]
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

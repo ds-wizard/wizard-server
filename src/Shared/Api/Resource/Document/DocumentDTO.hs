@@ -27,5 +27,6 @@ data DocumentDTO = DocumentDTO
   , submissions :: [SubmissionList]
   , createdBy :: Maybe U.UUID
   , createdAt :: UTCTime
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

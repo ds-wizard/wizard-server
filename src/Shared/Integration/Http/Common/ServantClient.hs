@@ -6,6 +6,7 @@ import qualified Data.ByteString.Lazy.Char8 as BSL
 import Network.HTTP.Client (Manager)
 import Servant.Client
 
+import Shared.Constant.Api
 import Shared.Localization.Messages.Internal
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
@@ -14,7 +15,7 @@ import Shared.Util.Logger
 
 createRegistryClient :: ServerConfig -> Manager -> IO ClientEnv
 createRegistryClient serverConfig httpClientManager = do
-  baseUrl <- parseBaseUrl serverConfig.registry.url
+  baseUrl <- parseBaseUrl (serverConfig.registry.url ++ apiPrefix)
   return $ mkClientEnv httpClientManager baseUrl
 
 runRegistryClient :: WizardRequestContextC s m => ClientM response -> m response

@@ -27,21 +27,21 @@ findLocales = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid]
 
-findLocalesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Pageable -> [Sort] -> m (Page LocaleList)
-findLocalesPage mOrganizationId mLocaleId mQuery pageable sort =
+findLocalesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Pageable -> [Sort] -> m (Page LocaleList)
+findLocalesPage mLocaleId mQuery pageable sort =
   createFindEntitiesGroupByCoordinatePageableQuerySortFn
     entityName
     "registry_locale"
     pageLabel
     pageable
     sort
-    "locale.uuid, locale.name, locale.description, locale.code, locale.organization_id, locale.locale_id, locale.version, locale.default_locale, locale.enabled, registry_locale.remote_version, registry_organization.name as org_name, registry_organization.logo as org_logo, locale.created_at, locale.updated_at"
-    "locale_id"
+    "locale.uuid, locale.name, locale.description, locale.code, locale.id, locale.version, locale.default_locale, locale.enabled, registry_locale.remote_version, locale.created_at, locale.updated_at"
     mQuery
     Nothing
-    mOrganizationId
     mLocaleId
     Nothing
+    ""
+    False
     ""
 
 findLocalesFiltered :: WizardRequestContextC s m => [(String, String)] -> m [Locale]

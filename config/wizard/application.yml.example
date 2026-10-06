@@ -1,6 +1,8 @@
 general:
-  clientUrl: http://localhost:3001/wizard
+  clientUrl: http://localhost:3001
   secret:
+  privacyUrl:
+  termsOfServiceUrl:
 
 database:
   connectionString: postgresql://postgres:postgres@postgres:5432/wizard
@@ -13,9 +15,6 @@ database:
   #     - project
   #     - knowledge_model_package
   #     - registry_knowledge_model_package
-
-registry:
-  token:
 
 httpClient:
   restricted:

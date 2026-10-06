@@ -28,8 +28,15 @@ type LocaleAPI =
            :<|> Detail_PUT
            :<|> Detail_Bundle_GET
            :<|> Detail_DELETE
-           :<|> Detail_Pull_POST
        )
+
+type LocalePullAPI = Tags "Locale" :> Detail_Pull_POST
+
+localePullApi :: Proxy LocalePullAPI
+localePullApi = Proxy
+
+localePullServer :: WizardHandlerC s sm r rm => ServerT LocalePullAPI sm
+localePullServer = detail_pull_POST
 
 localeApi :: Proxy LocaleAPI
 localeApi = Proxy
@@ -46,4 +53,3 @@ localeServer =
     :<|> detail_PUT
     :<|> detail_bundle_GET
     :<|> detail_DELETE
-    :<|> detail_pull_POST

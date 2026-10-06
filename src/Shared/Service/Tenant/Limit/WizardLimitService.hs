@@ -74,12 +74,12 @@ checkKnowledgeModelEditorLimit = do
   count <- countKnowledgeModelEditors
   checkLimit "knowledgeModelEditors" count limit.knowledgeModelEditors
 
-checkPackageLimit :: WizardRequestContextC s m => String -> String -> m ()
-checkPackageLimit organizationId kmId = do
-  existingPackages <- findPackagesByOrganizationIdAndKmId organizationId kmId
+checkPackageLimit :: WizardRequestContextC s m => String -> m ()
+checkPackageLimit pkgId = do
+  existingPackages <- findPackagesFiltered [("id", pkgId)]
   when (null existingPackages) $ do
     limit <- findLimitBundleForCurrentTenant
-    count <- countPackagesGroupedByOrganizationIdAndKmId
+    count <- countPackagesGroupedById
     checkLimit "knowledge models" count limit.knowledgeModels
 
 checkProjectLimit :: WizardRequestContextC s m => m ()
@@ -88,18 +88,18 @@ checkProjectLimit = do
   count <- countProjects
   checkLimit "projects" count limit.projects
 
-checkDocumentTemplateLimit :: WizardRequestContextC s m => String -> String -> m ()
-checkDocumentTemplateLimit organizationId templateId = do
-  existingTemplates <- findDocumentTemplatesByOrganizationIdAndKmId organizationId templateId
+checkDocumentTemplateLimit :: WizardRequestContextC s m => String -> m ()
+checkDocumentTemplateLimit dtId = do
+  existingTemplates <- findDocumentTemplatesFiltered [("id", dtId)]
   when (all (\dt -> dt.phase == DraftDocumentTemplatePhase) existingTemplates) $ do
     limit <- findLimitBundleForCurrentTenant
-    count <- countDocumentTemplatesGroupedByOrganizationIdAndKmId
+    count <- countDocumentTemplatesGroupedById
     checkLimit "document templates" count limit.documentTemplates
 
 checkDocumentTemplateDraftLimit :: WizardRequestContextC s m => m ()
 checkDocumentTemplateDraftLimit = do
   limit <- findLimitBundleForCurrentTenant
-  count <- countDraftsGroupedByOrganizationIdAndKmId
+  count <- countDraftsGroupedById
   checkLimit "document template drafts" count limit.documentTemplateDrafts
 
 checkDocumentLimit :: WizardRequestContextC s m => m ()
@@ -108,12 +108,12 @@ checkDocumentLimit = do
   count <- countDocuments
   checkLimit "documents" count limit.documents
 
-checkLocaleLimit :: WizardRequestContextC s m => String -> String -> m ()
-checkLocaleLimit organizationId localeId = do
-  existingLocales <- findLocalesByOrganizationIdAndLocaleId organizationId localeId
+checkLocaleLimit :: WizardRequestContextC s m => String -> m ()
+checkLocaleLimit localeId = do
+  existingLocales <- findLocalesById localeId
   when (null existingLocales) $ do
     limit <- findLimitBundleForCurrentTenant
-    count <- countLocalesGroupedByOrganizationIdAndLocaleId
+    count <- countLocalesGroupedById
     checkLimit "locales" count limit.locales
 
 checkStorageSize :: WizardRequestContextC s m => Int64 -> m ()

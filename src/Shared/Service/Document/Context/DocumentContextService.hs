@@ -14,8 +14,7 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateLocaleDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Project.ProjectFileDAO
 import Shared.Database.DAO.Project.ProjectVersionDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigLookAndFeelDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
+import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Model.Common.Lens
@@ -33,9 +32,11 @@ import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.User.UserGroup
 import Shared.Service.Document.Context.DocumentContextMapper
+import Shared.Service.Document.DocumentUtil (getDocumentContextOrganization)
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Report.ReportGenerator
+import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.TenantHelper
 import qualified Shared.Service.User.Group.UserGroupMapper as UGR_Mapper
 import Shared.Util.List
@@ -46,8 +47,8 @@ createDocumentContext doc pkg kmEditorEvents project mReplies = do
   dt <- findDocumentTemplateByUuid doc.documentTemplateUuid
   mProjectCreatedBy <- forM project.creatorUuid findUserByUuid
   mDocCreatedBy <- forM doc.createdBy findUserByUuid
-  tcOrganization <- findTenantConfigOrganization
-  tcLookAndFeel <- findTenantConfigLookAndFeel
+  tcOrganization <- getDocumentContextOrganization
+  tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
   clientUrl <- getClientUrl
   now <- liftIO getCurrentTime
   (phaseUuid, replies, labels) <-

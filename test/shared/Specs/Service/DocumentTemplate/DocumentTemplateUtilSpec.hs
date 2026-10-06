@@ -15,7 +15,7 @@ import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
 
 documentTemplateUtilSpec =
   describe "Document DocumentTemplate Utils" $ do
-    let pkgCoordinate = Coordinate "org.nl" "core-nl" "2.0.0"
+    let pkgCoordinate = Coordinate "org.nl.core-nl" "2.0.0"
     describe "filterDocumentTemplates" $ do
       it "No KM Specifications given => Deny" $
         -- GIVEN:
@@ -24,8 +24,7 @@ documentTemplateUtilSpec =
                 [ DocumentTemplate
                     { uuid = U.nil
                     , name = ""
-                    , organizationId = ""
-                    , templateId = ""
+                    , id = ""
                     , version = ""
                     , phase = ReleasedDocumentTemplatePhase
                     , metamodelVersion = documentTemplateMetamodelVersion
@@ -37,6 +36,7 @@ documentTemplateUtilSpec =
                     , language = "en"
                     , potFileReady = False
                     , tenantUuid = defaultTenant.uuid
+                    , workspaceUuid = Nothing
                     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     }
@@ -54,8 +54,7 @@ documentTemplateUtilSpec =
                 [ DocumentTemplate
                     { uuid = U.nil
                     , name = ""
-                    , organizationId = ""
-                    , templateId = ""
+                    , id = ""
                     , version = ""
                     , phase = ReleasedDocumentTemplatePhase
                     , metamodelVersion = documentTemplateMetamodelVersion
@@ -64,8 +63,7 @@ documentTemplateUtilSpec =
                     , license = ""
                     , allowedPackages =
                         [ KnowledgeModelPackagePattern
-                            { orgId = Nothing
-                            , kmId = Nothing
+                            { id = Nothing
                             , minVersion = Nothing
                             , maxVersion = Nothing
                             }
@@ -74,6 +72,7 @@ documentTemplateUtilSpec =
                     , language = "en"
                     , potFileReady = False
                     , tenantUuid = defaultTenant.uuid
+                    , workspaceUuid = Nothing
                     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     }
@@ -91,8 +90,7 @@ documentTemplateUtilSpec =
                 [ DocumentTemplate
                     { uuid = U.nil
                     , name = ""
-                    , organizationId = ""
-                    , templateId = ""
+                    , id = ""
                     , version = ""
                     , phase = ReleasedDocumentTemplatePhase
                     , metamodelVersion = documentTemplateMetamodelVersion
@@ -101,14 +99,12 @@ documentTemplateUtilSpec =
                     , license = ""
                     , allowedPackages =
                         [ KnowledgeModelPackagePattern
-                            { orgId = Nothing
-                            , kmId = Nothing
+                            { id = Nothing
                             , minVersion = Nothing
                             , maxVersion = Nothing
                             }
                         , KnowledgeModelPackagePattern
-                            { orgId = Nothing
-                            , kmId = Just "core-de"
+                            { id = Just "core-de"
                             , minVersion = Nothing
                             , maxVersion = Nothing
                             }
@@ -117,6 +113,7 @@ documentTemplateUtilSpec =
                     , language = "en"
                     , potFileReady = False
                     , tenantUuid = defaultTenant.uuid
+                    , workspaceUuid = Nothing
                     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 21) 0
                     }

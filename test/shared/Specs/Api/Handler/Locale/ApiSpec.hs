@@ -8,6 +8,7 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.Locale.Detail_DELETE
 import Specs.Api.Handler.Locale.Detail_GET
 import Specs.Api.Handler.Locale.Detail_PUT
+import Specs.Api.Handler.Locale.List_Bundle_POST
 import Specs.Api.Handler.Locale.List_Current_Content_GET
 import Specs.Api.Handler.Locale.List_DELETE
 import Specs.Api.Handler.Locale.List_GET
@@ -20,6 +21,7 @@ localeAPI serverContext requestContext =
       list_suggestions_GET requestContext
       list_current_content_GET requestContext
       list_DELETE requestContext
+      list_bundle_POST requestContext
       detail_GET requestContext
       detail_PUT requestContext
       detail_DELETE requestContext

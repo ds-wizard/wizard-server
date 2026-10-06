@@ -1,5 +1,6 @@
 module Shared.Api.Handler.DocumentTemplate.List_Bundle_POST where
 
+import qualified Data.UUID as U
 import Servant
 import Servant.Multipart
 
@@ -17,6 +18,8 @@ type List_Bundle_POST =
     :> MultipartForm Mem FileDTO
     :> "document-templates"
     :> "bundle"
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
     :> PostCreated '[SafeJSON] (Headers '[Header "x-trace-uuid" String] DocumentTemplateSimple)
 
 list_bundle_POST
@@ -24,9 +27,11 @@ list_bundle_POST
   => Maybe String
   -> Maybe String
   -> FileDTO
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> sm (Headers '[Header "x-trace-uuid" String] DocumentTemplateSimple)
-list_bundle_POST mTokenHeader mServerUrl reqDto =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_bundle_POST mTokenHeader mServerUrl reqDto mW mTenant =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $
       addTraceUuidHeader =<< do
         importAndConvertBundle reqDto.content False

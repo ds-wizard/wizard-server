@@ -11,7 +11,7 @@ instance ToParamSchema Coordinate where
       { _paramSchemaType = Just SwaggerString
       , _paramSchemaFormat = Nothing
       , _paramSchemaEnum = Nothing
-      , _paramSchemaPattern = Just "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      , _paramSchemaPattern = Just "^[a-zA-Z0-9_.~-]+:[0-9]+\\.[0-9]+\\.[0-9]+$"
       , _paramSchemaMaximum = Nothing
       , _paramSchemaExclusiveMaximum = Nothing
       , _paramSchemaMinimum = Nothing
@@ -25,6 +25,3 @@ instance ToParamSchema Coordinate where
       , _paramSchemaUniqueItems = Nothing
       , _paramSchemaMultipleOf = Nothing
       }
-
-instance ToSchema Coordinate where
-  declareNamedSchema _ = pure $ NamedSchema (Just "Coordinate") mempty

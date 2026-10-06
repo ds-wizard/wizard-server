@@ -32,11 +32,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/type-hints
+-- POST /api/type-hints
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/type-hints" $ do
+  describe "POST /api/type-hints" $ do
     test_200 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -46,7 +46,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrl = "/wizard-api/type-hints"
+reqUrl = "/api/type-hints"
 
 reqHeadersT authHeader = reqCtHeader : authHeader
 
@@ -155,4 +155,4 @@ create_test_403_project title requestContext reqDto project authHeader reason =
     response `shouldRespondWith` responseMatcher
 
 create_test_403_knowledge_model_editor requestContext reqDto =
-  createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] (encode reqDto) "KnowledgeModelEditorsUseRolePermission"
+  createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] (encode reqDto) "knowledgeModels.useEditor"

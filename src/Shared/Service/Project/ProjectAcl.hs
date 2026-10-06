@@ -1,7 +1,9 @@
 module Shared.Service.Project.ProjectAcl where
 
-import Control.Monad (unless)
+import Control.Monad (forM_, unless)
 import Control.Monad.Except (throwError)
+import Control.Monad.Reader (asks)
+import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.User.UserGroupMembershipDAO
@@ -13,13 +15,16 @@ import Shared.Model.Error.Error
 import Shared.Model.Project.Acl.ProjectAclHelpers
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.UserGroupMembership
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.WorkspaceSettingsService
+import Shared.Service.Workspace.WorkspaceScopeService
 
-checkCreatePermissionToProject :: WizardRequestContextC s m => m ()
-checkCreatePermissionToProject = do
-  tcProject <- getCurrentTenantConfigProject
+checkCreatePermissionToProject :: WizardRequestContextC s m => U.UUID -> m ()
+checkCreatePermissionToProject workspaceUuid = do
+  mCurrentUser <- asks (.currentUser')
+  forM_ mCurrentUser (const (checkPermission _PROJECTS_CREATE_ROLE_PERMISSION))
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   let projectSharingEnabled = tcProject.projectSharing.enabled
   let projectSharingAnonymousEnabled = tcProject.projectSharing.anonymousEnabled
   let projectCreation = tcProject.projectCreation
@@ -29,28 +34,30 @@ checkCreatePermissionToProject = do
     (_, _, TemplateProjectCreation) -> checkPermission _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION
     (_, _, _) -> return ()
 
-checkCreateFromTemplatePermissionToProject :: WizardRequestContextC s m => Bool -> m ()
-checkCreateFromTemplatePermissionToProject isTemplate = do
-  tcProject <- getCurrentTenantConfigProject
+checkCreateFromTemplatePermissionToProject :: WizardRequestContextC s m => U.UUID -> Bool -> m ()
+checkCreateFromTemplatePermissionToProject workspaceUuid isTemplate = do
+  checkPermissionInWorkspace _PROJECTS_CREATE_ROLE_PERMISSION (Just workspaceUuid)
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   let projectCreation = tcProject.projectCreation
   case projectCreation of
     CustomProjectCreation ->
       throwError . UserError . _ERROR_SERVICE_COMMON__FEATURE_IS_DISABLED $ "Project Template"
     _ -> unless isTemplate (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Project Template")
 
-checkClonePermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
-checkClonePermissionToProject visibility sharing permissions = do
-  checkViewPermissionToProject visibility sharing permissions
+checkClonePermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
+checkClonePermissionToProject workspaceUuid visibility sharing permissions = do
+  checkPermissionInWorkspace _PROJECTS_CREATE_ROLE_PERMISSION (Just workspaceUuid)
+  checkViewPermissionToProject workspaceUuid visibility sharing permissions
 
-checkViewPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
-checkViewPermissionToProject visibility sharing perms = do
-  result <- hasViewPermissionToProject visibility sharing perms
+checkViewPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
+checkViewPermissionToProject workspaceUuid visibility sharing perms = do
+  result <- hasViewPermissionToProject workspaceUuid visibility sharing perms
   if result
     then return ()
     else throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "View Project"
 
-hasViewPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m Bool
-hasViewPermissionToProject visibility sharing perms =
+hasViewPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m Bool
+hasViewPermissionToProject workspaceUuid visibility sharing perms =
   if sharing == AnyoneWithLinkViewProjectSharing
     || sharing == AnyoneWithLinkCommentProjectSharing
     || sharing
@@ -60,13 +67,14 @@ hasViewPermissionToProject visibility sharing perms =
       currentUser <- getCurrentUser
       userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
       let currentUserGroupUuids = fmap (.userGroupUuid) userGroupMemberships
-      hasPermission <- hasPermission _PROJECTS_VIEW_ROLE_PERMISSION
+      hasPermission <- hasPermissionInWorkspace _PROJECTS_VIEW_ROLE_PERMISSION (Just workspaceUuid)
+      reachable <- isWorkspaceReachable workspaceUuid
       if or
         [ hasPermission
         , -- Check visibility
-          visibility == VisibleViewProjectVisibility
-        , visibility == VisibleCommentProjectVisibility
-        , visibility == VisibleEditProjectVisibility
+          reachable && visibility == VisibleViewProjectVisibility
+        , reachable && visibility == VisibleCommentProjectVisibility
+        , reachable && visibility == VisibleEditProjectVisibility
         , -- Check membership
           currentUser.uuid `elem` getUserUuidsForViewerPerm perms
         , currentUser.uuid `elem` getUserUuidsForCommenterPerm perms
@@ -81,27 +89,28 @@ hasViewPermissionToProject visibility sharing perms =
         then return True
         else return False
 
-checkCommentPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
-checkCommentPermissionToProject visibility sharing perms = do
-  result <- hasCommentPermissionToProject visibility sharing perms
+checkCommentPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
+checkCommentPermissionToProject workspaceUuid visibility sharing perms = do
+  result <- hasCommentPermissionToProject workspaceUuid visibility sharing perms
   if result
     then return ()
     else throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Comment Project"
 
-hasCommentPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m Bool
-hasCommentPermissionToProject visibility sharing perms =
+hasCommentPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m Bool
+hasCommentPermissionToProject workspaceUuid visibility sharing perms =
   if sharing == AnyoneWithLinkCommentProjectSharing || sharing == AnyoneWithLinkEditProjectSharing
     then return True
     else do
       currentUser <- getCurrentUser
       userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
       let currentUserGroupUuids = fmap (.userGroupUuid) userGroupMemberships
-      hasPermission <- hasPermission _PROJECTS_COMMENT_ROLE_PERMISSION
+      hasPermission <- hasPermissionInWorkspace _PROJECTS_COMMENT_ROLE_PERMISSION (Just workspaceUuid)
+      reachable <- isWorkspaceReachable workspaceUuid
       if or
         [ hasPermission
         , -- Check visibility
-          visibility == VisibleCommentProjectVisibility
-        , visibility == VisibleEditProjectVisibility
+          reachable && visibility == VisibleCommentProjectVisibility
+        , reachable && visibility == VisibleEditProjectVisibility
         , -- Check membership
           currentUser.uuid `elem` getUserUuidsForCommenterPerm perms
         , currentUser.uuid `elem` getUserUuidsForEditorPerm perms
@@ -114,26 +123,27 @@ hasCommentPermissionToProject visibility sharing perms =
         then return True
         else return False
 
-checkEditPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
-checkEditPermissionToProject visibility sharing perms = do
-  result <- hasEditPermissionToProject visibility sharing perms
+checkEditPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m ()
+checkEditPermissionToProject workspaceUuid visibility sharing perms = do
+  result <- hasEditPermissionToProject workspaceUuid visibility sharing perms
   if result
     then return ()
     else throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Edit Project"
 
-hasEditPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> ProjectSharing -> [projectPerm] -> m Bool
-hasEditPermissionToProject visibility sharing perms =
+hasEditPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> ProjectSharing -> [projectPerm] -> m Bool
+hasEditPermissionToProject workspaceUuid visibility sharing perms =
   if sharing == AnyoneWithLinkEditProjectSharing
     then return True
     else do
       currentUser <- getCurrentUser
       userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
       let currentUserGroupUuids = fmap (.userGroupUuid) userGroupMemberships
-      hasPermission <- hasPermission _PROJECTS_EDIT_ROLE_PERMISSION
+      hasPermission <- hasPermissionInWorkspace _PROJECTS_EDIT_ROLE_PERMISSION (Just workspaceUuid)
+      reachable <- isWorkspaceReachable workspaceUuid
       if or
         [ hasPermission
         , -- Check visibility
-          visibility == VisibleEditProjectVisibility
+          reachable && visibility == VisibleEditProjectVisibility
         , -- Check membership
           currentUser.uuid `elem` getUserUuidsForEditorPerm perms
         , currentUser.uuid `elem` getUserUuidsForOwnerPerm perms
@@ -144,19 +154,19 @@ hasEditPermissionToProject visibility sharing perms =
         then return True
         else return False
 
-checkOwnerPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> [projectPerm] -> m ()
-checkOwnerPermissionToProject visibility perms = do
-  result <- hasOwnerPermissionToProject visibility perms
+checkOwnerPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> [projectPerm] -> m ()
+checkOwnerPermissionToProject workspaceUuid visibility perms = do
+  result <- hasOwnerPermissionToProject workspaceUuid visibility perms
   if result
     then return ()
     else throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Administrate Project"
 
-hasOwnerPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> [projectPerm] -> m Bool
-hasOwnerPermissionToProject visibility perms = do
+hasOwnerPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> [projectPerm] -> m Bool
+hasOwnerPermissionToProject workspaceUuid visibility perms = do
   currentUser <- getCurrentUser
   userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
   let currentUserGroupUuids = fmap (.userGroupUuid) userGroupMemberships
-  hasPermission <- hasPermission _PROJECTS_MANAGE_ROLE_PERMISSION
+  hasPermission <- hasPermissionInWorkspace _PROJECTS_MANAGE_ROLE_PERMISSION (Just workspaceUuid)
   if or
     [ hasPermission
     , -- Check membership
@@ -167,23 +177,24 @@ hasOwnerPermissionToProject visibility perms = do
     then return True
     else return False
 
-checkMigrationPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> [projectPerm] -> m ()
-checkMigrationPermissionToProject visibility perms = do
-  result <- hasMigrationPermissionToProject visibility perms
+checkMigrationPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> [projectPerm] -> m ()
+checkMigrationPermissionToProject workspaceUuid visibility perms = do
+  result <- hasMigrationPermissionToProject workspaceUuid visibility perms
   if result
     then return ()
     else throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Migrate Project"
 
-hasMigrationPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => ProjectVisibility -> [projectPerm] -> m Bool
-hasMigrationPermissionToProject visibility perms = do
+hasMigrationPermissionToProject :: (WizardRequestContextC s m, ProjectPermC projectPerm) => U.UUID -> ProjectVisibility -> [projectPerm] -> m Bool
+hasMigrationPermissionToProject workspaceUuid visibility perms = do
   currentUser <- getCurrentUser
   userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
   let currentUserGroupUuids = fmap (.userGroupUuid) userGroupMemberships
-  hasPermission <- hasPermission _PROJECTS_EDIT_ROLE_PERMISSION
+  hasPermission <- hasPermissionInWorkspace _PROJECTS_EDIT_ROLE_PERMISSION (Just workspaceUuid)
+  reachable <- isWorkspaceReachable workspaceUuid
   if or
     [ hasPermission
     , -- Check visibility
-      visibility == VisibleEditProjectVisibility
+      reachable && visibility == VisibleEditProjectVisibility
     , -- Check membership
       currentUser.uuid `elem` getUserUuidsForEditorPerm perms
     , currentUser.uuid `elem` getUserUuidsForOwnerPerm perms

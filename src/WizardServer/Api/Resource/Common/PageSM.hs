@@ -31,6 +31,8 @@ import Shared.Api.Resource.User.RoleListJM ()
 import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserSM ()
 import Shared.Api.Resource.User.UserSuggestionSM ()
+import Shared.Api.Resource.Workspace.WorkspaceMemberSM ()
+import Shared.Api.Resource.Workspace.WorkspaceSM ()
 import Shared.Database.Migration.Development.Common.Data.Pages
 import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
@@ -49,6 +51,7 @@ import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Model.Common.Page
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
@@ -63,14 +66,18 @@ import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectSuggestion
 import Shared.Model.User.RoleList
 import Shared.Model.User.UserSuggestion
+import Shared.Model.Workspace.Workspace
+import Shared.Model.Workspace.WorkspaceMember
 import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import qualified Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper as P_Mapper
 import Shared.Service.Project.Event.ProjectEventMapper
 import qualified Shared.Service.Project.ProjectMapper as PRJ_Mapper
 import qualified Shared.Service.Tenant.TenantMapper as TNT_Mapper
+import Shared.Service.User.RoleMapper (toRoleSimple)
 import qualified Shared.Service.User.RoleMapper as R_Mapper
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
+import qualified Shared.Service.Workspace.WorkspaceMapper as W_Mapper
 import Shared.Util.Swagger
 import WizardServer.Api.Resource.Locale.LocaleDTO
 import WizardServer.Api.Resource.Locale.LocaleSM ()
@@ -79,6 +86,14 @@ import WizardServer.Api.Resource.User.RoleListSM ()
 import WizardServer.Database.Migration.Development.Locale.Data.Locales
 import WizardServer.Model.User.UserGroupSuggestion
 import qualified WizardServer.Service.User.Group.UserGroupMapper as UG_Mapper
+
+instance ToSchema (Page Workspace) where
+  declareNamedSchema =
+    toSwaggerWithDtoName "Page Workspace" (Page "workspaces" pageMetadata [defaultWorkspace])
+
+instance ToSchema (Page WorkspaceMember) where
+  declareNamedSchema =
+    toSwaggerWithDtoName "Page WorkspaceMember" (Page "members" pageMetadata [W_Mapper.toMember (defaultWorkspaceMembership userAlbert) (toRoleSimple defaultWorkspaceUserRole) userAlbert])
 
 instance ToSchema (Page String) where
   declareNamedSchema = toSwaggerWithDtoName "Page String" (Page "projectTags" pageMetadata ["value1"])

@@ -34,11 +34,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/project-comment-threads
+-- GET /api/project-comment-threads
 -- ------------------------------------------------------------------------
 list_GET :: RequestContext -> SpecWith ((), Application)
 list_GET requestContext =
-  describe "GET /wizard-api/project-comment-threads" $ do
+  describe "GET /api/project-comment-threads" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -47,7 +47,7 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/project-comment-threads?sort=updatedAt,desc"
+reqUrl = "/api/project-comment-threads?sort=updatedAt,desc"
 
 reqHeadersT reqAuthHeader = [reqAuthHeader]
 

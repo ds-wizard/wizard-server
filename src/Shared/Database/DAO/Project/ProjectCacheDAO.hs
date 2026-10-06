@@ -77,13 +77,14 @@ insertProjectCache :: WizardRequestContextC s m => ProjectCache -> m Int64
 insertProjectCache cache = do
   let sql =
         fromString
-          "INSERT INTO project_cache VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) \
+          "INSERT INTO project_cache VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
           \ON CONFLICT (project_uuid) DO UPDATE SET questionnaire = EXCLUDED.questionnaire, \
           \                                        report = EXCLUDED.report, \
           \                                        versions = EXCLUDED.versions, \
           \                                        questionnaire_source_updated_at = EXCLUDED.questionnaire_source_updated_at, \
           \                                        versions_source_updated_at = EXCLUDED.versions_source_updated_at, \
-          \                                        updated_at = EXCLUDED.updated_at"
+          \                                        updated_at = EXCLUDED.updated_at, \
+          \                                        workspace_uuid = EXCLUDED.workspace_uuid"
   let params = toRow cache
   logQuery sql params
   let action conn = execute conn sql params

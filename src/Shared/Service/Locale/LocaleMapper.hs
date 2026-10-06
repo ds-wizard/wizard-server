@@ -11,8 +11,7 @@ toLocaleSuggestion locale =
     , name = locale.name
     , description = locale.description
     , code = locale.code
-    , organizationId = locale.organizationId
-    , localeId = locale.localeId
+    , id = locale.id
     , version = locale.version
     , defaultLocale = locale.defaultLocale
     }

@@ -7,7 +7,6 @@ import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Tenant.Tenant
-import Shared.Service.Tenant.TenantMapper
 
 getCurrentTenant :: WizardRequestContextC s m => m Tenant
 getCurrentTenant = do
@@ -20,5 +19,5 @@ getClientUrl = do
   if serverConfig.cloud.enabled
     then do
       tenant <- getCurrentTenant
-      return $ tenantClientUrl tenant
+      return tenant.clientUrl
     else return serverConfig.general.clientUrl

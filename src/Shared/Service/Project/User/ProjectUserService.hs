@@ -17,7 +17,7 @@ import Shared.Service.User.WizardUserMapper
 getProjectUserSuggestionsPage :: WizardRequestContextC s m => U.UUID -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page UserSuggestion)
 getProjectUserSuggestionsPage projectUuid mQuery mEditor pageable sort = do
   project <- findProjectByUuid projectUuid
-  checkCommentPermissionToProject project.visibility project.sharing project.permissions
+  checkCommentPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   if project.visibility == VisibleCommentProjectVisibility || project.visibility == VisibleEditProjectVisibility || project.sharing == AnyoneWithLinkCommentProjectSharing || project.sharing == AnyoneWithLinkEditProjectSharing
     then getUserSuggestionsPage mQuery Nothing Nothing pageable sort
     else do

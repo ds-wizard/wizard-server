@@ -6,7 +6,7 @@ module Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleService (
   importBundle,
 ) where
 
-import Control.Monad (forM, when)
+import Control.Monad (forM, forM_, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Aeson
@@ -40,9 +40,12 @@ import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundlePackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageEvent
 import Shared.Model.Localization.LocaleRecord
+import Shared.Service.Acl.LibraryAcl
+import Shared.Service.Coordinate.CoordinateValidation
 import Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleAudit
 import Shared.Service.KnowledgeModel.KnowledgeModelValidation
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
 import qualified Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper as KnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation (
@@ -51,6 +54,7 @@ import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation (
  )
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
@@ -66,7 +70,7 @@ getTemporaryFileWithBundle uuid =
 exportBundle :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelBundle
 exportBundle uuid =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    checkManagePermissionToPackage uuid
     packages <- findSeriesOfPackagesRecursiveByUuid uuid
     case lastSafe packages of
       Just newestPackage -> do
@@ -75,22 +79,21 @@ exportBundle uuid =
           (throwError . UserError $ _ERROR_SERVICE_PKG__NON_EDITABLE_PKG)
         let bundle =
               KnowledgeModelBundle
-                { bundleId = newestPackage.pId
-                , name = newestPackage.name
-                , organizationId = newestPackage.organizationId
-                , kmId = newestPackage.kmId
+                { name = newestPackage.name
+                , id = newestPackage.id
                 , version = newestPackage.version
                 , metamodelVersion = knowledgeModelMetamodelVersion
                 , packages = packages
                 }
-        auditKnowledgeModelBundleExport (show bundle.bundleId)
+        auditKnowledgeModelBundleExport (show (createCoordinate bundle))
         return bundle
       Nothing -> throwError . UserError $ _ERROR_SERVICE_PB__PULL_NON_EXISTING_PKG (show uuid)
 
 pullBundleFromRegistry :: WizardRequestContextC s m => String -> m KnowledgeModelPackageSimpleDTO
 pullBundleFromRegistry pkgId =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION workspaceUuid
     pb <- catchError (retrieveKnowledgeModelBundleById pkgId) handleError
     importAndConvertBundle pb True
   where
@@ -102,16 +105,17 @@ pullBundleFromRegistry pkgId =
 importAndConvertBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool -> m KnowledgeModelPackageSimpleDTO
 importAndConvertBundle contentS fromRegistry =
   runInTransaction $ do
-    checkPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
+    workspaceUuid <- requireTenantOrWorkspaceScope
+    checkLibraryPermission _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION workspaceUuid
     case eitherDecode contentS of
       Right content -> do
         encodedPb <- migrateKnowledgeModelBundle content
         case eitherDecode . encode $ encodedPb of
           Right pb -> do
             if fromRegistry
-              then auditKnowledgeModelBundlePullFromRegistry (show pb.bundleId)
-              else auditKnowledgeModelBundleImportFromFile (show pb.bundleId)
-            importBundle pb
+              then auditKnowledgeModelBundlePullFromRegistry (show (createCoordinate pb))
+              else auditKnowledgeModelBundleImportFromFile (show (createCoordinate pb))
+            importBundle pb workspaceUuid
           Left error -> do
             logWarnI _CMP_SERVICE ("Could not deserialize migrated Knowledge Model Bundle content (" ++ show error ++ ")")
             throwError . UserError $ _ERROR_API_COMMON__CANT_DESERIALIZE_OBJ
@@ -119,32 +123,33 @@ importAndConvertBundle contentS fromRegistry =
         logWarnI _CMP_SERVICE ("Could not deserialize Knowledge Model Bundle content (" ++ show error ++ ")")
         throwError . UserError $ _ERROR_API_COMMON__CANT_DESERIALIZE_OBJ
 
-importBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> m KnowledgeModelPackageSimpleDTO
-importBundle pb =
+importBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> Maybe U.UUID -> m KnowledgeModelPackageSimpleDTO
+importBundle pb workspaceUuid =
   runInTransaction $ do
     pkg <- extractMainPackage pb
-    validatePackageIdUniqueness (createCoordinate pkg)
-    pkgs <- forM pb.packages importPackage
+    forM_ pb.packages (validateIdentifierFormat "id" . (.id))
+    validatePackageIdUniqueness (createCoordinate pkg) workspaceUuid
+    pkgs <- forM pb.packages (importPackage workspaceUuid)
     case lastSafe . catMaybes $ pkgs of
       Just createdPkg -> return createdPkg
       Nothing -> throwError . UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ pkg)
   where
     extractMainPackage pb =
-      case find (\p -> p.pId == pb.bundleId) pb.packages of
+      case find (\p -> createCoordinate p == createCoordinate pb) pb.packages of
         Just pkg -> return pkg
         Nothing -> throwError . UserError $ _ERROR_VALIDATION__MAIN_PKG_OF_PB_ABSENCE
 
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
-importPackage :: WizardRequestContextC s m => KnowledgeModelBundlePackage -> m (Maybe KnowledgeModelPackageSimpleDTO)
-importPackage dto =
+importPackage :: WizardRequestContextC s m => Maybe U.UUID -> KnowledgeModelBundlePackage -> m (Maybe KnowledgeModelPackageSimpleDTO)
+importPackage workspaceUuid dto =
   runInTransaction $ do
     tenantUuid <- asks (.tenantUuid')
     uuid <- liftIO generateUuid
-    validateMaybePreviousPackageIdExistence (createCoordinate dto) dto.previousPackageId
-    previousPackage <- traverse findPackageByCoordinate dto.previousPackageId
-    let (pkg, kmEvents) = KnowledgeModelPackageMapper.fromKnowledgeModelBundlePackage dto uuid (fmap (.uuid) previousPackage) tenantUuid
+    validateMaybePreviousPackageIdExistence (createCoordinate dto) dto.previousPackageId workspaceUuid
+    previousPackage <- traverse (`findPackageByCoordinate` workspaceUuid) dto.previousPackageId
+    let (pkg, kmEvents) = KnowledgeModelPackageMapper.fromKnowledgeModelBundlePackage dto uuid (fmap (.uuid) previousPackage) tenantUuid workspaceUuid
     skipIfPackageIsAlreadyImported pkg $ do
       let events = fmap KnowledgeModelPackageMapper.toEvent kmEvents
       validateKmValidity events pkg.previousPackageUuid
@@ -153,7 +158,7 @@ importPackage dto =
       return . Just $ createdPkg
   where
     skipIfPackageIsAlreadyImported pkg callback = do
-      eitherPackage <- findPackageByCoordinate' (createCoordinate pkg)
+      eitherPackage <- findPackageByCoordinate' (createCoordinate pkg) pkg.workspaceUuid
       case eitherPackage of
         Nothing -> callback
         Just _ -> return Nothing

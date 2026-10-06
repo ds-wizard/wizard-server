@@ -29,11 +29,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- DELETE /wizard-api/projects/{projectUuid}
+-- DELETE /api/projects/{projectUuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
-  describe "DELETE /wizard-api/projects/{projectUuid}" $ do
+  describe "DELETE /api/projects/{projectUuid}" $ do
     test_204 requestContext
     test_401 requestContext
     test_403 requestContext
@@ -44,7 +44,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid
 
 reqHeadersT authHeader = [authHeader]
 
@@ -125,7 +125,7 @@ create_test_403 title requestContext project =
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a"
     (reqHeadersT reqAuthHeader)
     reqBody
     "project"

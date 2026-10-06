@@ -3,11 +3,13 @@ module WizardServer.Model.Context.ContextMappers where
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Reader (liftIO, runReaderT)
 import Data.IORef (newIORef)
+import qualified Data.Map.Strict as M
 import Data.Pool
 import Data.Time
 import qualified Data.UUID as U
 import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.Context.Scope
 import Shared.Model.Context.TransactionState
 import Shared.Model.Context.WizardRequestContext
 import Shared.Service.User.WizardUserMapper
@@ -57,6 +59,9 @@ requestContextFromServerContext tenantUuid mUser transactionState serverContext 
           , currentUser = mUser
           , shutdownFlag = serverContext.shutdownFlag
           , cache = serverContext.cache
+          , scope = NoScope
+          , tenantMultiWorkspace = False
+          , workspaceRoles = M.empty
           }
   case transactionState of
     Transactional -> do

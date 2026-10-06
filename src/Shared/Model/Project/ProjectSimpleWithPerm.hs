@@ -11,6 +11,7 @@ data ProjectSimpleWithPerm = ProjectSimpleWithPerm
   , visibility :: ProjectVisibility
   , sharing :: ProjectSharing
   , tenantUuid :: U.UUID
+  , workspaceUuid :: U.UUID
   , permissions :: [ProjectPerm]
   }
   deriving (Generic, Eq, Show)

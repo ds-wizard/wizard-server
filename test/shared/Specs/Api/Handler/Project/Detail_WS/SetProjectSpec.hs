@@ -53,7 +53,7 @@ test200 requestContext =
       let request =
             HttpRequest
               { requestMethod = "PUT"
-              , requestUrl = "/wizard-api/projects/" ++ U.toString project10.uuid ++ "/settings"
+              , requestUrl = "/api/projects/" ++ U.toString project10.uuid ++ "/settings"
               , requestHeaders = M.fromList [("Authorization", "Bearer " ++ reqAuthToken), ("Content-Type", "application/json")]
               , requestBody = BSL.toStrict . encode $ project10EditedSettingsChange
               , multipart = Nothing

@@ -30,11 +30,11 @@ import Specs.Api.Handler.User.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- PUT /wizard-api/users/current
+-- PUT /api/users/current
 -- ------------------------------------------------------------------------
 list_current_PUT :: RequestContext -> SpecWith ((), Application)
 list_current_PUT requestContext =
-  describe "PUT /wizard-api/users/current" $ do
+  describe "PUT /api/users/current" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -44,7 +44,7 @@ list_current_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/users/current"
+reqUrl = "/api/users/current"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

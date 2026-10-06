@@ -88,7 +88,6 @@ createUserSubmissionPropsTable = do
         \    updated_at  timestamptz NOT NULL, \
         \    CONSTRAINT user_entity_submission_prop_pk PRIMARY KEY (user_uuid, service_id), \
         \    CONSTRAINT user_entity_submission_prop_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT user_entity_submission_prop_service_id_fk FOREIGN KEY (tenant_uuid, service_id) REFERENCES config_submission_service (tenant_uuid, id) ON DELETE CASCADE, \
         \    CONSTRAINT user_entity_submission_prop_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
@@ -130,9 +129,13 @@ createUserGroupTable = do
         \    tenant_uuid uuid        NOT NULL, \
         \    created_at  TIMESTAMPTZ NOT NULL, \
         \    updated_at  TIMESTAMPTZ NOT NULL, \
+        \    workspace_uuid uuid     NOT NULL, \
         \    CONSTRAINT user_group_pk PRIMARY KEY (uuid), \
-        \    CONSTRAINT user_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \    CONSTRAINT user_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT user_group_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+        \); \
+        \ \
+        \CREATE INDEX user_group_workspace_uuid_index ON user_group (workspace_uuid);"
   let action conn = execute_ conn sql
   runDB action
 

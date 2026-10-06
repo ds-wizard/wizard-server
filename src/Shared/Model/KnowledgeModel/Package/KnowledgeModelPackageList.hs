@@ -9,23 +9,20 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage (KnowledgeModel
 data KnowledgeModelPackageList = KnowledgeModelPackageList
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , phase :: KnowledgeModelPackagePhase
   , description :: String
   , nonEditable :: Bool
   , public :: Bool
   , remoteVersion :: Maybe String
-  , remoteOrganizationName :: Maybe String
-  , remoteOrganizationLogo :: Maybe String
   , language :: String
   , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 
 instance Ord KnowledgeModelPackageList where
   compare a b =
-    compare (organizationId a) (organizationId b)
-      <> compare (kmId a) (kmId b)
-      <> compare (version a) (version b)
+    compare a.id b.id
+      <> compare a.version b.version

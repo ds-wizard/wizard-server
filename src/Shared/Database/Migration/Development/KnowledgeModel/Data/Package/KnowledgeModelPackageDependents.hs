@@ -3,36 +3,54 @@ module Shared.Database.Migration.Development.KnowledgeModel.Data.Package.Knowled
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
+import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageDeletionImpact
-import Shared.Service.Project.ProjectMapper
+import Shared.Model.Library.LibraryDependents
+import Shared.Model.Project.Project
 
-netherlandsKmPackageDeletionImpact :: KnowledgeModelPackageDeletionImpact
-netherlandsKmPackageDeletionImpact =
-  KnowledgeModelPackageDeletionImpact
-    { uuid = netherlandsKmPackage.uuid
-    , name = netherlandsKmPackage.name
-    , version = netherlandsKmPackage.version
-    , packages = [netherlandsKmPackageReference]
-    , editors = [amsterdamKnowledgeModelEditorSuggestion]
-    , projects = [toSimple project4]
+netherlandsKmPackageDependents :: LibraryDependents
+netherlandsKmPackageDependents =
+  LibraryDependents
+    { knowledgeModelPackages = [netherlandsKmPackageV2Dependent]
+    , editors = [amsterdamKnowledgeModelEditorDependent]
+    , projects = [project4Dependent]
+    , documents = []
+    , hidden = noHiddenDependents
+    , deleteAllowed = True
     }
 
-netherlandsKmPackageReference :: KnowledgeModelPackageReference
-netherlandsKmPackageReference =
-  KnowledgeModelPackageReference
+netherlandsKmPackageHiddenDependents :: LibraryHiddenDependents
+netherlandsKmPackageHiddenDependents = noHiddenDependents {projects = 1, workspaces = 1}
+
+noHiddenDependents :: LibraryHiddenDependents
+noHiddenDependents =
+  LibraryHiddenDependents
+    { knowledgeModelPackages = 0
+    , editors = 0
+    , projects = 0
+    , documents = 0
+    , workspaces = 0
+    }
+
+netherlandsKmPackageV2Dependent :: LibraryDependentKnowledgeModelPackage
+netherlandsKmPackageV2Dependent =
+  LibraryDependentKnowledgeModelPackage
     { uuid = netherlandsKmPackageV2.uuid
+    , pId = netherlandsKmPackageV2.id
     , name = netherlandsKmPackageV2.name
     , version = netherlandsKmPackageV2.version
     }
 
-netherlandsKmPackageV2DeletionImpact :: KnowledgeModelPackageDeletionImpact
-netherlandsKmPackageV2DeletionImpact =
-  KnowledgeModelPackageDeletionImpact
-    { uuid = netherlandsKmPackageV2.uuid
-    , name = netherlandsKmPackageV2.name
-    , version = netherlandsKmPackageV2.version
-    , packages = []
-    , editors = []
-    , projects = []
+amsterdamKnowledgeModelEditorDependent :: LibraryDependentResource
+amsterdamKnowledgeModelEditorDependent =
+  LibraryDependentResource
+    { uuid = amsterdamKnowledgeModelEditor.uuid
+    , name = amsterdamKnowledgeModelEditor.name
+    }
+
+project4Dependent :: LibraryDependentResource
+project4Dependent =
+  LibraryDependentResource
+    { uuid = project4.uuid
+    , name = project4.name
     }

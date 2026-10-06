@@ -1,5 +1,6 @@
 module Shared.Api.Handler.DocumentTemplate.List_GET where
 
+import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -14,8 +15,9 @@ type List_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "document-templates"
-    :> QueryParam "organizationId" String
-    :> QueryParam "templateId" String
+    :> QueryParam "w" U.UUID
+    :> QueryParam "tenant" Bool
+    :> QueryParam "id" String
     :> QueryParam "q" String
     :> QueryParam "outdated" Bool
     :> QueryParam "page" Int
@@ -27,7 +29,8 @@ list_GET
   :: WizardHandlerC s sm r rm
   => Maybe String
   -> Maybe String
-  -> Maybe String
+  -> Maybe U.UUID
+  -> Maybe Bool
   -> Maybe String
   -> Maybe String
   -> Maybe Bool
@@ -35,8 +38,8 @@ list_GET
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page DocumentTemplateSimpleDTO))
-list_GET mTokenHeader mServerUrl mOrganizationId mTmlId mQuery mOutdated mPage mSize mSort =
-  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+list_GET mTokenHeader mServerUrl mW mTenant mId mQuery mOutdated mPage mSize mSort =
+  getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
-        =<< getDocumentTemplatesPage mOrganizationId mTmlId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)
+        =<< getDocumentTemplatesPage mId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)

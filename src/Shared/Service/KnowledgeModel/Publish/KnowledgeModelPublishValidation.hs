@@ -16,9 +16,9 @@ validateMigrationExistence editorUuid = do
   mMs <- findKnowledgeModelMigrationByEditorUuid' editorUuid
   when (isJust mMs) (throwError . UserError $ _ERROR_SERVICE_KNOWLEDGE_MODEL_EDITOR__KM_MIGRATION_EXISTS)
 
-validateNewPackageVersion pkgVersion kmEditor org = do
+validateNewPackageVersion pkgVersion kmEditor = do
   validateVersionFormat False pkgVersion
-  mPkg <- findLatestPackageByOrganizationIdAndKmId' org.organizationId kmEditor.kmId Nothing
+  mPkg <- findLatestPackageById' kmEditor.id Nothing (Just kmEditor.workspaceUuid)
   case mPkg of
     Just pkg -> validateIsVersionHigher pkgVersion pkg.version
     Nothing -> return ()

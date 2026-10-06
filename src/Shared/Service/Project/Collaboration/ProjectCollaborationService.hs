@@ -2,7 +2,7 @@ module Shared.Service.Project.Collaboration.ProjectCollaborationService where
 
 import Control.Monad (when)
 import Control.Monad.Except (catchError)
-import Control.Monad.Reader (asks, liftIO)
+import Control.Monad.Reader (asks, liftIO, local)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -34,15 +34,18 @@ import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.File.ProjectFileSimple
 import Shared.Model.Project.Project
 import Shared.Model.User.OnlineUserInfo
+import Shared.Model.User.RolePermission
 import Shared.Model.User.UserGroupMembership
 import Shared.Model.User.UserSuggestion
 import Shared.Model.Websocket.WebsocketMessage
 import Shared.Model.Websocket.WebsocketRecord
+import Shared.Service.Acl.AclService
 import Shared.Service.Project.Collaboration.ProjectCollaborationAcl
 import Shared.Service.Project.Collaboration.ProjectCollaborationMapper
 import Shared.Service.Project.Comment.ProjectCommentMapper
 import Shared.Service.Project.Event.ProjectEventMapper
 import Shared.Service.Websocket.WebsocketService
+import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
 import Shared.Util.Websocket
 
@@ -66,8 +69,8 @@ setUserList projectUuid connectionUuid = do
   broadcast (U.toString projectUuid) records (toSetUserListMessage records) disconnectUser
   logWS connectionUuid "Informed completed"
 
-updatePermsForOnlineUsers :: WizardRequestContextC s m => U.UUID -> ProjectVisibility -> ProjectSharing -> [ProjectPerm] -> m ()
-updatePermsForOnlineUsers projectUuid visibility sharing permissions = do
+updatePermsForOnlineUsers :: WizardRequestContextC s m => U.UUID -> U.UUID -> ProjectVisibility -> ProjectSharing -> [ProjectPerm] -> m ()
+updatePermsForOnlineUsers projectUuid workspaceUuid visibility sharing permissions = do
   currentTenantUuid <- asks (.tenantUuid')
   serverConfig <- asks (.serverConfig')
   if isJust serverConfig.cloud.signalBridgeUrl
@@ -83,12 +86,14 @@ updatePermsForOnlineUsers projectUuid visibility sharing permissions = do
       when
         (record.entityId == U.toString projectUuid)
         ( do
-            let permission =
-                  case record.user of
-                    user@LoggedOnlineUserInfo {uuid = uuid, role = userRole, groupUuids = groupUuids} ->
-                      getPermission visibility sharing permissions (Just uuid) userRole.permissions groupUuids
-                    user@AnonymousOnlineUserInfo {..} ->
-                      getPermission visibility sharing permissions Nothing [] []
+            permission <-
+              case record.user of
+                user@LoggedOnlineUserInfo {uuid = uuid, role = userRole, groupUuids = groupUuids} -> do
+                  isMember <- isWorkspaceMember workspaceUuid uuid
+                  let reachable = isMember || any (`elem` userRole.permissions) workspaceReachRolePermissions
+                  return $ getPermission visibility sharing permissions (Just uuid) userRole.permissions groupUuids reachable
+                user@AnonymousOnlineUserInfo {..} ->
+                  return $ getPermission visibility sharing permissions Nothing [] [] True
             let updatedRecord = record {entityPerm = permission}
             updateCache updatedRecord
             disconnectUserIfLostPermission updatedRecord
@@ -391,6 +396,7 @@ disconnectUserIfLostPermission record = catchError (checkViewPermission record.e
 createProjectRecord :: WizardRequestContextC s m => U.UUID -> Connection -> U.UUID -> m WebsocketRecord
 createProjectRecord connectionUuid connection projectUuid = do
   mCurrentUser <- asks (.currentUser')
+  workspaceRoles <- asks (.workspaceRoles')
   project <- findProjectByUuid projectUuid
   userGroupUuids <-
     case mCurrentUser of
@@ -398,15 +404,20 @@ createProjectRecord connectionUuid connection projectUuid = do
         userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
         return . fmap (.userGroupUuid) $ userGroupMemberships
       Nothing -> return []
+  multiWorkspace <- asks (.tenantMultiWorkspace')
+  reachable <- isWorkspaceReachable project.workspaceUuid
+  let withWorkspacePermissions currentUser = currentUser {role = currentUser.role {permissions = permissionsInWorkspace currentUser workspaceRoles multiWorkspace (Just project.workspaceUuid)}} :: UserDTO
+  let mWorkspaceUser = fmap withWorkspacePermissions mCurrentUser
   let permission =
         getPermission
           project.visibility
           project.sharing
           project.permissions
-          (fmap (.uuid) mCurrentUser)
-          (maybe [] (.role.permissions) mCurrentUser)
+          (fmap (.uuid) mWorkspaceUser)
+          (maybe [] (.role.permissions) mWorkspaceUser)
           userGroupUuids
-  createRecord connectionUuid connection (U.toString projectUuid) permission userGroupUuids
+          reachable
+  local (setCurrentUser mWorkspaceUser) (createRecord connectionUuid connection (U.toString projectUuid) permission userGroupUuids)
 
 getMaybeCreatedBy :: WebsocketRecord -> Maybe UserSuggestion
 getMaybeCreatedBy myself =

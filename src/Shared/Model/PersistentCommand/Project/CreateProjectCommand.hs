@@ -11,6 +11,7 @@ data CreateProjectCommand = CreateProjectCommand
   , emails :: [String]
   , knowledgeModelPackageUuid :: U.UUID
   , documentTemplateUuid :: Maybe U.UUID
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 

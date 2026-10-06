@@ -9,10 +9,8 @@ import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
 
 data DocumentTemplateBundleDTO = DocumentTemplateBundleDTO
-  { tId :: String
+  { id :: String
   , name :: String
-  , organizationId :: String
-  , templateId :: String
   , version :: String
   , metamodelVersion :: SemVer2Tuple
   , description :: String
@@ -30,7 +28,6 @@ data DocumentTemplateBundleDTO = DocumentTemplateBundleDTO
 instance CoordinateFactory DocumentTemplateBundleDTO where
   createCoordinate dt =
     Coordinate
-      { organizationId = dt.organizationId
-      , entityId = dt.templateId
+      { id = dt.id
       , version = dt.version
       }

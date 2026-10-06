@@ -16,5 +16,6 @@ data ProjectDetailDTO = ProjectDetailDTO
   , isTemplate :: Bool
   , permissions :: [ProjectPermDTO]
   , fileCount :: Int
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

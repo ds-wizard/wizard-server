@@ -6,10 +6,8 @@ import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundlePackage
 
 data KnowledgeModelBundle = KnowledgeModelBundle
-  { bundleId :: Coordinate
+  { id :: String
   , name :: String
-  , organizationId :: String
-  , kmId :: String
   , version :: String
   , metamodelVersion :: Int
   , packages :: [KnowledgeModelBundlePackage]
@@ -19,7 +17,6 @@ data KnowledgeModelBundle = KnowledgeModelBundle
 instance CoordinateFactory KnowledgeModelBundle where
   createCoordinate p =
     Coordinate
-      { organizationId = p.organizationId
-      , entityId = p.kmId
+      { id = p.id
       , version = p.version
       }

@@ -15,7 +15,10 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Project.Detail.ProjectDetailQuestionnaireDTO
 import Shared.Api.Resource.Project.Detail.ProjectDetailQuestionnaireJM ()
+import Shared.Api.Resource.Project.Migration.ProjectMigrationCreateDTO
 import Shared.Api.Resource.Project.Migration.ProjectMigrationCreateJM ()
+import Shared.Constant.Workspace
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
@@ -30,18 +33,20 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectContent
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- POST /wizard-api/projects/{projectUuid}/migrations
+-- POST /api/projects/{projectUuid}/migrations
 -- ------------------------------------------------------------------------
 list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
-  describe "POST /wizard-api/projects/{projectUuid}/migrations" $ do
+  describe "POST /api/projects/{projectUuid}/migrations" $ do
     test_200 requestContext
     test_400 requestContext
     test_401 requestContext
@@ -53,7 +58,7 @@ list_POST requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPost
 
-reqUrlT projectUuid = BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/migrations"
+reqUrlT projectUuid = BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/migrations"
 
 reqHeadersT authHeader = [authHeader, reqCtHeader]
 
@@ -148,7 +153,7 @@ create_test_403 title requestContext project reason =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_404 requestContext =
+test_404 requestContext = do
   createNotFoundTest'
     reqMethod
     (reqUrlT project4.uuid)
@@ -156,3 +161,37 @@ test_404 requestContext =
     reqBody
     "project"
     [("uuid", "57250a07-a663-4ff3-ac1f-16530f2c1bfe")]
+  it "HTTP 404 NOT FOUND (target package of another workspace)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project4.uuid
+      let reqHeaders = reqHeadersT reqAuthHeader
+      let reqDto = projectMigrationCreateDto {targetKnowledgeModelPackageUuid = secondWorkspaceKmPackage.uuid} :: ProjectMigrationCreateDTO
+      let reqBody = encode reqDto
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError (_ERROR_VALIDATION__ABSENCE "knowledge_model_package")
+      let expBody = encode expDto
+      -- AND: Prepare database
+      runInContextIO TML.runMigration requestContext
+      runInContextIO (insertProject project4) requestContext
+      runInContextIO (insertProjectEvents project4Events) requestContext
+      insertSecondWorkspace requestContext
+      runInContextIO (insertPackage secondWorkspaceKmPackage) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find a result in DB
+      eProjectFromDb <- runInContextIO (findProjectByUuid project4.uuid) requestContext
+      liftIO $ fmap (.knowledgeModelPackageUuid) eProjectFromDb `shouldBe` Right project4.knowledgeModelPackageUuid
+
+secondWorkspaceKmPackage :: KnowledgeModelPackage
+secondWorkspaceKmPackage =
+  netherlandsKmPackageV2
+    { uuid = u' "2b1c0d9e-8f7a-4b6c-9d5e-4f3a2b1c0d9e"
+    , workspaceUuid = Just secondWorkspaceUuid
+    }

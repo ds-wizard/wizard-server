@@ -36,5 +36,6 @@ data ProjectDetailSettings = ProjectDetailSettings
   , documentTemplateLanguage :: Maybe String
   , selectedQuestionTagUuids :: [U.UUID]
   , fileCount :: Int
+  , workspaceUuid :: U.UUID
   }
   deriving (Show, Eq, Generic)

@@ -15,8 +15,7 @@ instance FromRow DocumentTemplateList where
   fromRow = do
     uuid <- field
     name <- field
-    organizationId <- field
-    templateId <- field
+    id <- field
     version <- field
     phase <- field
     metamodelVersion <- field
@@ -26,7 +25,6 @@ instance FromRow DocumentTemplateList where
     language <- field
     potFileReady <- field
     remoteVersion <- field
-    remoteOrganizationName <- field
-    remoteOrganizationLogo <- field
     createdAt <- field
+    workspaceUuid <- field
     return $ DocumentTemplateList {..}

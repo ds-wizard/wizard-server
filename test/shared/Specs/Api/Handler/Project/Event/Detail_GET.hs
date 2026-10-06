@@ -38,11 +38,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/projects/{projectUuid}/events/{eventUuid}
+-- GET /api/projects/{projectUuid}/events/{eventUuid}
 -- ------------------------------------------------------------------------
 detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
-  describe "GET /wizard-api/projects/{projectUuid}/events/{eventUuid}" $ do
+  describe "GET /api/projects/{projectUuid}/events/{eventUuid}" $ do
     test_200 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -53,7 +53,7 @@ detail_GET requestContext =
 reqMethod = methodGet
 
 reqUrlT projectUuid projectEventUuid =
-  BS.pack $ "/wizard-api/projects/" ++ U.toString projectUuid ++ "/events/" ++ U.toString projectEventUuid
+  BS.pack $ "/api/projects/" ++ U.toString projectUuid ++ "/events/" ++ U.toString projectEventUuid
 
 reqHeadersT authHeader = authHeader
 
@@ -174,7 +174,7 @@ create_test_403 title requestContext project projectEvent authHeader errorMessag
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/wizard-api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/events"
+    "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/events"
     [reqHeadersT reqAuthHeader]
     reqBody
     "project"

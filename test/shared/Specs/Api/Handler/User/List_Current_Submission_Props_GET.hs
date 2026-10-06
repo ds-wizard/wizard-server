@@ -11,10 +11,9 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.User.UserSubmissionPropJM ()
-import Shared.Database.DAO.Tenant.Config.TenantConfigSubmissionDAO
 import Shared.Database.DAO.User.UserSubmissionPropDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
+import Shared.Database.Migration.Development.Settings.SettingsMigration
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import WizardServer.Model.Context.RequestContext
 
@@ -23,11 +22,11 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /wizard-api/users/current/submission-props
+-- GET /api/users/current/submission-props
 -- ------------------------------------------------------------------------
 list_current_submission_props_GET :: RequestContext -> SpecWith ((), Application)
 list_current_submission_props_GET requestContext =
-  describe "GET /wizard-api/users/current/submission-props" $ do
+  describe "GET /api/users/current/submission-props" $ do
     test_200 requestContext
     test_401 requestContext
 
@@ -36,7 +35,7 @@ list_current_submission_props_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/users/current/submission-props"
+reqUrl = "/api/users/current/submission-props"
 
 reqHeaders = [reqAuthHeader]
 
@@ -55,7 +54,7 @@ test_200 requestContext =
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO TML_Migration.runMigration requestContext
-      runInContextIO (insertOrUpdateConfigSubmissionService defaultSubmissionService) requestContext
+      runInContextIO seedSettingsSubmissionService requestContext
       runInContextIO (traverse_ insertOrUpdateUserSubmissionProp userAlbertSubmissionProps) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody

@@ -13,24 +13,27 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateFileList
+import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.File.DocumentTemplateFileMapper
 import Shared.Util.Uuid
 
 getFiles :: WizardRequestContextC s m => U.UUID -> m [DocumentTemplateFileList]
 getFiles dtUuid = do
-  checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+  checkEditorPermissionToDocumentTemplate dtUuid
   findFileListsByDocumentTemplateUuid dtUuid
 
 getFile :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateFile
 getFile fileUuid = do
   checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
-  findFileByUuid fileUuid
+  file <- findFileByUuid fileUuid
+  checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
+  return file
 
 createFile :: WizardRequestContextC s m => U.UUID -> DocumentTemplateFileChangeDTO -> m DocumentTemplateFile
 createFile dtUuid reqDto =
   runInTransaction $ do
-    checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+    checkEditorPermissionToDocumentTemplate dtUuid
     validateFileAndAssetUniqueness Nothing dtUuid reqDto.fileName
     fUuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
@@ -46,6 +49,7 @@ modifyFile fileUuid reqDto =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
     file <- findFileByUuid fileUuid
+    checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
     validateFileAndAssetUniqueness (Just file.uuid) file.documentTemplateUuid reqDto.fileName
     now <- liftIO getCurrentTime
     let updatedFile = fromChangeDTO reqDto file.documentTemplateUuid file.uuid file.tenantUuid file.createdAt now
@@ -59,6 +63,7 @@ modifyFileContent fileUuid content =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
     file <- findFileByUuid fileUuid
+    checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
     now <- liftIO getCurrentTime
     let updatedFile = fromContentChangeDTO file content now
     updateFileByUuid updatedFile
@@ -80,6 +85,7 @@ deleteFile fileUuid =
   runInTransaction $ do
     checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
     file <- findFileByUuid fileUuid
+    checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
     deleteFileById file.uuid
     touchDocumentTemplateByUuid file.documentTemplateUuid
     deleteTemporalDocumentsByFileUuid fileUuid

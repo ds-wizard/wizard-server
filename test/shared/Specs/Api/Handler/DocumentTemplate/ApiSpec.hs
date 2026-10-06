@@ -4,6 +4,7 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.DocumentTemplate.Dependent.ApiSpec
 import Specs.Api.Handler.DocumentTemplate.Detail_DELETE
 import Specs.Api.Handler.DocumentTemplate.Detail_GET
 import Specs.Api.Handler.DocumentTemplate.Detail_Locales_Content_GET
@@ -15,7 +16,6 @@ import Specs.Api.Handler.DocumentTemplate.Detail_PUT
 import Specs.Api.Handler.DocumentTemplate.Detail_Pull_POST
 import Specs.Api.Handler.DocumentTemplate.List_All_GET
 import Specs.Api.Handler.DocumentTemplate.List_Bundle_POST
-import Specs.Api.Handler.DocumentTemplate.List_DELETE
 import Specs.Api.Handler.DocumentTemplate.List_GET
 import Specs.Api.Handler.DocumentTemplate.List_Suggestions_GET
 
@@ -24,9 +24,8 @@ documentTemplateAPI serverContext requestContext =
     describe "DOCUMENT TEMPLATE API Spec" $ do
       list_GET requestContext
       list_all_GET requestContext
-      list_bundle_POST requestContext
       list_suggestions_GET requestContext
-      list_DELETE requestContext
+      list_bundle_POST requestContext
       detail_GET requestContext
       detail_PUT requestContext
       detail_DELETE requestContext
@@ -36,3 +35,4 @@ documentTemplateAPI serverContext requestContext =
       detail_locales_template_GET requestContext
       detail_locales_content_GET requestContext
       detail_locales_DELETE requestContext
+      dependentAPI requestContext
