@@ -99,7 +99,7 @@ test_204_all_versions requestContext =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
       -- AND: Find result in DB and compare with expectation state
-      templatesFromDb <- getOneFromDB (findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace "global" "project-report" Nothing) requestContext
+      templatesFromDb <- getOneFromDB (findDocumentTemplatesByIdInWorkspace "global.project-report" Nothing) requestContext
       liftIO $ fmap (.uuid) templatesFromDb `shouldBe` [wizardDocumentTemplateDraft.uuid]
 
 wizardDocumentTemplateV1_1 = wizardDocumentTemplate {uuid = u' "0b1c3c5e-6a7d-4f0e-9a1b-2c3d4e5f6a7b", version = "1.1.0"} :: DocumentTemplate

@@ -172,7 +172,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Admin - knowledgePackage)"
     requestContext
-    "/api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam:core-amsterdam:all"
+    "/api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam.core-amsterdam:all"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project14Dto])
   create_test_200
@@ -232,7 +232,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (Non-Admin - knowledgeModelPackage)"
     requestContext
-    "/api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam:core-amsterdam:all"
+    "/api/projects?sort=uuid,asc&knowledgeModelPackageIds=org.nl.amsterdam.core-amsterdam:all"
     reqNonAdminAuthHeader
     (Page "projects" (PageMetadata 20 1 1 0) [project14Dto])
   create_test_200

@@ -11,6 +11,7 @@ import Shared.Api.Resource.UserToken.UserTokenClaimsDTO
 import Shared.Api.Resource.UserToken.UserTokenClaimsJM ()
 import Shared.Api.Resource.UserToken.UserTokenDTO
 import Shared.Constant.UserToken
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Database.DAO.WizardCommon
@@ -19,9 +20,9 @@ import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.User
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.SettingsService
 import Shared.Service.UserToken.System.SystemMapper
 import Shared.Service.UserToken.System.SystemValidation
 import Shared.Service.UserToken.UserTokenMapper
@@ -38,8 +39,8 @@ createSystemToken token mUserAgent =
       Right userTokenClaims -> do
         serverConfig <- asks (.serverConfig')
         user <- findUserByUuidAndTenantUuidSystem userTokenClaims.userUuid userTokenClaims.tenantUuid
-        tcAuthentication <- getTenantConfigAuthenticationByUuid user.tenantUuid
-        let expiration = tcAuthentication.internal.sessionExpiration
+        tcAuthentication <- getSettingsByTenantUuid findSettingsAuthentication user.tenantUuid
+        let expiration = tcAuthentication.sessionExpiration
         uuid <- liftIO generateUuid
         updateUserLastVisitedAtByUuid user.uuid now
         let claims = toUserTokenClaims user.uuid uuid user.tenantUuid now expiration

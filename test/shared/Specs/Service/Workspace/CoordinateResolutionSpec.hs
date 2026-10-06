@@ -22,13 +22,13 @@ coordinateResolutionSpec requestContext =
       fmap (fmap (.uuid)) result `shouldBe` Right (Just workspaceNetherlandsKmPackage.uuid)
     it "the newest version comes from the tenant and the workspace rows together" $ do
       runInContextIO (insertPackage workspaceNetherlandsKmPackageV3) requestContext
-      tenantResult <- runInContext (findLatestPackageByOrganizationIdAndKmId' "org.nl" "core-nl" Nothing Nothing) requestContext
+      tenantResult <- runInContext (findLatestPackageById' "org.nl.core-nl" Nothing Nothing) requestContext
       fmap (fmap (.uuid)) tenantResult `shouldBe` Right (Just netherlandsKmPackageV2.uuid)
-      workspaceResult <- runInContext (findLatestPackageByOrganizationIdAndKmId' "org.nl" "core-nl" Nothing (Just defaultWorkspaceUuid)) requestContext
+      workspaceResult <- runInContext (findLatestPackageById' "org.nl.core-nl" Nothing (Just defaultWorkspaceUuid)) requestContext
       fmap (fmap (.uuid)) workspaceResult `shouldBe` Right (Just workspaceNetherlandsKmPackageV3.uuid)
     it "a foreign workspace sees only the tenant rows" $ do
       runInContextIO (insertPackage workspaceNetherlandsKmPackageV3) requestContext
-      result <- runInContext (findLatestPackageByOrganizationIdAndKmId' "org.nl" "core-nl" Nothing (Just differentWorkspaceUuid)) requestContext
+      result <- runInContext (findLatestPackageById' "org.nl.core-nl" Nothing (Just differentWorkspaceUuid)) requestContext
       fmap (fmap (.uuid)) result `shouldBe` Right (Just netherlandsKmPackageV2.uuid)
 
 workspaceNetherlandsKmPackage :: KnowledgeModelPackage

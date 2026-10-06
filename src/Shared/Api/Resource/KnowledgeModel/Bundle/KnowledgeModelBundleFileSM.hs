@@ -6,8 +6,7 @@ import Servant.Multipart
 import Servant.Swagger
 import Servant.Swagger.Internal
 
-import Shared.Api.Resource.Coordinate.CoordinateSM ()
-import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundleFile hiding (name)
+import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundleFile
 
 instance HasSwagger api => HasSwagger (MultipartForm Mem KnowledgeModelBundleFile :> api) where
   toSwagger _ = addParam param (toSwagger (Proxy :: Proxy api))

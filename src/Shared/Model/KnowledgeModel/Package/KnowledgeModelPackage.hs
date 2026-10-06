@@ -14,8 +14,7 @@ data KnowledgeModelPackagePhase
 data KnowledgeModelPackage = KnowledgeModelPackage
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , phase :: KnowledgeModelPackagePhase
   , metamodelVersion :: Int
@@ -25,7 +24,7 @@ data KnowledgeModelPackage = KnowledgeModelPackage
   , language :: String
   , previousPackageUuid :: Maybe U.UUID
   , forkOfPackageId :: Maybe Coordinate
-  , mergeCheckpointPackageId :: Maybe Coordinate -- TODO fix it
+  , mergeCheckpointPackageId :: Maybe Coordinate
   , nonEditable :: Bool
   , public :: Bool
   , tenantUuid :: U.UUID
@@ -36,14 +35,12 @@ data KnowledgeModelPackage = KnowledgeModelPackage
 
 instance Ord KnowledgeModelPackage where
   compare a b =
-    compare a.organizationId b.organizationId
-      <> compare a.kmId b.kmId
+    compare a.id b.id
       <> compare a.version b.version
 
 instance CoordinateFactory KnowledgeModelPackage where
   createCoordinate p =
     Coordinate
-      { organizationId = p.organizationId
-      , entityId = p.kmId
+      { id = p.id
       , version = p.version
       }

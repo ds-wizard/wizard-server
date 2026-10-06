@@ -7,19 +7,6 @@ import Shared.Service.Coordinate.CoordinateValidation
 
 coordinateValidationSpec =
   describe "Coordinate Validation" $ do
-    it "isValidCoordinateFormat" $ do
-      isNothing (isValidCoordinateFormat True "kmId" "org.nl:core-nl:0.0.0") `shouldBe` True
-      isNothing (isValidCoordinateFormat False "kmId" "org.nl:core-nl:0.0.0") `shouldBe` True
-      isNothing (isValidCoordinateFormat True "kmId" "org.nl:core-nl:latest") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "org.nl:core-nl:latest") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "0.0.0") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" ":0.0.0") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "core-nl:0.0.0") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" ":core-nl:0.0.0") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "org.nl::0.0.0") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "org.nl:core-nl:") `shouldBe` True
-      isJust (isValidCoordinateFormat False "kmId" "org.nl:core-nl:1") `shouldBe` True
     it "isValidVersionFormat" $ do
       isNothing (isValidVersionFormat False "0.0.0") `shouldBe` True
       isNothing (isValidVersionFormat False "1.2.0") `shouldBe` True
@@ -37,23 +24,17 @@ coordinateValidationSpec =
       isJust (isValidVersionFormat False "a.2.3.4") `shouldBe` True
       isJust (isValidVersionFormat False "a2.3.4") `shouldBe` True
       isJust (isValidVersionFormat False "a.3.4") `shouldBe` True
-    it "isValidCoordinateWithParams" $ do
-      isNothing (isValidCoordinateWithParams "com:global:1.0.0" "com" "global" "1.0.0") `shouldBe` True
-      isJust (isValidCoordinateWithParams "" "com" "global" "1.0.0") `shouldBe` True
-      isJust (isValidCoordinateWithParams ":global:1.0.0" "com" "global" "1.0.0") `shouldBe` True
-      isJust (isValidCoordinateWithParams "com::1.0.0" "com" "global" "1.0.0") `shouldBe` True
-      isJust (isValidCoordinateWithParams "com:global:" "com" "global" "1.0.0") `shouldBe` True
-      isJust (isValidCoordinateWithParams "com:global:1.1.0" "com" "global" "1.0.0") `shouldBe` True
-      isJust (isValidCoordinateWithParams "com:global-2:1.1.0" "com" "global" "1.0.0") `shouldBe` True
-    it "isValidCoordinatePartFormat" $ do
-      isNothing (isValidCoordinatePartFormat "kmId" "core") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "ab") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "core-nl") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "core-nl-amsterdam") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "a") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "core.nl") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "a.b") `shouldBe` True
-      isNothing (isValidCoordinatePartFormat "kmId" "core_nl") `shouldBe` True
-      isJust (isValidCoordinatePartFormat "kmId" "code:nl") `shouldBe` True
-      isJust (isValidCoordinatePartFormat "kmId" "code$") `shouldBe` True
-      isJust (isValidCoordinatePartFormat "kmId" "") `shouldBe` True
+    it "isValidIdentifierFormat" $ do
+      isNothing (isValidIdentifierFormat "id" "root") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "ab") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "core-nl") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "dsw.root") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "org.nl.core-nl-amsterdam") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "a") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "core_nl") `shouldBe` True
+      isNothing (isValidIdentifierFormat "id" "Core.NL.2") `shouldBe` True
+      isJust (isValidIdentifierFormat "id" "core:nl") `shouldBe` True
+      isJust (isValidIdentifierFormat "id" "code$") `shouldBe` True
+      isJust (isValidIdentifierFormat "id" "core nl") `shouldBe` True
+      isJust (isValidIdentifierFormat "id" "~.default") `shouldBe` True
+      isJust (isValidIdentifierFormat "id" "") `shouldBe` True

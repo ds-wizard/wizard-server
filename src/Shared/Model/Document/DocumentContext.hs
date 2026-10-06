@@ -1,5 +1,6 @@
 module Shared.Model.Document.DocumentContext where
 
+import Data.Hashable
 import qualified Data.Map.Strict as M
 import Data.Time
 import qualified Data.UUID as U
@@ -11,9 +12,7 @@ import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.Project.File.ProjectFileSimple
 import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersionList
-import Shared.Model.Registry.RegistryOrganization
 import Shared.Model.Report.Report
-import Shared.Model.Tenant.Config.WizardTenantConfig
 
 data DocumentContext = DocumentContext
   { config :: DocumentContextConfig
@@ -22,7 +21,7 @@ data DocumentContext = DocumentContext
   , knowledgeModel :: KnowledgeModel
   , report :: Report
   , knowledgeModelPackage :: DocumentContextPackage
-  , organization :: TenantConfigOrganization
+  , organization :: DocumentContextOrganization
   , metamodelVersion :: SemVer2Tuple
   , users :: [DocumentContextUserPerm]
   , groups :: [DocumentContextUserGroupPerm]
@@ -32,23 +31,27 @@ data DocumentContext = DocumentContext
 data DocumentContextConfig = DocumentContextConfig
   { clientUrl :: String
   , appTitle :: Maybe String
-  , appTitleShort :: Maybe String
-  , illustrationsColor :: Maybe String
   , primaryColor :: Maybe String
   , logoUrl :: Maybe String
   }
   deriving (Show, Eq, Generic)
 
+data DocumentContextOrganization = DocumentContextOrganization
+  { name :: String
+  , affiliations :: [String]
+  }
+  deriving (Show, Eq, Generic)
+
+instance Hashable DocumentContextOrganization
+
 data DocumentContextPackage = DocumentContextPackage
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , versions :: [String]
   , remoteLatestVersion :: Maybe String
   , description :: String
-  , organization :: Maybe RegistryOrganization
   , language :: String
   , createdAt :: UTCTime
   }

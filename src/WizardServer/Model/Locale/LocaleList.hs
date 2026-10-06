@@ -9,14 +9,11 @@ data LocaleList = LocaleList
   , name :: String
   , description :: String
   , code :: String
-  , organizationId :: String
-  , localeId :: String
+  , id :: String
   , version :: String
   , defaultLocale :: Bool
   , enabled :: Bool
   , remoteVersion :: Maybe String
-  , remoteOrganizationName :: Maybe String
-  , remoteOrganizationLogo :: Maybe String
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
   }

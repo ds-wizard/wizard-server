@@ -62,6 +62,11 @@ requireTenantOrWorkspaceScope = do
         then throwError $ UserError _ERROR_SERVICE_WORKSPACE__SCOPE_REQUIRED
         else return Nothing
 
+checkWorkspacePlaneAvailable :: WizardRequestContextC s m => m ()
+checkWorkspacePlaneAvailable = do
+  multiWorkspace <- asks (.tenantMultiWorkspace')
+  unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_PLANE_UNAVAILABLE)
+
 resolveCommandWorkspaceUuid :: WizardRequestContextC s m => Maybe U.UUID -> m U.UUID
 resolveCommandWorkspaceUuid (Just workspaceUuid) = (.uuid) <$> findWorkspaceByUuid workspaceUuid
 resolveCommandWorkspaceUuid Nothing = do

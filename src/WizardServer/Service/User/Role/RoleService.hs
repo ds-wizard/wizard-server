@@ -7,7 +7,7 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.RoleChangeDTO
-import Shared.Database.DAO.Tenant.Config.TenantConfigAuthenticationDAO
+import Shared.Database.DAO.Settings.SettingsRolesDAO
 import Shared.Database.DAO.User.RoleDAO
 import qualified Shared.Database.DAO.User.RoleDAO as RoleDAO
 import Shared.Database.DAO.User.UserDAO
@@ -23,11 +23,12 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.Role
 import Shared.Model.User.RoleList
 import Shared.Model.Workspace.Workspace
 import Shared.Service.Common
+import Shared.Service.Settings.SettingsService
 import Shared.Service.User.RoleAcl
 import qualified Shared.Service.User.RoleMapper as Mapper
 import Shared.Service.Workspace.WorkspaceScopeService
@@ -100,7 +101,7 @@ checkRoleIsNotDefault role = do
   defaultRoleUuid <-
     case role.workspaceUuid of
       Just workspaceUuid -> (.defaultRoleUuid) <$> findWorkspaceByUuid workspaceUuid
-      Nothing -> Just . (.defaultRoleUuid) <$> findTenantConfigAuthentication
+      Nothing -> Just . (.defaultRoleUuid) <$> getCurrentSettings findSettingsRoles
   when (defaultRoleUuid == Just role.uuid) (throwError $ UserError _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT)
 
 checkRoleIsNotInUse :: WizardRequestContextC s m => Role -> m ()

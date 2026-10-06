@@ -53,7 +53,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK"
     requestContext
-    "/api/knowledge-model-packages/suggestions?sort=organizationId,asc"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
@@ -65,7 +65,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (select)"
     requestContext
-    "/api/knowledge-model-packages/suggestions?sort=organizationId,asc&select=org.de:core-de:all,org.nl:core-nl:all"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc&select=org.de.core-de:all,org.nl.core-nl:all"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 2 1 0)
@@ -76,7 +76,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (exclude)"
     requestContext
-    "/api/knowledge-model-packages/suggestions?sort=organizationId,asc&exclude=org.de:core-de:all,org.nl:core-nl:all"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc&exclude=org.de.core-de:all,org.nl.core-nl:all"
     (Page "knowledgeModelPackages" (PageMetadata 20 1 1 0) [toSuggestion globalKmPackage])
   create_test_200
     "HTTP 200 OK (query - q)"
@@ -86,7 +86,7 @@ test_200 requestContext = do
   create_test_200
     "HTTP 200 OK (phase)"
     requestContext
-    "/api/knowledge-model-packages/suggestions?sort=organizationId,asc&phase=ReleasedKnowledgeModelPackagePhase"
+    "/api/knowledge-model-packages/suggestions?sort=id,asc&phase=ReleasedKnowledgeModelPackagePhase"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)

@@ -7,7 +7,7 @@ data LocaleCreateDTO = LocaleCreateDTO
   { name :: String
   , description :: String
   , code :: String
-  , localeId :: String
+  , id :: String
   , version :: String
   , license :: String
   , readme :: String

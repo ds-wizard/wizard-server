@@ -58,6 +58,3 @@ removeWorkspaceMembership workspaceUuid userUuid = do
   traverse_ (\userGroupUuid -> removeUserGroupMembersFromOnlineUsers userGroupUuid [userUuid]) userGroupUuids
   traverse_ (\project -> updatePermsForOnlineUsers project.uuid workspaceUuid project.visibility project.sharing (filter (\perm -> perm.memberUuid /= userUuid) project.permissions)) projects
   traverse_ (deleteProjectCacheByProjectUuid . (.uuid)) projects
-
-addAllUsersToWorkspace :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
-addAllUsersToWorkspace workspaceUuid tenantUuid = void $ insertMissingWorkspaceMemberships workspaceUuid tenantUuid

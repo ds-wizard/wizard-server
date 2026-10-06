@@ -15,6 +15,7 @@ import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.User.Role
+import Shared.Service.Workspace.WorkspaceScopeService
 
 checkRoleReadPermission :: WizardRequestContextC s m => Maybe U.UUID -> m ()
 checkRoleReadPermission mWorkspaceUuid = do
@@ -40,7 +41,9 @@ checkRoleManagePermission :: WizardRequestContextC s m => Maybe U.UUID -> m ()
 checkRoleManagePermission mWorkspaceUuid = do
   checkPermission _ROLES_MANAGE_ROLE_PERMISSION
   case mWorkspaceUuid of
-    Just workspaceUuid -> checkPermissionInWorkspace _ROLES_MANAGE_ROLE_PERMISSION (Just workspaceUuid)
+    Just workspaceUuid -> do
+      checkWorkspacePlaneAvailable
+      checkPermissionInWorkspace _ROLES_MANAGE_ROLE_PERMISSION (Just workspaceUuid)
     Nothing -> do
       currentUser <- getCurrentUser
       unless

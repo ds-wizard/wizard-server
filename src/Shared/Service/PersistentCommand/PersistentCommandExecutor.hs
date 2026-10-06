@@ -16,7 +16,6 @@ import qualified Shared.Service.Prefab.PrefabCommandExecutor as PrefabCommandExe
 import qualified Shared.Service.Project.Cache.ProjectCacheCommandExecutor as ProjectCacheCommandExecutor
 import qualified Shared.Service.Project.File.ProjectFileCommandExecutor as ProjectFileCommandExecutor
 import qualified Shared.Service.Project.ProjectCommandExecutor as ProjectCommandExecutor
-import qualified Shared.Service.Tenant.TenantCommandExecutor as TenantCommandExecutor
 import qualified Shared.Service.User.GroupMembership.UserGroupMembershipCommandExecutor as UserGroupMembershipCommandExecutor
 
 components :: [String]
@@ -31,7 +30,6 @@ components =
   , ProjectCacheCommandExecutor.cComponent
   , ProjectCommandExecutor.cComponent
   , ProjectFileCommandExecutor.cComponent
-  , TenantCommandExecutor.cComponent
   , UserGroupMembershipCommandExecutor.cComponent
   ]
 
@@ -47,6 +45,5 @@ execute command
   | command.component == ProjectCacheCommandExecutor.cComponent = ProjectCacheCommandExecutor.execute command
   | command.component == ProjectCommandExecutor.cComponent = ProjectCommandExecutor.execute command
   | command.component == ProjectFileCommandExecutor.cComponent = ProjectFileCommandExecutor.execute command
-  | command.component == TenantCommandExecutor.cComponent = TenantCommandExecutor.execute command
   | command.component == UserGroupMembershipCommandExecutor.cComponent = UserGroupMembershipCommandExecutor.execute command
   | otherwise = throwError . GeneralServerError $ "Unknown command component: " <> command.component

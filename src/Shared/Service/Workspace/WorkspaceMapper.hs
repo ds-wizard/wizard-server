@@ -22,6 +22,8 @@ fromChangeDTO reqDto uuid tenantUuid now =
     , createdAt = now
     , updatedAt = now
     , defaultRoleUuid = Nothing
+    , logo = Nothing
+    , primaryColor = reqDto.primaryColor
     }
 
 fromChange :: Workspace -> WorkspaceChangeDTO -> UTCTime -> Workspace
@@ -29,6 +31,7 @@ fromChange workspace reqDto now =
   workspace
     { name = reqDto.name
     , description = reqDto.description
+    , primaryColor = reqDto.primaryColor
     , updatedAt = now
     }
 

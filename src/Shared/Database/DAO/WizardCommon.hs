@@ -58,7 +58,7 @@ workspaceAccess mPermission = do
       Nothing -> UnrestrictedWorkspaceAccess
       Just user
         | any (`elem` permissionsInWorkspace user workspaceRoles multiWorkspace Nothing) (maybe workspaceReachRolePermissions (: []) mPermission) -> UnrestrictedWorkspaceAccess
-        | otherwise -> RestrictedWorkspaceAccess [workspaceUuid | (workspaceUuid, role) <- M.toList workspaceRoles, maybe True (`elem` role.permissions) mPermission]
+        | otherwise -> RestrictedWorkspaceAccess [workspaceUuid | (workspaceUuid, role) <- M.toList workspaceRoles, maybe True (\permission -> multiWorkspace && permission `elem` role.permissions) mPermission]
 
 isWorkspaceAccessible :: WorkspaceAccess -> U.UUID -> Bool
 isWorkspaceAccessible UnrestrictedWorkspaceAccess _ = True
@@ -108,7 +108,7 @@ tenantOrWorkspaceCondition mPermission column = do
       (NoScope, UnrestrictedWorkspaceAccess) -> ""
       (NoScope, _) -> f' " AND (%s OR %s)" [tenantRows, workspaceAccessSql column access]
 
-createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntityName pageLabel pageable sort fields entityId mQuery mEnabled mOrganizationId mEntityId mOutdated outdatedCondition workspaceAware scopeCondition =
+createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntityName pageLabel pageable sort fields mQuery mEnabled mId mOutdated outdatedCondition workspaceAware scopeCondition =
   -- 1. Prepare variables
   do
     tenantUuid <- asks (.tenantUuid')
@@ -124,11 +124,9 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
       createCountGroupByCoordinateFn
         entityName
         registryEntityName
-        entityId
         mQuery
         enabledCondition
-        mOrganizationId
-        mEntityId
+        mId
         mOutdated
         outdatedCondition
         workspaceAware
@@ -138,15 +136,14 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
           f''
             "SELECT ${fields} \
             \FROM ${entityName} \
-            \LEFT JOIN ${registryEntityName} ON ${entityName}.organization_id = ${registryEntityName}.organization_id AND ${entityName}.${entityId} = ${registryEntityName}.${entityId} \
-            \LEFT JOIN registry_organization ON ${entityName}.organization_id = registry_organization.organization_id \
-            \WHERE tenant_uuid = ? AND concat(${entityName}.organization_id, ':', ${entityName}.${entityId}, ':', ${entityName}.version${workspaceKey}) IN ( \
-            \    SELECT CONCAT(organization_id, ':', ${entityId}, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
+            \LEFT JOIN ${registryEntityName} ON ${entityName}.id = ${registryEntityName}.id \
+            \WHERE tenant_uuid = ? AND concat(${entityName}.id, ':', ${entityName}.version${workspaceKey}) IN ( \
+            \    SELECT CONCAT(id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \
             \                                                          (max(string_to_array(version, '.')::int[]))[2] || '.' || \
             \                                                          (max(string_to_array(version, '.')::int[]))[3]${workspaceKey}) \
             \    FROM ${entityName} \
-            \    WHERE ${enabledCondition} tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR ${entityId} ~* ? OR version ~* ?) ${coordinateSql} ${scopeCondition} \
-            \    GROUP BY organization_id, ${entityId}${workspaceGroup} \
+            \    WHERE ${enabledCondition} tenant_uuid = ? AND (name ~* ? OR id ~* ? OR version ~* ?) ${coordinateSql} ${scopeCondition} \
+            \    GROUP BY id${workspaceGroup} \
             \) \
             \${outdatedCondition} \
             \${sort} \
@@ -155,9 +152,8 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
             [ ("fields", fields)
             , ("entityName", entityName)
             , ("registryEntityName", registryEntityName)
-            , ("entityId", entityId)
             , ("enabledCondition", enabledCondition)
-            , ("coordinateSql", mapToDBCoordinatesSql entityName entityId mOrganizationId mEntityId)
+            , ("coordinateSql", mapToDBIdSql entityName mId)
             , ("outdatedCondition", outdatedCondition)
             , ("scopeCondition", scopeCondition)
             , ("workspaceKey", workspaceKey)
@@ -176,8 +172,7 @@ createFindEntitiesGroupByCoordinatePageableQuerySortFn entityName registryEntity
                 : toField (regexM mQuery)
                 : toField (regexM mQuery)
                 : toField (regexM mQuery)
-                : toField (regexM mQuery)
-                : fmap toField (mapToDBCoordinatesParams mOrganizationId mEntityId)
+                : fmap toField (mapToDBIdParams mId)
                 ++ (maybeToList . fmap toField $ mOutdated)
             )
     entities <- runDB action
@@ -195,39 +190,36 @@ createCountGroupByCoordinateFn
   :: WizardRequestContextC s m
   => String
   -> String
-  -> String
   -> Maybe String
   -> String
-  -> Maybe String
   -> Maybe String
   -> Maybe Bool
   -> String
   -> Bool
   -> String
   -> m Int
-createCountGroupByCoordinateFn entityName registryEntityName entityId mQuery enabledCondition mOrganizationId mEntityId mOutdated outdatedCondition workspaceAware scopeCondition = do
+createCountGroupByCoordinateFn entityName registryEntityName mQuery enabledCondition mId mOutdated outdatedCondition workspaceAware scopeCondition = do
   tenantUuid <- asks (.tenantUuid')
   let (workspaceKey, workspaceGroup) = workspaceGroupSql entityName workspaceAware
   let sql =
         f''
           "SELECT count(*) \
           \FROM ${entityName} \
-          \LEFT JOIN ${registryEntityName} ON ${entityName}.organization_id = ${registryEntityName}.organization_id AND ${entityName}.${entityId} = ${registryEntityName}.${entityId} \
-          \WHERE ${enabledCondition} tenant_uuid = ? AND (name ~* ? OR ${entityName}.organization_id ~* ? OR ${entityName}.${entityId} ~* ? OR ${entityName}.version ~* ?) ${coordinateSql} ${outdatedCondition} \
-          \  AND concat(${entityName}.organization_id, ':', ${entityName}.${entityId}, ':', ${entityName}.version${workspaceKey}) IN \
-          \      (SELECT CONCAT(organization_id, ':', ${entityId}, ':', \
+          \LEFT JOIN ${registryEntityName} ON ${entityName}.id = ${registryEntityName}.id \
+          \WHERE ${enabledCondition} tenant_uuid = ? AND (name ~* ? OR ${entityName}.id ~* ? OR ${entityName}.version ~* ?) ${coordinateSql} ${outdatedCondition} \
+          \  AND concat(${entityName}.id, ':', ${entityName}.version${workspaceKey}) IN \
+          \      (SELECT CONCAT(id, ':', \
           \                     (max(string_to_array(version, '.')::int[]))[1] || '.' || \
           \                     (max(string_to_array(version, '.')::int[]))[2] || '.' || \
           \                     (max(string_to_array(version, '.')::int[]))[3]${workspaceKey}) \
           \             FROM ${entityName} \
           \             WHERE tenant_uuid = ? \
-          \               AND (name ~* ? OR ${entityName}.organization_id ~* ? OR ${entityName}.${entityId} ~* ? OR ${entityName}.version ~* ?) ${scopeCondition} \
-          \             GROUP BY ${entityName}.organization_id, ${entityName}.${entityId}${workspaceGroup})"
+          \               AND (name ~* ? OR ${entityName}.id ~* ? OR ${entityName}.version ~* ?) ${scopeCondition} \
+          \             GROUP BY ${entityName}.id${workspaceGroup})"
           [ ("entityName", entityName)
           , ("registryEntityName", registryEntityName)
-          , ("entityId", entityId)
           , ("enabledCondition", enabledCondition)
-          , ("coordinateSql", mapToDBCoordinatesSql entityName entityId mOrganizationId mEntityId)
+          , ("coordinateSql", mapToDBIdSql entityName mId)
           , ("outdatedCondition", outdatedCondition)
           , ("scopeCondition", scopeCondition)
           , ("workspaceKey", workspaceKey)
@@ -238,11 +230,11 @@ createCountGroupByCoordinateFn entityName registryEntityName entityId mQuery ena
         query
           conn
           (fromString sql)
-          ( [toField tenantUuid, toField (regexM mQuery), toField (regexM mQuery), toField (regexM mQuery), toField (regexM mQuery)]
-              ++ fmap toField (mapToDBCoordinatesParams mOrganizationId mEntityId)
+          ( [toField tenantUuid, toField (regexM mQuery), toField (regexM mQuery), toField (regexM mQuery)]
+              ++ fmap toField (mapToDBIdParams mId)
               ++ maybeToList (fmap toField mOutdated)
               ++ [toField tenantUuid]
-              ++ [toField $ regexM mQuery, toField $ regexM mQuery, toField (regexM mQuery), toField (regexM mQuery)]
+              ++ [toField $ regexM mQuery, toField $ regexM mQuery, toField (regexM mQuery)]
           )
   result <- runDB action
   case result of

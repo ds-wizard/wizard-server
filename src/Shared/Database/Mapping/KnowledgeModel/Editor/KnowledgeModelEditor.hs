@@ -11,7 +11,7 @@ instance FromRow KnowledgeModelEditor where
   fromRow = do
     uuid <- field
     name <- field
-    kmId <- field
+    id <- field
     previousPackageUuid <- field
     createdBy <- field
     createdAt <- field
@@ -31,7 +31,7 @@ instance ToRow KnowledgeModelEditor where
   toRow KnowledgeModelEditor {..} =
     [ toField uuid
     , toField name
-    , toField kmId
+    , toField id
     , toField previousPackageUuid
     , toField createdBy
     , toField createdAt

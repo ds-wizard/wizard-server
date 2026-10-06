@@ -10,7 +10,7 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
 data KnowledgeModelEditorList = KnowledgeModelEditorList
   { uuid :: U.UUID
   , name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , state :: KnowledgeModelEditorState
   , previousPackageUuid :: Maybe U.UUID
@@ -26,7 +26,7 @@ instance Eq KnowledgeModelEditorList where
   a == b =
     a.uuid == b.uuid
       && a.name == b.name
-      && a.kmId == b.kmId
+      && a.id == b.id
       && a.version == b.version
       && a.state == b.state
       && a.previousPackageUuid == b.previousPackageUuid

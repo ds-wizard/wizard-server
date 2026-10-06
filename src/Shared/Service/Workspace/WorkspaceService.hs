@@ -33,6 +33,7 @@ import Shared.Model.Tenant.Tenant
 import Shared.Model.User.Role
 import Shared.Model.Workspace.Workspace
 import Shared.Model.Workspace.WorkspaceMember
+import Shared.S3.Workspace.WorkspaceS3
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Workspace.WorkspaceMapper
@@ -67,7 +68,7 @@ createWorkspace reqDto =
 createDefaultWorkspace :: WizardRequestContextC s m => U.UUID -> String -> UTCTime -> m Workspace
 createDefaultWorkspace tenantUuid name now = do
   uuid <- liftIO generateUuid
-  fst <$> createWorkspaceWithRoles (fromChangeDTO (WorkspaceChangeDTO {name = name, description = Nothing}) uuid tenantUuid now)
+  fst <$> createWorkspaceWithRoles (fromChangeDTO (WorkspaceChangeDTO {name = name, description = Nothing, primaryColor = Nothing}) uuid tenantUuid now)
 
 getWorkspaceByUuid :: WizardRequestContextC s m => U.UUID -> m Workspace
 getWorkspaceByUuid uuid = do
@@ -75,15 +76,6 @@ getWorkspaceByUuid uuid = do
   unless managesWorkspaces (checkWorkspaceReachable uuid)
   mWorkspace <- findWorkspaceByUuid' uuid
   maybe (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "workspace")) return mWorkspace
-
-switchToSingleWorkspace :: WizardRequestContextC s m => U.UUID -> m ()
-switchToSingleWorkspace tenantUuid = do
-  workspaceUuids <- findWorkspaceUuidsByTenantUuid tenantUuid
-  case workspaceUuids of
-    [workspaceUuid] -> do
-      moveWorkspaceRowsToTenant tenantUuid
-      addAllUsersToWorkspace workspaceUuid tenantUuid
-    _ -> throwError $ UserError _ERROR_SERVICE_WORKSPACE__MULTIPLE_WORKSPACES
 
 modifyWorkspace :: WizardRequestContextC s m => U.UUID -> WorkspaceChangeDTO -> m Workspace
 modifyWorkspace uuid reqDto =
@@ -100,12 +92,13 @@ deleteWorkspace :: WizardRequestContextC s m => U.UUID -> m ()
 deleteWorkspace uuid =
   runInTransaction $ do
     checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
-    _ <- findWorkspaceByUuid uuid
+    workspace <- findWorkspaceByUuid uuid
     workspaceUuids <- findWorkspaceUuidsForUpdate
     when (length workspaceUuids < 2) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__LAST_WORKSPACE)
     projectUuids <- findProjectUuidsByWorkspaceUuid uuid
     editorUuids <- findKnowledgeModelEditorUuidsByWorkspaceUuid uuid
     void $ deleteWorkspaceByUuid uuid
+    traverse_ (removeWorkspaceLogo uuid) workspace.logo
     traverse_ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuids
     traverse_ logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged editorUuids
 
@@ -121,6 +114,7 @@ addWorkspaceMember uuid userUuid reqDto =
     when (userUuid == systemUserUuid) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SYSTEM_USER)
     workspace <- findWorkspaceByUuid uuid
     _ <- findUserByUuid userUuid
+    checkWorkspacePlaneAvailable
     now <- liftIO getCurrentTime
     addWorkspaceMembership workspace userUuid reqDto.roleUuid now
 

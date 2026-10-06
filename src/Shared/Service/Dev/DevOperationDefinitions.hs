@@ -18,7 +18,6 @@ import Shared.Model.Tenant.Tenant
 import Shared.Service.Document.DocumentCleanService
 import Shared.Service.KnowledgeModel.Editor.Event.EditorEventService
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
-import Shared.Service.Owl.OwlService
 import Shared.Service.PersistentCommand.WizardPersistentCommandService
 import Shared.Service.Plugin.PluginService
 import Shared.Service.Project.Comment.ProjectCommentService
@@ -40,7 +39,6 @@ sections =
   , document
   , knowledgeModelEditor
   , metamodelMigrator
-  , owl
   , persistentCommand
   , plugin
   , project
@@ -202,91 +200,6 @@ metamodelMigrator_migrate =
         let tenantUuid = u' . head $ reqDto.parameters
         tenant <- findTenantByUuid tenantUuid
         migrateToLatestMetamodelVersionCommand tenant Nothing
-        return "Done"
-    }
-
--- ---------------------------------------------------------------------------------------------------------------------
--- OWL
--- ---------------------------------------------------------------------------------------------------------------------
-owl :: WizardRequestContextC s m => DevSection m
-owl =
-  DevSection
-    { name = "Owl"
-    , description = Nothing
-    , operations =
-        [ owl_switchOwlOn
-        , owl_switchOwlOff
-        , owl_setOwlProperties
-        ]
-    }
-
--- ---------------------------------------------------------------------------------------------------------------------
-owl_switchOwlOn :: WizardRequestContextC s m => DevOperation m
-owl_switchOwlOn =
-  DevOperation
-    { name = "Enable OWL feature"
-    , description = Nothing
-    , parameters = []
-    , function = \reqDto -> do
-        modifyOwlFeature True
-        return "Done"
-    }
-
--- ---------------------------------------------------------------------------------------------------------------------
-owl_switchOwlOff :: WizardRequestContextC s m => DevOperation m
-owl_switchOwlOff =
-  DevOperation
-    { name = "Disable OWL feature"
-    , description = Nothing
-    , parameters = []
-    , function = \reqDto -> do
-        modifyOwlFeature False
-        return "Done"
-    }
-
--- ---------------------------------------------------------------------------------------------------------------------
-owl_setOwlProperties :: WizardRequestContextC s m => DevOperation m
-owl_setOwlProperties =
-  DevOperation
-    { name = "Set OWL properties"
-    , description = Just "If you do not want to fill `previousPackageUuid`, please fill empty space (`' '`)"
-    , parameters =
-        [ DevOperationParameter
-            { name = "name"
-            , aType = StringDevOperationParameterType
-            }
-        , DevOperationParameter
-            { name = "organizationId"
-            , aType = StringDevOperationParameterType
-            }
-        , DevOperationParameter
-            { name = "kmId"
-            , aType = StringDevOperationParameterType
-            }
-        , DevOperationParameter
-            { name = "version"
-            , aType = StringDevOperationParameterType
-            }
-        , DevOperationParameter
-            { name = "previousPackageUuid"
-            , aType = StringDevOperationParameterType
-            }
-        , DevOperationParameter
-            { name = "rootElement"
-            , aType = StringDevOperationParameterType
-            }
-        ]
-    , function = \reqDto -> do
-        let name = head reqDto.parameters
-        let organizationId = reqDto.parameters !! 1
-        let kmId = reqDto.parameters !! 2
-        let version = reqDto.parameters !! 3
-        let previousPackageUuid =
-              case reqDto.parameters !! 4 of
-                " " -> Nothing
-                p -> Just p
-        let rootElement = reqDto.parameters !! 5
-        setOwlProperties name organizationId kmId version previousPackageUuid rootElement
         return "Done"
     }
 

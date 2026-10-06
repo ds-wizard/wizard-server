@@ -22,16 +22,17 @@ import Shared.Api.Handler.Prefab.Api
 import Shared.Api.Handler.Project.Api
 import Shared.Api.Handler.ProjectCommentThread.Api
 import Shared.Api.Handler.ProjectFile.Api
-import Shared.Api.Handler.Registry.Api
+import Shared.Api.Handler.Settings.Api
 import Shared.Api.Handler.Submission.Api
 import Shared.Api.Handler.Token.Api
 import Shared.Api.Handler.TypeHint.Api
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Handler.Workspace.Api
-import WizardServer.Api.Handler.Config.Api
+import WizardServer.Api.Handler.Bootstrap.Api
 import WizardServer.Api.Handler.Locale.Api
 import WizardServer.Api.Handler.OpenIdClient.Api
 import WizardServer.Api.Handler.Role.Api
+import WizardServer.Api.Handler.Settings.Api
 import WizardServer.Api.Handler.Tenant.Api
 import WizardServer.Api.Handler.User.Api
 import WizardServer.Api.Handler.UserEmailLink.Api
@@ -40,7 +41,7 @@ import WizardServer.Api.Handler.UserGroup.Api
 type ApplicationAPI =
   InfoAPI
     :<|> ApiKeyAPI
-    :<|> ConfigAPI
+    :<|> BootstrapAPI
     :<|> DevAPI
     :<|> DocumentAPI
     :<|> DocumentTemplateAPI
@@ -62,8 +63,9 @@ type ApplicationAPI =
     :<|> ProjectAPI
     :<|> ProjectCommentThreadAPI
     :<|> ProjectFileAPI
-    :<|> RegistryAPI
     :<|> RoleAPI
+    :<|> SettingsAPI
+    :<|> SettingsRegistryAPI
     :<|> SubmissionAPI
     :<|> TenantAPI
     :<|> TokenAPI
@@ -83,7 +85,7 @@ applicationServer :: WizardHandlerC s sm r rm => ServerT ApplicationAPI sm
 applicationServer =
   infoServer
     :<|> apiKeyServer
-    :<|> configServer
+    :<|> bootstrapServer
     :<|> devServer
     :<|> documentServer
     :<|> documentTemplateServer
@@ -105,8 +107,9 @@ applicationServer =
     :<|> projectServer
     :<|> projectCommentThreadServer
     :<|> projectFileServer
-    :<|> registryServer
     :<|> roleServer
+    :<|> settingsServer
+    :<|> settingsRegistryServer
     :<|> submissionServer
     :<|> tenantServer
     :<|> tokenServer

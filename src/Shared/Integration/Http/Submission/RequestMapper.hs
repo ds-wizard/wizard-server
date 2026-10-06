@@ -7,10 +7,10 @@ import Data.Map.Strict as M
 import Prelude hiding (lookup)
 
 import Shared.Model.Http.HttpRequest
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Util.Interpolation (interpolateMapValues, interpolateString)
 
-toUploadDocumentRequest :: TenantConfigSubmissionServiceRequest -> M.Map String String -> BS.ByteString -> HttpRequest
+toUploadDocumentRequest :: SettingsSubmissionServiceRequest -> M.Map String String -> BS.ByteString -> HttpRequest
 toUploadDocumentRequest req variables reqBody =
   HttpRequest
     { requestMethod = req.method

@@ -131,8 +131,8 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
             Just kmpCoordinates ->
               let operator = if isAndOperator mKnowledgeModelPackageCoordinatesOp then " AND " else " OR "
                in ( "LEFT JOIN knowledge_model_package ON project.knowledge_model_package_uuid = knowledge_model_package.uuid AND knowledge_model_package.tenant_uuid = '${tenantUuid}'"
-                  , f' " AND (%s)" [L.intercalate operator . fmap (\c -> if c.version == "all" then " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ?)" else " (knowledge_model_package.organization_id = ? AND knowledge_model_package.km_id = ? AND knowledge_model_package.version = ?)") $ kmpCoordinates]
-                  , concatMap (\c -> if c.version == "all" then [c.organizationId, c.entityId] else [c.organizationId, c.entityId, c.version]) kmpCoordinates
+                  , f' " AND (%s)" [L.intercalate operator . fmap (\c -> if c.version == "all" then " (knowledge_model_package.id = ?)" else " (knowledge_model_package.id = ? AND knowledge_model_package.version = ?)") $ kmpCoordinates]
+                  , concatMap (\c -> if c.version == "all" then [c.id] else [c.id, c.version]) kmpCoordinates
                   )
     workspaceCondition <- workspaceScopeCondition "project.workspace_uuid"
     visibleCondition <- projectVisibleCondition
@@ -190,8 +190,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \     pkg AS (SELECT knowledge_model_package.uuid, \
               \                    knowledge_model_package.name, \
               \                    knowledge_model_package.version, \
-              \                    knowledge_model_package.organization_id, \
-              \                    knowledge_model_package.km_id \
+              \                    knowledge_model_package.id \
               \             FROM knowledge_model_package \
               \             WHERE knowledge_model_package.tenant_uuid = '${tenantUuid}') \
               \SELECT  filtered_project.uuid, \
@@ -203,15 +202,14 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \        filtered_project.created_at, \
               \        filtered_project.updated_at, \
               \        CASE \
-              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], filtered_project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
+              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], filtered_project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
               \          ELSE 'UpToDateKnowledgeModelProjectState' END, \
               \        CASE \
               \          WHEN dt.uuid IS NULL THEN NULL \
               \          WHEN dt.uuid != (SELECT newest_dt.uuid \
               \                           FROM document_template newest_dt \
               \                           WHERE newest_dt.tenant_uuid = '${tenantUuid}' \
-              \                             AND newest_dt.organization_id = dt.organization_id \
-              \                             AND newest_dt.template_id = dt.template_id \
+              \                             AND newest_dt.id = dt.id \
               \                             AND newest_dt.phase = 'ReleasedDocumentTemplatePhase' \
               \                             AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = filtered_project.workspace_uuid) \
               \                           ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
@@ -411,8 +409,7 @@ findProjectDetail uuid = do
             \       project.sharing, \
             \       knowledge_model_package.uuid AS knowledge_model_package_uuid, \
             \       knowledge_model_package.name AS knowledge_model_package_name, \
-            \       knowledge_model_package.organization_id AS knowledge_model_package_organization_id, \
-            \       knowledge_model_package.km_id AS knowledge_model_package_km_id, \
+            \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
             \       project.selected_question_tag_uuids, \
@@ -449,8 +446,7 @@ findProjectDetailQuestionnaire uuid = do
             \       project.sharing, \
             \       knowledge_model_package.uuid AS knowledge_model_package_uuid, \
             \       knowledge_model_package.name AS knowledge_model_package_name, \
-            \       knowledge_model_package.organization_id AS knowledge_model_package_organization_id, \
-            \       knowledge_model_package.km_id AS knowledge_model_package_km_id, \
+            \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
             \       project.selected_question_tag_uuids, \
@@ -492,8 +488,7 @@ findProjectDetailPreview uuid = do
             \       project.sharing, \
             \       knowledge_model_package.uuid AS knowledge_model_package_uuid, \
             \       knowledge_model_package.name AS knowledge_model_package_name, \
-            \       knowledge_model_package.organization_id AS knowledge_model_package_organization_id, \
-            \       knowledge_model_package.km_id AS knowledge_model_package_km_id, \
+            \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
             \       project.is_template, \
@@ -543,8 +538,7 @@ findProjectDetailSettings uuid = do
             \       ${projectDetailPermSql}, \
             \       pkg.uuid                       as knowledge_model_package_uuid, \
             \       pkg.name                       as knowledge_model_package_name, \
-            \       pkg.organization_id            as knowledge_model_package_organization_id, \
-            \       pkg.km_id                      as knowledge_model_package_km_id, \
+            \       pkg.id            AS knowledge_model_package_id, \
             \       pkg.version                    as knowledge_model_package_version, \
             \       pkg.phase                      as knowledge_model_package_phase, \
             \       pkg.description                as knowledge_model_package_description, \
@@ -555,8 +549,7 @@ findProjectDetailSettings uuid = do
             \       pkg.workspace_uuid             as knowledge_model_package_workspace_uuid, \
             \       dt.uuid                        as document_template_uuid, \
             \       dt.name                        as document_template_name, \
-            \       dt.organization_id             as document_template_organization_id, \
-            \       dt.template_id                 as document_template_template_id, \
+            \       dt.id             as document_template_id, \
             \       dt.version                     as document_template_version, \
             \       dt.phase                       as document_template_phase, \
             \       dt.description                 as document_template_description, \
@@ -577,15 +570,14 @@ findProjectDetailSettings uuid = do
             \       ) AS document_template_locales, \
             \       dt.metamodel_version           as document_template_metamodel_version, \
             \       CASE \
-            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.organization_id, pkg.km_id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
+            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
             \         ELSE 'UpToDateKnowledgeModelProjectState' END as knowledge_model_state, \
             \       CASE \
             \         WHEN dt.uuid IS NULL THEN NULL \
             \         WHEN dt.uuid != (SELECT newest_dt.uuid \
             \                          FROM document_template newest_dt \
             \                          WHERE newest_dt.tenant_uuid = '${tenantUuid}' \
-            \                            AND newest_dt.organization_id = dt.organization_id \
-            \                            AND newest_dt.template_id = dt.template_id \
+            \                            AND newest_dt.id = dt.id \
             \                            AND newest_dt.phase = 'ReleasedDocumentTemplatePhase' \
             \                            AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = project.workspace_uuid) \
             \                          ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \

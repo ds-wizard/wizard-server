@@ -29,7 +29,8 @@ import WizardServer.Model.Context.ServerContext
 import WizardServer.Service.Config.Server.ServerConfigValidation
 
 import Specs.Api.Handler.ApiKey.ApiSpec
-import Specs.Api.Handler.Config.ApiSpec
+import Specs.Api.Handler.ApiSpec
+import Specs.Api.Handler.Bootstrap.ApiSpec
 import Specs.Api.Handler.Document.ApiSpec
 import Specs.Api.Handler.DocumentTemplate.ApiSpec
 import Specs.Api.Handler.DocumentTemplateDraft.ApiSpec
@@ -52,10 +53,10 @@ import Specs.Api.Handler.Project.Detail_WS.WebsocketSpec
 import Specs.Api.Handler.ProjectCommentThread.ApiSpec
 import Specs.Api.Handler.ProjectFile.ApiSpec
 import Specs.Api.Handler.Role.ApiSpec
+import Specs.Api.Handler.Settings.ApiSpec
 import Specs.Api.Handler.Submission.ApiSpec
 import Specs.Api.Handler.Swagger.ApiSpec
 import Specs.Api.Handler.Tenant.ApiSpec
-import Specs.Api.Handler.Tenant.Config.ApiSpec
 import Specs.Api.Handler.Tenant.Limit.ApiSpec
 import Specs.Api.Handler.Tenant.Usage.ApiSpec
 import Specs.Api.Handler.Token.ApiSpec
@@ -66,6 +67,7 @@ import Specs.Api.Handler.User.Tour.ApiSpec
 import Specs.Api.Handler.UserGroup.ApiSpec
 import Specs.Api.Handler.Websocket.Common
 import Specs.Api.Handler.Workspace.ApiSpec
+import Specs.Api.Resource.Coordinate.CoordinateJMSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
 import Specs.Database.Migration.Production.PermissionMappingSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
@@ -100,7 +102,6 @@ import Specs.Service.Project.ProjectAclSpec
 import Specs.Service.Project.ProjectServiceSpec
 import Specs.Service.Project.ProjectValidationSpec
 import Specs.Service.Report.ReportGeneratorSpec
-import Specs.Service.Tenant.Config.TenantConfigValidationSpec
 import Specs.Service.Tenant.TenantValidationSpec
 import Specs.Service.TypeHint.TypeHintServiceSpec
 import Specs.Service.User.UserServiceSpec
@@ -188,6 +189,9 @@ main =
     ( \serverContext requestContext ->
         hspec $ do
           describe "UNIT TESTING" $ do
+            describe "API" $ do
+              apiSpec
+              coordinateJMSpec
             describe "DATABASE" permissionMappingSpec
             describe "INTEGRATION" $
               describe "Http" $ do
@@ -222,9 +226,7 @@ main =
                   projectEventServiceSpec
                 projectValidationSpec
               describe "Report" reportGeneratorSpec
-              describe "Tenant" $ do
-                describe "Config" tenantConfigValidationSpec
-                tenantValidationSpec
+              describe "Tenant" tenantValidationSpec
             describe "UTIL" $ do
               mapSpec
               mathSpec
@@ -236,7 +238,7 @@ main =
           before (resetDB requestContext) $ describe "INTEGRATION TESTING" $ do
             describe "API" $ do
               apiKeyAPI serverContext requestContext
-              configAPI serverContext requestContext
+              bootstrapAPI serverContext requestContext
               documentAPI serverContext requestContext
               documentTemplateAPI serverContext requestContext
               documentTemplateDraftAPI serverContext requestContext
@@ -256,10 +258,10 @@ main =
               projectAPI serverContext requestContext
               projectCommentThreadAPI serverContext requestContext
               projectFileAPI serverContext requestContext
+              settingsAPI serverContext requestContext
               submissionAPI serverContext requestContext
               swaggerAPI serverContext requestContext
               tenantAPI serverContext requestContext
-              tenantConfigAPI serverContext requestContext
               tenantLimitAPI serverContext requestContext
               typeHintAPI serverContext requestContext
               tokenAPI serverContext requestContext

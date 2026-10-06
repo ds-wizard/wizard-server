@@ -13,8 +13,8 @@ import Shared.Model.Locale.Locale
 import qualified Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleService as DocumentTemplateBundleService
 import qualified Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleService as KnowledgeModelBundleService
 import qualified Shared.Service.Locale.Bundle.LocaleBundleService as LocaleBundleService
-import Shared.Util.Coordinate
 import Shared.Util.Logger
+import Shared.Util.Reference
 
 pushKnowledgeModelBundle :: WizardRequestContextC s m => String -> Maybe U.UUID -> m ()
 pushKnowledgeModelBundle pkgId workspaceUuid = do

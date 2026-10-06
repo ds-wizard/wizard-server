@@ -48,6 +48,7 @@ list_POST requestContext =
     test_201_workspace requestContext
     test_400 requestContext
     test_400_workspace requestContext
+    test_400_single_workspace requestContext
     test_403_workspace requestContext
     test_400_invalid_permission requestContext
     test_401 requestContext
@@ -136,6 +137,23 @@ test_400_workspace requestContext = do
     reqUrl
     reqDto
     (UserError _ERROR_SERVICE_WORKSPACE__SCOPE_REQUIRED)
+
+test_400_single_workspace requestContext =
+  it "HTTP 400 BAD REQUEST when a workspace role is created in a single-workspace tenant" $ do
+    -- GIVEN: Prepare expectation
+    let expStatus = 400
+    let expHeaders = resCtHeader : resCorsHeaders
+    let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_NOT_ACCEPTED)
+    -- AND: Run migrations
+    runInContextIO U_Migration.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod (reqUrl <> "?w=" <> BS.pack (U.toString defaultWorkspaceUuid)) reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+    -- AND: Find result in DB and compare with expectation state
+    assertCountInDB findRoles requestContext 5
 
 createWorkspaceValidationTest requestContext title url dto expDto =
   it ("HTTP 400 BAD REQUEST when " ++ title) $ do

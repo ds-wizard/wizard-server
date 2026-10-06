@@ -10,12 +10,12 @@ import Shared.Util.List (groupBy)
 
 groupDocumentTemplates :: [DocumentTemplate] -> [[DocumentTemplate]]
 groupDocumentTemplates =
-  groupBy (\t1 t2 -> t1.organizationId == t2.organizationId && t1.templateId == t2.templateId)
+  groupBy (\t1 t2 -> t1.id == t2.id)
 
 resolveDocumentTemplateCoordinate :: RequestContextC s sc m => Coordinate -> Maybe U.UUID -> m DocumentTemplate
 resolveDocumentTemplateCoordinate coordinate mWorkspaceUuid =
   if coordinate.version == "latest"
-    then findLatestDocumentTemplateByOrganizationIdAndTemplateId coordinate.organizationId coordinate.entityId mWorkspaceUuid
+    then findLatestDocumentTemplateById coordinate.id mWorkspaceUuid
     else findDocumentTemplateByCoordinate coordinate mWorkspaceUuid
 
 changeDocumentTemplateIdInFormats :: U.UUID -> U.UUID -> [DocumentTemplateFormat] -> [DocumentTemplateFormat]
@@ -33,7 +33,7 @@ changeDocumentTemplateIdInFormats documentTemplateUuid tenantUuid =
                       }
                       :: DocumentTemplateFormatStep
                 )
-                (steps f)
+                f.steps
           , tenantUuid = tenantUuid
           }
           :: DocumentTemplateFormat

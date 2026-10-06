@@ -49,10 +49,10 @@ list_POST requestContext =
     test_201_req_one_db_rest requestContext
     test_201_without_readme requestContext
     test_201_workspace requestContext
+    test_201_tenant_with_workspace_duplicate requestContext
+    test_201_workspace_with_tenant_duplicate requestContext
     test_400 requestContext
     test_400_main_package_duplication requestContext
-    test_400_workspace_duplicates_tenant requestContext
-    test_400_tenant_duplicates_workspace requestContext
     test_400_missing_previous_package requestContext
     test_401 requestContext
     test_403 requestContext
@@ -235,8 +235,8 @@ test_201_workspace requestContext =
       comparePackageDtos resBody expDto
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findPackages requestContext 3
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" Nothing) requestContext 0
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 2
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 0
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" (Just defaultWorkspaceUuid)) requestContext 2
       ePackages <- runInContextIO findPackages requestContext
       liftIO $ fmap (fmap (.workspaceUuid)) ePackages `shouldBe` Right (replicate 3 (Just defaultWorkspaceUuid))
 
@@ -284,14 +284,11 @@ test_400_main_package_duplication requestContext =
       -- AND: Find result in DB and compare with expectation state
       assertCountInDB findPackages requestContext 3
 
-test_400_workspace_duplicates_tenant requestContext =
-  it "HTTP 400 BAD REQUEST when the tenant plane already has the main package" $
+test_201_workspace_with_tenant_duplicate requestContext =
+  it "HTTP 201 CREATED - Into a workspace when the tenant plane already has the main package" $
     -- GIVEN: Prepare expectation
     do
-      let expStatus = 400
-      let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ netherlandsKmPackageV2)
-      let expBody = encode expDto
+      let expStatus = 201
       -- AND: Run migrations
       runInContextIO deletePackages requestContext
       runInContextIO (insertPackage globalKmPackage) requestContext
@@ -301,20 +298,17 @@ test_400_workspace_duplicates_tenant requestContext =
       -- WHEN: Call API
       response <- request reqMethod (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") reqHeaders reqBody
       -- THEN: Compare response with expectation
-      let responseMatcher =
-            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
-      response `shouldRespondWith` responseMatcher
+      let (status, _, _) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelPackageSimpleDTO)
+      assertResStatus status expStatus
       -- AND: Find result in DB and compare with expectation state
-      assertCountInDB findPackages requestContext 3
+      assertCountInDB findPackages requestContext 4
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" (Just defaultWorkspaceUuid)) requestContext 1
 
-test_400_tenant_duplicates_workspace requestContext =
-  it "HTTP 400 BAD REQUEST when a workspace already has the main package" $
+test_201_tenant_with_workspace_duplicate requestContext =
+  it "HTTP 201 CREATED - Into the tenant plane when a workspace already has the main package" $
     -- GIVEN: Prepare expectation
     do
-      let expStatus = 400
-      let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ netherlandsKmPackageV2)
-      let expBody = encode expDto
+      let expStatus = 201
       -- AND: Run migrations
       runInContextIO deletePackages requestContext
       runInContextIO (insertPackage globalKmPackage) requestContext
@@ -324,11 +318,11 @@ test_400_tenant_duplicates_workspace requestContext =
       -- WHEN: Call API
       response <- request reqMethod (reqUrl <> "?tenant=true") reqHeaders reqBody
       -- THEN: Compare response with expectation
-      let responseMatcher =
-            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
-      response `shouldRespondWith` responseMatcher
+      let (status, _, _) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelPackageSimpleDTO)
+      assertResStatus status expStatus
       -- AND: Find result in DB and compare with expectation state
-      assertCountInDB findPackages requestContext 3
+      assertCountInDB findPackages requestContext 4
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 2
 
 workspaceNetherlandsKmPackageV2 :: KnowledgeModelPackage
 workspaceNetherlandsKmPackageV2 =

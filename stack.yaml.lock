@@ -16,17 +16,6 @@ packages:
   original:
     url: https://github.com/haskellify/postgresql-migration/archive/v1.2.0.tar.gz
 - completed:
-    name: rdf4h
-    pantry-tree:
-      sha256: 00267d706bce329123798a5367710d2469e670a369606af7292c1f6518bfe1c9
-      size: 11234
-    sha256: b053c7462b8d050be5f6dc6c42d17d1974137dee58c8036279c86d4d9a65d16d
-    size: 1048078
-    url: https://github.com/haskellify/rdf4h/archive/v5.0.1.tar.gz
-    version: 5.0.1
-  original:
-    url: https://github.com/haskellify/rdf4h/archive/v5.0.1.tar.gz
-- completed:
     name: servant-errors
     pantry-tree:
       sha256: fe090925accee04e661e6389d665b096b794f846f1a280eacfe2b97aaa7d6869

@@ -10,6 +10,7 @@ import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
 import Shared.Model.Context.WizardRequestContext
 import Shared.Util.Logger
+import Shared.Util.String (replace)
 
 pageLabel = "projectTags"
 
@@ -50,13 +51,13 @@ sqlBase :: String -> String
 sqlBase workspaceCondition =
   f'
     "SELECT unnest(project_tagging_tags) as project_tag \
-    \FROM config_project \
-    \WHERE tenant_uuid = ? \
+    \FROM settings_projects \
+    \WHERE tenant_uuid = ? AND (workspace_uuid IS NULL OR (workspace_uuid IS NOT NULL%s)) \
     \UNION \
     \SELECT nested.project_tag \
     \FROM (SELECT unnest(project_tags) as project_tag, tenant_uuid, workspace_uuid FROM project) nested \
     \WHERE nested.tenant_uuid = ?%s "
-    [workspaceCondition]
+    [replace "nested.workspace_uuid" "settings_projects.workspace_uuid" workspaceCondition, workspaceCondition]
 
 excludeTagsCondition :: [String] -> String
 excludeTagsCondition excludeTags =

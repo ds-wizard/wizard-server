@@ -5,5 +5,6 @@ import GHC.Generics
 data WorkspaceChangeDTO = WorkspaceChangeDTO
   { name :: String
   , description :: Maybe String
+  , primaryColor :: Maybe String
   }
   deriving (Show, Eq, Generic)

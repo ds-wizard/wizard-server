@@ -18,8 +18,7 @@ wizardDocumentTemplate =
   DocumentTemplate
     { uuid = u' "557e76d8-338a-4664-886a-f6af2228776c"
     , name = "Project Report"
-    , organizationId = "global"
-    , templateId = "project-report"
+    , id = "global.project-report"
     , version = "1.0.0"
     , phase = ReleasedDocumentTemplatePhase
     , metamodelVersion = documentTemplateMetamodelVersion
@@ -37,7 +36,7 @@ wizardDocumentTemplate =
     }
 
 wizardDocumentTemplateCoordinate :: Coordinate
-wizardDocumentTemplateCoordinate = Coordinate wizardDocumentTemplate.organizationId wizardDocumentTemplate.templateId wizardDocumentTemplate.version
+wizardDocumentTemplateCoordinate = Coordinate wizardDocumentTemplate.id wizardDocumentTemplate.version
 
 wizardDocumentTemplateSimple :: DocumentTemplateSimple
 wizardDocumentTemplateSimple = toSimple wizardDocumentTemplate
@@ -61,7 +60,7 @@ wizardDocumentTemplateNlDraft =
   wizardDocumentTemplate
     { uuid = u' "2d511419-deb3-476d-a470-02a039511500"
     , name = "New Document Template"
-    , organizationId = "org.nl.amsterdam"
+    , id = "org.nl.amsterdam.project-report"
     , version = "3.0.0"
     , phase = DraftDocumentTemplatePhase
     , description = ""
@@ -73,8 +72,7 @@ anotherWizardDocumentTemplate =
   DocumentTemplate
     { uuid = u' "1a6f6ca4-80b3-41b1-8821-518f0d12fa95"
     , name = "Another DocumentTemplate"
-    , organizationId = "dsw"
-    , templateId = "another-template"
+    , id = "dsw.another-template"
     , version = "1.0.0"
     , phase = ReleasedDocumentTemplatePhase
     , metamodelVersion = documentTemplateMetamodelVersion
@@ -97,8 +95,7 @@ differentDocumentTemplate =
   DocumentTemplate
     { uuid = u' "1026d13d-53ee-45c8-b322-cabc29e68f14"
     , name = "Another DocumentTemplate"
-    , organizationId = "dsw"
-    , templateId = "another-template"
+    , id = "dsw.another-template"
     , version = "1.0.0"
     , phase = ReleasedDocumentTemplatePhase
     , metamodelVersion = documentTemplateMetamodelVersion
@@ -121,6 +118,6 @@ workspaceWizardDocumentTemplate =
   wizardDocumentTemplate
     { uuid = u' "b3c4d5e6-7f80-4a1b-9c2d-3e4f5a6b7c8d"
     , name = "Workspace Project Report"
-    , templateId = "project-report-ws"
+    , id = "global.project-report-ws"
     , workspaceUuid = Just defaultWorkspaceUuid
     }

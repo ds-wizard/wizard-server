@@ -91,7 +91,6 @@ library:
   - random # OK
   - raven-haskell
   - raw-strings-qq
-  - rdf4h
   - regex-compat
   - regex-tdfa
   - resource-pool
@@ -181,6 +180,7 @@ _test-dependencies: &test-dependencies
     - websockets
     - wreq
     - yaml
+    - zip-archive
     - hspec
     - hspec-expectations-json
     - hspec-expectations-pretty-diff
@@ -208,6 +208,7 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - LambdaCase
   - MultiParamTypeClasses
+  - NoFieldSelectors
   - OverloadedStrings
   - OverloadedRecordDot
   - QuasiQuotes

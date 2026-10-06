@@ -55,7 +55,6 @@ instance FromRow ProjectCommentThreadNotification where
     appTitle <- field
     logoUrl <- field
     primaryColor <- field
-    illustrationsColor <- field
     supportEmail <- field
     mailConfigUuid <- field
     return ProjectCommentThreadNotification {..}

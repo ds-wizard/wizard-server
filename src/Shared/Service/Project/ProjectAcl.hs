@@ -15,16 +15,16 @@ import Shared.Model.Error.Error
 import Shared.Model.Project.Acl.ProjectAclHelpers
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.UserGroupMembership
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Workspace.WorkspaceScopeService
 
-checkCreatePermissionToProject :: WizardRequestContextC s m => m ()
-checkCreatePermissionToProject = do
+checkCreatePermissionToProject :: WizardRequestContextC s m => U.UUID -> m ()
+checkCreatePermissionToProject workspaceUuid = do
   mCurrentUser <- asks (.currentUser')
   forM_ mCurrentUser (const (checkPermission _PROJECTS_CREATE_ROLE_PERMISSION))
-  tcProject <- getCurrentTenantConfigProject
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   let projectSharingEnabled = tcProject.projectSharing.enabled
   let projectSharingAnonymousEnabled = tcProject.projectSharing.anonymousEnabled
   let projectCreation = tcProject.projectCreation
@@ -37,7 +37,7 @@ checkCreatePermissionToProject = do
 checkCreateFromTemplatePermissionToProject :: WizardRequestContextC s m => U.UUID -> Bool -> m ()
 checkCreateFromTemplatePermissionToProject workspaceUuid isTemplate = do
   checkPermissionInWorkspace _PROJECTS_CREATE_ROLE_PERMISSION (Just workspaceUuid)
-  tcProject <- getCurrentTenantConfigProject
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   let projectCreation = tcProject.projectCreation
   case projectCreation of
     CustomProjectCreation ->

@@ -15,6 +15,7 @@ import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.KnowledgeModelLenses
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
@@ -34,7 +35,7 @@ getTemporaryFileWithTranslationTemplate pkgUuid =
     now <- liftIO getCurrentTime
     let pot = buildTranslationTemplate pkg knowledgeModel now
     mCurrentUserUuid <- getCurrentUserUuid
-    let fileName = f' "%s_%s_%s.pot" [pkg.organizationId, pkg.kmId, pkg.version]
+    let fileName = f' "%s_%s.pot" [pkg.id, pkg.version]
     url <- createTemporaryFile fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict . TE.encodeUtf8 . T.pack $ pot)
     return $ TemporaryFileMapper.toDTO url "application/octet-stream"
 
@@ -42,7 +43,7 @@ buildTranslationTemplate :: KnowledgeModelPackage -> KnowledgeModel -> UTCTime -
 buildTranslationTemplate pkg km now = serializePot headers (buildPotEntries km)
   where
     headers =
-      [ ("Project-Id-Version", f' "%s:%s:%s" [pkg.organizationId, pkg.kmId, pkg.version])
+      [ ("Project-Id-Version", show (createCoordinate pkg))
       , ("POT-Creation-Date", formatTime defaultTimeLocale "%Y-%m-%d %H:%M%z" now)
       , ("MIME-Version", "1.0")
       , ("Content-Type", "text/plain; charset=UTF-8")

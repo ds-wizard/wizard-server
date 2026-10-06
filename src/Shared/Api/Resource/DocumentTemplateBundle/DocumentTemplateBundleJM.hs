@@ -7,6 +7,7 @@ import Data.Aeson.Types
 import qualified Data.ByteString.Lazy.Char8 as BSL
 
 import Shared.Api.Resource.Common.SemVer2TupleJM ()
+import Shared.Api.Resource.Coordinate.CoordinateJM
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateJM ()
 import Shared.Api.Resource.DocumentTemplateBundle.DocumentTemplateBundleDTO
 import Shared.Api.Resource.Localization.LocaleRecordJM ()
@@ -21,14 +22,12 @@ instance ToJSON DocumentTemplateBundleDTO where
 
 instance FromJSON DocumentTemplateBundleDTO where
   parseJSON (Object o) = do
-    tId <- o .: "id"
+    id <- parseLegacyId o "templateId"
     name <- o .: "name"
-    organizationId <- o .: "organizationId"
-    templateId <- o .: "templateId"
     version <- o .: "version"
     metamodelVersion <-
       (o .: "metamodelVersion" :: Parser SemVer2Tuple)
-        <|> fail (BSL.unpack . encode $ _ERROR_VALIDATION__TEMPLATE_UNSUPPORTED_METAMODEL_VERSION tId "<<unable-to-parse>>" (show documentTemplateMetamodelVersion))
+        <|> fail (BSL.unpack . encode $ _ERROR_VALIDATION__TEMPLATE_UNSUPPORTED_METAMODEL_VERSION id "<<unable-to-parse>>" (show documentTemplateMetamodelVersion))
     description <- o .: "description"
     readme <- o .: "readme"
     license <- o .: "license"

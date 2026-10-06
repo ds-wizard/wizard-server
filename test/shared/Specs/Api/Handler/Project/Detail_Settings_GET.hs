@@ -156,7 +156,7 @@ create_test_200' title requestContext project authHeader permissions extraSetup 
               , permissions = permissions
               , projectTags = project.projectTags
               , knowledgeModelPackageUuid = project.knowledgeModelPackageUuid
-              , knowledgeModelPackage = PM.toSimpleDTO' [] [] germanyKmPackage
+              , knowledgeModelPackage = PM.toSimpleDTO' [] germanyKmPackage
               , knowledgeModelTags = M.elems km1WithQ4.entities.tags
               , knowledgeModelState = UpToDateKnowledgeModelProjectState
               , language = project.language

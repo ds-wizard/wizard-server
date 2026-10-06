@@ -8,145 +8,24 @@ import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageUtil
 
 packageUtilSpec =
   describe "Package Utils" $ do
-    let pkgCoordinate = Coordinate "org.nl" "core-nl" "2.0.0"
+    let pkgCoordinate = Coordinate "org.nl.core-nl" "2.0.0"
+    let anyPattern = KnowledgeModelPackagePattern {id = Nothing, minVersion = Nothing, maxVersion = Nothing}
     describe "fitsIntoKMSpec" $ do
       it "No restrictions => Allow anything" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Nothing
-                  , minVersion = Nothing
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` True
-      it "Restriction on 'orgId', same provided 'orgId' => Allow" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Just "org.nl"
-                  , kmId = Nothing
-                  , minVersion = Nothing
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` True
-      it "Restriction on 'orgId', different provided 'orgId' => Deny" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Just "org.de"
-                  , kmId = Nothing
-                  , minVersion = Nothing
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` False
-      it "Restriction on 'KmID', same provided 'KmID' => Allow" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Just "core-nl"
-                  , minVersion = Nothing
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` True
-      it "Restriction on 'KmID', different provided 'KmID' => Deny" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Just "core-de"
-                  , minVersion = Nothing
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` False
-      it "Restriction on 'minimal version', provided higher version => Alow" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Nothing
-                  , minVersion = Just "1.0.0"
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` True
-      it "Restriction on 'minimal version', provided lower version => Deny" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Nothing
-                  , minVersion = Just "2.0.1"
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` False
-      it "Restriction on 'maximal version', provided lower version => Alow" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Nothing
-                  , minVersion = Nothing
-                  , maxVersion = Just "2.0.1"
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` True
-      it "Restriction on 'maximal version', provided higher version => Deny" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Nothing
-                  , kmId = Nothing
-                  , minVersion = Nothing
-                  , maxVersion = Just "1.0.0"
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` False
+        fitsIntoKMSpec pkgCoordinate anyPattern `shouldBe` True
+      it "Restriction on 'id', same provided 'id' => Allow" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {id = Just "org.nl.core-nl"} :: KnowledgeModelPackagePattern) `shouldBe` True
+      it "Restriction on 'id', different provided 'id' => Deny" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {id = Just "org.de.core-de"} :: KnowledgeModelPackagePattern) `shouldBe` False
+      it "Restriction on 'id', provided 'id' only shares a prefix => Deny" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {id = Just "org.nl"} :: KnowledgeModelPackagePattern) `shouldBe` False
+      it "No 'id', restriction on 'minimal version', provided higher version => Allow" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {minVersion = Just "1.0.0"} :: KnowledgeModelPackagePattern) `shouldBe` True
+      it "No 'id', restriction on 'minimal version', provided lower version => Deny" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {minVersion = Just "2.0.1"} :: KnowledgeModelPackagePattern) `shouldBe` False
+      it "No 'id', restriction on 'maximal version', provided lower version => Allow" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {maxVersion = Just "2.0.1"} :: KnowledgeModelPackagePattern) `shouldBe` True
+      it "No 'id', restriction on 'maximal version', provided higher version => Deny" $
+        fitsIntoKMSpec pkgCoordinate (anyPattern {maxVersion = Just "1.0.0"} :: KnowledgeModelPackagePattern) `shouldBe` False
       it "Two restrictions, provided data satisfies just one => Deny" $
-        -- GIVEN:
-        do
-          let kmSpec =
-                KnowledgeModelPackagePattern
-                  { orgId = Just "org.de"
-                  , kmId = Just "core-nl"
-                  , minVersion = Nothing
-                  , maxVersion = Nothing
-                  }
-          -- GIVEN:
-          let result = fitsIntoKMSpec pkgCoordinate kmSpec
-          -- THEN:
-          result `shouldBe` False
+        fitsIntoKMSpec pkgCoordinate (anyPattern {id = Just "org.nl.core-nl", maxVersion = Just "1.0.0"} :: KnowledgeModelPackagePattern) `shouldBe` False

@@ -19,6 +19,7 @@ import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.WizardPublic
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Error.Error
 import Shared.Model.User.Role
 import Shared.Model.User.User
@@ -40,6 +41,7 @@ detail_members_PUT requestContext =
     test_204 requestContext
     test_204_role requestContext
     test_400 requestContext
+    test_400_single_workspace requestContext
     test_401 requestContext
     test_403 requestContext
     test_403_other_workspace requestContext
@@ -123,6 +125,24 @@ test_400 requestContext =
     let responseMatcher =
           ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
     response `shouldRespondWith` responseMatcher
+
+test_400_single_workspace requestContext =
+  it "HTTP 400 BAD REQUEST when a workspace role is assigned in a single-workspace tenant" $ do
+    -- GIVEN: Prepare expectation
+    let expStatus = 400
+    let expHeaders = resCtHeader : resCorsHeaders
+    let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_PLANE_UNAVAILABLE)
+    -- AND: Run migrations
+    runInContextIO U.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod "/api/workspaces/7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f/members/30d48cf4-8c8a-496f-bafe-585bd238f798" reqHeaders (encode (WorkspaceMemberChangeDTO {roleUuid = Just defaultWorkspaceAdminRole.uuid}))
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+    -- AND: Find result in DB and compare with expectation state
+    membership <- getOneFromDB (findWorkspaceMembership defaultWorkspace.uuid userNikola.uuid) requestContext
+    liftIO $ membership.roleUuid `shouldBe` defaultWorkspaceUserRole.uuid
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

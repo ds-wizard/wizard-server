@@ -1,7 +1,5 @@
 module Shared.Constant.Locale where
 
-defaultLocaleOrganizationId = "~"
-
-defaultLocaleLocaleId = "default"
+defaultLocaleId = "~.default"
 
 defaultLocaleVersion = "1.0.0"

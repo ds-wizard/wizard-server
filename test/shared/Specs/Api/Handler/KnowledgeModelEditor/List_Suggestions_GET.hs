@@ -34,6 +34,7 @@ list_suggestions_GET requestContext =
   describe "GET /api/knowledge-model-editors/suggestions" $ do
     test_200 requestContext
     test_401 requestContext
+    test_403_not_member requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -62,12 +63,6 @@ test_200 requestContext = do
     insertSecondWorkspaceWithoutCaller
     "/api/knowledge-model-editors/suggestions?sort=name,asc"
     (Page "knowledgeModelEditors" (PageMetadata 20 1 1 0) [amsterdamKnowledgeModelEditorSuggestion])
-  create_test_200
-    "HTTP 200 OK (not a member of w)"
-    requestContext
-    insertSecondWorkspaceWithoutCaller
-    (BS.pack $ "/api/knowledge-model-editors/suggestions?w=" ++ U.toString secondWorkspaceUuid)
-    (Page "knowledgeModelEditors" (PageMetadata 20 0 0 0) [])
 
 create_test_200 title requestContext prepareWorkspace reqUrl expDto =
   it title $
@@ -98,3 +93,6 @@ secondWorkspaceKnowledgeModelEditorSuggestion =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
+
+test_403_not_member requestContext =
+  createNotMemberTest requestContext (runInContextIO KnowledgeModelEditor.runMigration requestContext) reqMethod (BS.pack $ "/api/knowledge-model-editors/suggestions?w=" ++ U.toString secondWorkspaceUuid) reqBody "knowledgeModels.useEditor"

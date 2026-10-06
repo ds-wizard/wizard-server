@@ -6,8 +6,7 @@ import GHC.Generics
 data KnowledgeModelPackageSuggestion = KnowledgeModelPackageSuggestion
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
   }

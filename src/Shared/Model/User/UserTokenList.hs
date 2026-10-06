@@ -16,8 +16,8 @@ data UserTokenList = UserTokenList
 
 instance Eq UserTokenList where
   a == b =
-    uuid a == uuid b
-      && name a == name b
-      && userAgent a == userAgent b
-      && currentSession a == currentSession b
-      && expiresAt a == expiresAt b
+    a.uuid == b.uuid
+      && a.name == b.name
+      && a.userAgent == b.userAgent
+      && a.currentSession == b.currentSession
+      && a.expiresAt == b.expiresAt

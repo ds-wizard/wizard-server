@@ -13,18 +13,24 @@ import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Project.ProjectCreateFromTemplateDTO
 import Shared.Api.Resource.Project.ProjectCreateJM ()
 import Shared.Api.Resource.Project.ProjectDTO
+import Shared.Constant.Tenant
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.Settings.SettingsProjectsDAO
 import Shared.Database.DAO.User.UserDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
+import Shared.Database.Migration.Development.Settings.Data.Settings
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.Public
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
-import Shared.Model.Tenant.Config.WizardTenantConfig hiding (request)
+import Shared.Model.Settings.Settings
 import Shared.Model.User.RolePermission
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Model.User.User
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -39,6 +45,7 @@ list_POST_fromTemplate :: RequestContext -> SpecWith ((), Application)
 list_POST_fromTemplate requestContext =
   describe "POST /api/projects/from-template" $ do
     test_201 requestContext
+    test_201_not_member requestContext
     test_400 requestContext
     test_403 requestContext
 
@@ -87,6 +94,26 @@ test_201 requestContext =
       -- AND: Find a result in DB
       assertCountInDB findProjects requestContext 4
 
+test_201_not_member requestContext =
+  it "HTTP 201 CREATED (not a member of the template's workspace, no owner permission)" $ do
+    -- GIVEN: Prepare request
+    let reqHeaders = reqHeadersT [reqAuthHeader]
+    let reqBody = reqBodyT project1.uuid project11.name
+    -- AND: Run migrations
+    runInContextIO U_Migration.runMigration requestContext
+    runInContextIO TML_Migration.runMigration requestContext
+    runInContextIO PRJ_Migration.runMigration requestContext
+    runInContextIO (deleteWorkspaceMembership defaultWorkspaceUuid userAlbert.uuid) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let (status, _, resBody) = destructResponse response :: (Int, ResponseHeaders, ProjectDTO)
+    assertResStatus status 201
+    -- AND: Find a result in DB
+    projectInDB <- getOneFromDB (findProjectByUuid resBody.uuid) requestContext
+    runInContextIO U_Migration.runMigration requestContext
+    liftIO $ projectInDB.permissions `shouldBe` []
+
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -102,9 +129,7 @@ test_400 requestContext =
       let expDto = UserError . _ERROR_SERVICE_COMMON__FEATURE_IS_DISABLED $ "Project Template"
       let expBody = encode expDto
       -- AND: Change tenantConfig
-      (Right tcProject) <- runInContextIO getCurrentTenantConfigProject requestContext
-      let tcProjectUpdated = tcProject {projectCreation = CustomProjectCreation}
-      runInContextIO (modifyTenantConfigProject tcProjectUpdated) requestContext
+      runInContextIO (saveSettingsProjects defaultTenantUuid Nothing (settingsProjects {projectCreation = CustomProjectCreation} :: SettingsProjects)) requestContext
       -- AND: Run migrations
       runInContextIO U_Migration.runMigration requestContext
       runInContextIO TML_Migration.runMigration requestContext

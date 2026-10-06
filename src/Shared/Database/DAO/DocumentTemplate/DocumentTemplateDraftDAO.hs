@@ -36,7 +36,7 @@ findDraftsPage mQuery pageable sort =
   do
     tenantUuid <- asks (.tenantUuid')
     workspaceCondition <- tenantOrWorkspaceCondition (Just _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION) "workspace_uuid"
-    let condition = "WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ?" ++ workspaceCondition
+    let condition = "WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR id ~* ?) AND tenant_uuid = ?" ++ workspaceCondition
     let conditionParams = [regexM mQuery, regexM mQuery, U.toString tenantUuid]
     let (sizeI, pageI, skip, limit) = preparePaginationVariables pageable
     -- 2. Get total count
@@ -47,15 +47,14 @@ findDraftsPage mQuery pageable sort =
             f'
               "SELECT uuid, \
               \       name, \
-              \       organization_id, \
-              \       template_id, \
+              \       id, \
               \       version, \
               \       description, \
               \       created_at, \
               \       updated_at, \
               \       workspace_uuid \
               \FROM document_template \
-              \WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR template_id ~* ?) AND tenant_uuid = ? %s \
+              \WHERE phase = 'DraftDocumentTemplatePhase' AND (name ~* ? OR id ~* ?) AND tenant_uuid = ? %s \
               \%s OFFSET %s LIMIT %s"
               [workspaceCondition, mapSort sort, show skip, show sizeI]
     logQuery sql conditionParams
@@ -76,19 +75,19 @@ findDraftByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid), ("phase", "DraftDocumentTemplatePhase")]
 
-countDraftsGroupedByOrganizationIdAndKmId :: WizardRequestContextC s m => m Int
-countDraftsGroupedByOrganizationIdAndKmId = do
+countDraftsGroupedById :: WizardRequestContextC s m => m Int
+countDraftsGroupedById = do
   tenantUuid <- asks (.tenantUuid')
-  countDraftsGroupedByOrganizationIdAndKmIdWithTenant tenantUuid
+  countDraftsGroupedByIdWithTenant tenantUuid
 
-countDraftsGroupedByOrganizationIdAndKmIdWithTenant :: WizardRequestContextC s m => U.UUID -> m Int
-countDraftsGroupedByOrganizationIdAndKmIdWithTenant tenantUuid = do
+countDraftsGroupedByIdWithTenant :: WizardRequestContextC s m => U.UUID -> m Int
+countDraftsGroupedByIdWithTenant tenantUuid = do
   let sql =
         "SELECT COUNT(*) \
         \FROM (SELECT 1 \
         \      FROM document_template \
         \      WHERE tenant_uuid = ? AND phase = 'DraftDocumentTemplatePhase' \
-        \      GROUP BY organization_id, template_id) nested;"
+        \      GROUP BY id) nested;"
   let params = [U.toString tenantUuid]
   logQuery sql params
   let action conn = query conn sql params

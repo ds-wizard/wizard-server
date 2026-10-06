@@ -52,6 +52,7 @@ list_GET requestContext =
     test_400 requestContext
     test_401 requestContext
     test_403 requestContext
+    test_403_not_member requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -155,12 +156,6 @@ test_200_workspace requestContext = do
     (BS.pack $ "/api/documents?w=" ++ U.toString differentWorkspaceUuid)
     (Page "documents" (PageMetadata 20 0 0 0) ([] :: [DocumentDTO]))
   create_test_200_workspace
-    "HTTP 200 OK (not a member of w)"
-    requestContext
-    insertSecondWorkspaceWithoutCaller
-    (BS.pack $ "/api/documents?w=" ++ U.toString secondWorkspaceUuid)
-    (Page "documents" (PageMetadata 20 0 0 0) ([] :: [DocumentDTO]))
-  create_test_200_workspace
     "HTTP 200 OK (only the workspaces the caller is a member of)"
     requestContext
     insertSecondWorkspaceWithoutCaller
@@ -255,3 +250,6 @@ test_403 requestContext =
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+test_403_not_member requestContext =
+  createNotMemberTest requestContext (runInContextIO U_Migration.runMigration requestContext) reqMethod (BS.pack $ "/api/documents?w=" ++ U.toString secondWorkspaceUuid) reqBody "projects.edit"

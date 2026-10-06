@@ -14,16 +14,20 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Project.ProjectCreateJM ()
 import Shared.Api.Resource.Project.ProjectDTO
+import Shared.Constant.Workspace
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.User.UserDAO
+import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
+import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Localization.Messages.Public
 import Shared.Model.Error.Error
 import Shared.Model.Project.Project
 import Shared.Model.User.RolePermission
+import Shared.Model.User.User
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -38,6 +42,7 @@ list_POST_cloneUuid :: RequestContext -> SpecWith ((), Application)
 list_POST_cloneUuid requestContext =
   describe "POST /api/projects/{projectUuid}/clone" $ do
     test_201 requestContext
+    test_201_not_member requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -84,6 +89,26 @@ create_test_201 title requestContext project =
       compareProjectCloneDtos resBody expDto
       -- AND: Find a result in DB
       assertCountInDB findProjects requestContext 4
+
+test_201_not_member requestContext =
+  it "HTTP 201 CREATED (not a member of the project's workspace, no owner permission)" $ do
+    -- GIVEN: Prepare request
+    let reqUrl = reqUrlT project3.uuid
+    let reqHeaders = reqHeadersT reqAuthHeader
+    -- AND: Run migrations
+    runInContextIO U.runMigration requestContext
+    runInContextIO TML.runMigration requestContext
+    runInContextIO PRJ.runMigration requestContext
+    runInContextIO (deleteWorkspaceMembership defaultWorkspaceUuid userAlbert.uuid) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let (status, _, resBody) = destructResponse response :: (Int, ResponseHeaders, ProjectDTO)
+    assertResStatus status 201
+    -- AND: Find a result in DB
+    projectInDB <- getOneFromDB (findProjectByUuid resBody.uuid) requestContext
+    runInContextIO U.runMigration requestContext
+    liftIO $ projectInDB.permissions `shouldBe` []
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

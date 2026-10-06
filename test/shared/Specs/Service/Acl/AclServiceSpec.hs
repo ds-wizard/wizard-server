@@ -23,12 +23,16 @@ aclServiceSpec =
       (_PROJECTS_VIEW_ROLE_PERMISSION `elem` effectivePermissions user workspaceRoles True (WorkspaceScope defaultWorkspaceUuid)) `shouldBe` True
     it "the workspace role does not reach another workspace" $
       (_PROJECTS_VIEW_ROLE_PERMISSION `elem` permissionsInWorkspace user workspaceRoles True (Just secondWorkspaceUuid)) `shouldBe` False
+    it "a workspace scope without a role there keeps the organization role alone" $
+      effectivePermissions user workspaceRoles True (WorkspaceScope differentWorkspaceUuid) `shouldBe` [_PROJECTS_CREATE_ROLE_PERMISSION]
     it "without a scope every workspace role counts" $
       (_PROJECTS_VIEW_ROLE_PERMISSION `elem` effectivePermissions user workspaceRoles True NoScope) `shouldBe` True
-    it "a single-workspace tenant adds the only workspace role to the tenant scope" $
-      (_PROJECTS_VIEW_ROLE_PERMISSION `elem` effectivePermissions user workspaceRoles False TenantScope) `shouldBe` True
-    it "a single-workspace tenant adds the only workspace role to the tenant plane" $
-      (_PROJECTS_VIEW_ROLE_PERMISSION `elem` permissionsInWorkspace user workspaceRoles False Nothing) `shouldBe` True
+    it "a single-workspace tenant ignores the workspace role without a scope" $
+      effectivePermissions user workspaceRoles False NoScope `shouldBe` [_PROJECTS_CREATE_ROLE_PERMISSION]
+    it "a single-workspace tenant ignores the workspace role in its workspace" $
+      effectivePermissions user workspaceRoles False (WorkspaceScope defaultWorkspaceUuid) `shouldBe` [_PROJECTS_CREATE_ROLE_PERMISSION]
+    it "a single-workspace tenant ignores the workspace role on the tenant plane" $
+      permissionsInWorkspace user workspaceRoles False Nothing `shouldBe` [_PROJECTS_CREATE_ROLE_PERMISSION]
     it "a multi-workspace tenant keeps the tenant plane to the organization role" $
       (_PROJECTS_VIEW_ROLE_PERMISSION `elem` permissionsInWorkspace user workspaceRoles True Nothing) `shouldBe` False
     it "the organization role reaches every workspace" $

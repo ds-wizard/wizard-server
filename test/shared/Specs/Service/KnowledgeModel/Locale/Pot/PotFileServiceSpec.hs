@@ -18,7 +18,7 @@ potFileServiceSpec =
         -- WHEN:
         let pot = buildTranslationTemplate globalKmPackage km1 now
         -- THEN:
-        pot `shouldSatisfy` L.isInfixOf "\"Project-Id-Version: global:core:1.0.0\\n\""
+        pot `shouldSatisfy` L.isInfixOf "\"Project-Id-Version: global.core:1.0.0\\n\""
         pot `shouldSatisfy` L.isInfixOf "\"POT-Creation-Date: 2026-07-14 00:00+0000\\n\""
         pot `shouldSatisfy` L.isInfixOf "\"Language: en\\n\""
         pot `shouldSatisfy` L.isInfixOf "\"Plural-Forms: nplurals=2; plural=(n != 1);\\n\""

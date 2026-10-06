@@ -23,3 +23,7 @@ _ERROR_SERVICE_WORKSPACE__MULTI_WORKSPACE_TENANT = LocaleRecord "error.service.w
 _ERROR_SERVICE_WORKSPACE__SYSTEM_USER = LocaleRecord "error.service.workspace.system_user" "The membership of the system user can not be changed" []
 
 _ERROR_SERVICE_WORKSPACE__NOT_MEMBER = LocaleRecord "error.service.workspace.not_member" "The user is not a member of the workspace" []
+
+_ERROR_SERVICE_WORKSPACE__MULTI_WORKSPACE_IRREVERSIBLE = LocaleRecord "error.service.workspace.multi_workspace_irreversible" "A multi-workspace tenant can not be switched back to a single workspace" []
+
+_ERROR_SERVICE_WORKSPACE__WORKSPACE_PLANE_UNAVAILABLE = LocaleRecord "error.service.workspace.workspace_plane_unavailable" "The workspace level of roles, memberships and settings is not available in a single-workspace tenant" []

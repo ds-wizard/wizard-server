@@ -10,9 +10,6 @@ import Shared.Util.String (printTuples)
 _ERROR_API_COMMON__CANT_DESERIALIZE_OBJ =
   LocaleRecord "error.api.common.cant_deserialize_obj" "Problem in deserialization of JSON" []
 
-_ERROR_API_COMMON__UNABLE_TO_GET_ORGANIZATION =
-  LocaleRecord "error.api.common.unable_to_get_organization" "Unable to get organization from token header" []
-
 _ERROR_API_COMMON__UNABLE_TO_GET_TOKEN = LocaleRecord "error.api.common.unable_to_get_token" "Unable to get token" []
 
 _ERROR_VALIDATION__TENANT_OR_ACTIVE_PLAN_ABSENCE host = LocaleRecord "error.validation.tenant_or_active_plan_absence" "Tenant ('%s') doesn't exist or does not have any active plan" [host]

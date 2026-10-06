@@ -19,8 +19,7 @@ data DocumentTemplatePhase
 data DocumentTemplate = DocumentTemplate
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , phase :: DocumentTemplatePhase
   , metamodelVersion :: SemVer2Tuple
@@ -41,8 +40,7 @@ data DocumentTemplate = DocumentTemplate
 instance CoordinateFactory DocumentTemplate where
   createCoordinate dt =
     Coordinate
-      { organizationId = dt.organizationId
-      , entityId = dt.templateId
+      { id = dt.id
       , version = dt.version
       }
 
@@ -98,6 +96,5 @@ data DocumentTemplateAsset = DocumentTemplateAsset
 
 instance Ord DocumentTemplate where
   compare a b =
-    compare a.organizationId b.organizationId
-      <> compare a.templateId b.templateId
+    compare a.id b.id
       <> compare a.version b.version

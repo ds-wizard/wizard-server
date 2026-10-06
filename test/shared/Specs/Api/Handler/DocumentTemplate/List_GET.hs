@@ -16,7 +16,6 @@ import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.DocumentTemplate.Data.WizardDocumentTemplates
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as DT_Migration
-import Shared.Database.Migration.Development.Registry.Data.RegistryOrganizations
 import qualified Shared.Database.Migration.Development.Registry.RegistryMigration as R_Migration
 import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
@@ -77,15 +76,15 @@ test_200 requestContext = do
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 0 0 0) ([] :: [DocumentTemplateSimpleDTO]))
   create_test_200
-    "HTTP 200 OK (query 'templateId')"
+    "HTTP 200 OK (query 'id')"
     requestContext
-    "/api/document-templates?templateId=project-report"
+    "/api/document-templates?id=global.project-report"
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 1 1 0) [wizardDocumentTemplateSimpleDTO])
   create_test_200
-    "HTTP 200 OK (query 'templateId' for non-existing)"
+    "HTTP 200 OK (query 'id' for non-existing)"
     requestContext
-    "/api/document-templates?templateId=non-existing-template"
+    "/api/document-templates?id=non-existing-template"
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 0 0 0) ([] :: [DocumentTemplateSimpleDTO]))
   create_test_200
@@ -178,7 +177,7 @@ prepareDefaultWorkspaceCaller requestContext = do
 
 workspaceWizardDocumentTemplateSimpleDTO :: DocumentTemplateSimpleDTO
 workspaceWizardDocumentTemplateSimpleDTO =
-  toSimpleDTO' True (toList workspaceWizardDocumentTemplate Nothing (Just globalRegistryOrganization) ReleasedDocumentTemplatePhase)
+  toSimpleDTO' True (toList workspaceWizardDocumentTemplate Nothing ReleasedDocumentTemplatePhase)
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

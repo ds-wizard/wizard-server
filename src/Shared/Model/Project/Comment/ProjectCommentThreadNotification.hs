@@ -23,7 +23,6 @@ data ProjectCommentThreadNotification = ProjectCommentThreadNotification
   , appTitle :: Maybe String
   , logoUrl :: Maybe String
   , primaryColor :: Maybe String
-  , illustrationsColor :: Maybe String
   , supportEmail :: Maybe String
   , mailConfigUuid :: Maybe U.UUID
   }

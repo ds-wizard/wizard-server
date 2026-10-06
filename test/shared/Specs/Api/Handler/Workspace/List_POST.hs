@@ -75,7 +75,7 @@ test_201 requestContext =
     let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, Workspace)
     assertResStatus status expStatus
     assertResHeaders headers expHeaders
-    let expDto = secondWorkspace {uuid = resBody.uuid, name = reqDto.name, description = reqDto.description} :: Workspace
+    let expDto = secondWorkspace {uuid = resBody.uuid, name = reqDto.name, description = reqDto.description, primaryColor = reqDto.primaryColor} :: Workspace
     compareWorkspaceDtos resBody expDto
     -- AND: Find result in DB and compare with expectation state
     assertExistenceOfWorkspaceInDB requestContext expDto

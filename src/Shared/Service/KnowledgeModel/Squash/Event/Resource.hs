@@ -5,7 +5,7 @@ import Shared.Model.KnowledgeModel.Event.Resource.ResourceEvent
 import Shared.Service.KnowledgeModel.Squash.Event.Common
 
 instance SimpleEventSquash EditResourceCollectionEvent where
-  isSimpleEventSquashApplicable = not . isChanged resourcePageUuids
+  isSimpleEventSquashApplicable = not . isChanged (.resourcePageUuids)
   isReorderEventSquashApplicable (previousEvent, _) (newEvent, _) = previousEvent.entityUuid == newEvent.entityUuid
   isTypeChanged _ _ = False
   simpleSquashEvent mPreviousEvent (oldEvent, oldContent) (newEvent, newContent) =

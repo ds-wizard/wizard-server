@@ -12,7 +12,7 @@ instance FromRow KnowledgeModelEditorList where
   fromRow = do
     uuid <- field
     name <- field
-    kmId <- field
+    id <- field
     version <- field
     state <- field
     previousPackageUuid <- field

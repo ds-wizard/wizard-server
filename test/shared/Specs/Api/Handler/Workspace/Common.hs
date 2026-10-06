@@ -1,9 +1,12 @@
 module Specs.Api.Handler.Workspace.Common where
 
 import Control.Monad (void)
-import Control.Monad.Reader (liftIO)
+import Data.Aeson (encode)
 import Test.Hspec
+import Test.Hspec.Wai hiding (shouldRespondWith)
+import Test.Hspec.Wai.Matcher
 
+import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.Workspace
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.User.RoleDAO
@@ -14,12 +17,15 @@ import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
+import Shared.Localization.Messages.Public
+import Shared.Model.Error.Error
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Model.Workspace.Workspace
 import Shared.Service.User.RoleMapper (toRoleSimple)
 
+import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Common
 
@@ -49,6 +55,31 @@ insertSecondWorkspaceWithoutCaller requestContext = do
   runInContextIO (updateWorkspaceByUuid secondWorkspace) requestContext
   void $ runInContextIO (insertWorkspaceMembership (secondWorkspaceMembership userSystem)) requestContext
 
+insertSecondWorkspaceWithoutMember requestContext = do
+  enableMultiWorkspace requestContext
+  runInContextIO (insertWorkspace (secondWorkspace {defaultRoleUuid = Nothing} :: Workspace)) requestContext
+  runInContextIO (insertRole secondWorkspaceAdminRole) requestContext
+  runInContextIO (insertRole secondWorkspaceUserRole) requestContext
+  runInContextIO (updateWorkspaceByUuid secondWorkspace) requestContext
+  void $ runInContextIO (insertWorkspaceMembership (secondWorkspaceMembership userSystem)) requestContext
+
+-- --------------------------------
+-- TESTS
+-- --------------------------------
+createNotMemberTest requestContext prepare reqMethod reqUrl reqBody missingPerm =
+  it "HTTP 403 FORBIDDEN (not a member of w)" $ do
+    -- GIVEN: Run migrations
+    void prepare
+    insertSecondWorkspaceWithoutCaller requestContext
+    -- AND: Prepare expectation
+    let expDto = ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ missingPerm)
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl [reqAuthHeader] reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = resCtHeader : resCorsHeaders, matchStatus = 403, matchBody = bodyEquals (encode expDto)}
+    response `shouldRespondWith` responseMatcher
+
 -- --------------------------------
 -- ASSERTS
 -- --------------------------------
@@ -64,3 +95,5 @@ compareWorkspaceDtos resDto expDto = do
   liftIO $ resDto.tenantUuid `shouldBe` expDto.tenantUuid
   liftIO $ resDto.name `shouldBe` expDto.name
   liftIO $ resDto.description `shouldBe` expDto.description
+  liftIO $ resDto.logo `shouldBe` expDto.logo
+  liftIO $ resDto.primaryColor `shouldBe` expDto.primaryColor

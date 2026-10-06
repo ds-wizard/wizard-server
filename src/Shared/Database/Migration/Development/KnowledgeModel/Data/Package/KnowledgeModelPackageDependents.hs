@@ -36,7 +36,7 @@ netherlandsKmPackageV2Dependent :: LibraryDependentKnowledgeModelPackage
 netherlandsKmPackageV2Dependent =
   LibraryDependentKnowledgeModelPackage
     { uuid = netherlandsKmPackageV2.uuid
-    , pId = netherlandsKmPackageV2.organizationId ++ "." ++ netherlandsKmPackageV2.kmId
+    , pId = netherlandsKmPackageV2.id
     , name = netherlandsKmPackageV2.name
     , version = netherlandsKmPackageV2.version
     }

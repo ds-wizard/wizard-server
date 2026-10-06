@@ -7,11 +7,11 @@ import Shared.Service.KnowledgeModel.Squash.Event.Common
 instance SimpleEventSquash EditKnowledgeModelEvent where
   isSimpleEventSquashApplicable event =
     not $
-      isChanged chapterUuids event
-        || isChanged tagUuids event
-        || isChanged integrationUuids event
-        || isChanged metricUuids event
-        || isChanged phaseUuids event
+      isChanged (.chapterUuids) event
+        || isChanged (.tagUuids) event
+        || isChanged (.integrationUuids) event
+        || isChanged (.metricUuids) event
+        || isChanged (.phaseUuids) event
   isReorderEventSquashApplicable _ _ = True
   isTypeChanged _ _ = False
   simpleSquashEvent mPreviousEvent (oldEvent, oldContent) (newEvent, newContent) =

@@ -28,6 +28,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -40,6 +41,7 @@ detail_GET requestContext =
     test_200_manage requestContext
     test_401 requestContext
     test_403 requestContext
+    test_403_single_workspace requestContext
     test_404 requestContext
 
 -- ----------------------------------------------------
@@ -82,6 +84,7 @@ test_200_manage requestContext =
     -- AND: Run migrations
     runInContextIO U.runMigration requestContext
     runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userIsaac.uuid defaultWorkspaceAdminRole.uuid) requestContext
+    enableMultiWorkspace requestContext
     -- WHEN: Call API
     response <- request reqMethod reqUrl [reqIsaacAuthTokenHeader] reqBody
     -- THEN: Compare response with expectation
@@ -105,6 +108,22 @@ test_403 requestContext =
     let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "View UserGroup")
     -- AND: Run migrations
     runInContextIO U.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl [reqIsaacAuthTokenHeader] reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+
+test_403_single_workspace requestContext =
+  it "HTTP 403 FORBIDDEN (a single-workspace tenant ignores userGroups.manage on the workspace role)" $ do
+    -- GIVEN: Prepare expectation
+    let expStatus = 403
+    let expHeaders = resCtHeader : resCorsHeaders
+    let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "View UserGroup")
+    -- AND: Run migrations
+    runInContextIO U.runMigration requestContext
+    runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userIsaac.uuid defaultWorkspaceAdminRole.uuid) requestContext
     -- WHEN: Call API
     response <- request reqMethod reqUrl [reqIsaacAuthTokenHeader] reqBody
     -- THEN: Compare response with expectation

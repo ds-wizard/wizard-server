@@ -44,7 +44,7 @@ migrateEditIntegrationEventChangeRqHeaders = runBasicOp (Change "requestHeaders"
 runMigrationAnyEvent :: MigrationContext -> T.Text -> Object -> Object
 runMigrationAnyEvent ctx _ = migrateAnyEventAddCreatedAt createdAtValue
   where
-    createdAtValue = toJSON (ctxCreatedAt ctx)
+    createdAtValue = toJSON ctx.ctxCreatedAt
 
 runMigrationAnyAddEvent :: T.Text -> Object -> Object
 runMigrationAnyAddEvent eventType

@@ -7,8 +7,7 @@ import Shared.Model.Registry.RegistryTemplate
 commonWizardRegistryTemplate :: RegistryTemplate
 commonWizardRegistryTemplate =
   RegistryTemplate
-    { organizationId = wizardDocumentTemplate.organizationId
-    , templateId = wizardDocumentTemplate.templateId
+    { id = wizardDocumentTemplate.id
     , remoteVersion = wizardDocumentTemplate.version
     , createdAt = wizardDocumentTemplate.createdAt
     }

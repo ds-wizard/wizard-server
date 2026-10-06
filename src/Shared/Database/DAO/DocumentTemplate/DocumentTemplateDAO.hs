@@ -40,20 +40,20 @@ findDocumentTemplatesFiltered queryParams = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName (tenantQueryUuid tenantUuid : queryParams)
 
-findDocumentTemplatesByOrganizationIdAndKmId :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [DocumentTemplate]
-findDocumentTemplatesByOrganizationIdAndKmId organizationId templateId mWorkspaceUuid = do
+findDocumentTemplatesById :: RequestContextC s sc m => String -> Maybe U.UUID -> m [DocumentTemplate]
+findDocumentTemplatesById dtId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND %s" [entityName, workspaceVisibleCondition]
-  let params = [toField tenantUuid, toField organizationId, toField templateId, toField mWorkspaceUuid]
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND id = ? AND %s" [entityName, workspaceVisibleCondition]
+  let params = [toField tenantUuid, toField dtId, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
 
-findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m [DocumentTemplate]
-findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace organizationId templateId mWorkspaceUuid = do
+findDocumentTemplatesByIdInWorkspace :: RequestContextC s sc m => String -> Maybe U.UUID -> m [DocumentTemplate]
+findDocumentTemplatesByIdInWorkspace dtId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
-  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND %s" [entityName, workspaceExactCondition]
-  let params = [toField tenantUuid, toField organizationId, toField templateId, toField mWorkspaceUuid]
+  let sql = fromString $ f' "SELECT * FROM %s WHERE tenant_uuid = ? AND id = ? AND %s" [entityName, workspaceExactCondition]
+  let params = [toField tenantUuid, toField dtId, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params
   runDB action
@@ -81,13 +81,13 @@ findDocumentTemplateByCoordinate :: RequestContextC s sc m => Coordinate -> Mayb
 findDocumentTemplateByCoordinate coordinate mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
   action <- createFindDocumentTemplateByCoordinateAction coordinate mWorkspaceUuid
-  runOneEntityDB entityName action [tenantQueryUuid tenantUuid, ("organization_id", coordinate.organizationId), ("template_id", coordinate.entityId), ("version", coordinate.version)]
+  runOneEntityDB entityName action [tenantQueryUuid tenantUuid, ("id", coordinate.id), ("version", coordinate.version)]
 
 findDocumentTemplateByCoordinate' :: RequestContextC s sc m => Coordinate -> Maybe U.UUID -> m (Maybe DocumentTemplate)
 findDocumentTemplateByCoordinate' coordinate mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
   action <- createFindDocumentTemplateByCoordinateAction coordinate mWorkspaceUuid
-  runOneEntityDB' entityName action [tenantQueryUuid tenantUuid, ("organization_id", coordinate.organizationId), ("template_id", coordinate.entityId), ("version", coordinate.version)]
+  runOneEntityDB' entityName action [tenantQueryUuid tenantUuid, ("id", coordinate.id), ("version", coordinate.version)]
 
 createFindDocumentTemplateByCoordinateAction :: RequestContextC s sc m => Coordinate -> Maybe U.UUID -> m (Connection -> IO [DocumentTemplate])
 createFindDocumentTemplateByCoordinateAction coordinate mWorkspaceUuid = do
@@ -95,14 +95,14 @@ createFindDocumentTemplateByCoordinateAction coordinate mWorkspaceUuid = do
   let sql =
         fromString $
           f'
-            "SELECT * FROM %s WHERE tenant_uuid = ? AND organization_id = ? AND template_id = ? AND version = ? AND %s ORDER BY workspace_uuid IS NOT NULL DESC LIMIT 1"
+            "SELECT * FROM %s WHERE tenant_uuid = ? AND id = ? AND version = ? AND %s ORDER BY workspace_uuid IS NOT NULL DESC LIMIT 1"
             [entityName, workspaceVisibleCondition]
-  let params = [toField tenantUuid, toField coordinate.organizationId, toField coordinate.entityId, toField coordinate.version, toField mWorkspaceUuid]
+  let params = [toField tenantUuid, toField coordinate.id, toField coordinate.version, toField mWorkspaceUuid]
   logQuery sql params
   return (\conn -> query conn sql params)
 
-findLatestDocumentTemplateByOrganizationIdAndTemplateId :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> m DocumentTemplate
-findLatestDocumentTemplateByOrganizationIdAndTemplateId orgId templateId mWorkspaceUuid = do
+findLatestDocumentTemplateById :: RequestContextC s sc m => String -> Maybe U.UUID -> m DocumentTemplate
+findLatestDocumentTemplateById dtId mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString $
@@ -110,8 +110,7 @@ findLatestDocumentTemplateByOrganizationIdAndTemplateId orgId templateId mWorksp
             "SELECT * \
             \FROM %s \
             \WHERE tenant_uuid = ? \
-            \  AND organization_id = ? \
-            \  AND template_id = ? \
+            \  AND id = ? \
             \  AND %s \
             \ORDER BY split_part(version, '.', 1)::int DESC, \
             \        split_part(version, '.', 2)::int DESC, \
@@ -119,18 +118,18 @@ findLatestDocumentTemplateByOrganizationIdAndTemplateId orgId templateId mWorksp
             \        workspace_uuid IS NOT NULL DESC \
             \LIMIT 1"
             [entityName, workspaceVisibleCondition]
-  let params = [toField tenantUuid, toField orgId, toField templateId, toField mWorkspaceUuid]
+  let params = [toField tenantUuid, toField dtId, toField mWorkspaceUuid]
   logQuery sql params
   let action conn = query conn sql params
-  runOneEntityDB entityName action [("organization_id", orgId), ("template_id", templateId)]
+  runOneEntityDB entityName action [("id", dtId)]
 
-countDocumentTemplatesGroupedByOrganizationIdAndKmId :: RequestContextC s sc m => m Int
-countDocumentTemplatesGroupedByOrganizationIdAndKmId = do
+countDocumentTemplatesGroupedById :: RequestContextC s sc m => m Int
+countDocumentTemplatesGroupedById = do
   tenantUuid <- asks (.tenantUuid')
-  countDocumentTemplatesGroupedByOrganizationIdAndKmIdWithTenant tenantUuid
+  countDocumentTemplatesGroupedByIdWithTenant tenantUuid
 
-countDocumentTemplatesGroupedByOrganizationIdAndKmIdWithTenant :: RequestContextC s sc m => U.UUID -> m Int
-countDocumentTemplatesGroupedByOrganizationIdAndKmIdWithTenant tenantUuid = do
+countDocumentTemplatesGroupedByIdWithTenant :: RequestContextC s sc m => U.UUID -> m Int
+countDocumentTemplatesGroupedByIdWithTenant tenantUuid = do
   let sql =
         fromString $
           f'
@@ -138,7 +137,7 @@ countDocumentTemplatesGroupedByOrganizationIdAndKmIdWithTenant tenantUuid = do
             \FROM (SELECT 1 \
             \      FROM %s \
             \      WHERE tenant_uuid = ? AND (phase = 'ReleasedDocumentTemplatePhase' OR phase = 'DeprecatedDocumentTemplatePhase') \
-            \      GROUP BY organization_id, template_id) nested;"
+            \      GROUP BY id) nested;"
             [entityName]
   let params = [U.toString tenantUuid]
   logQuery sql params
@@ -158,7 +157,7 @@ updateDocumentTemplateById dt = do
   let sql =
         fromString $
           f'
-            "UPDATE %s SET uuid = ?, name = ?, organization_id = ?, template_id = ?, version = ?, metamodel_version = ?, description = ?, readme = ?, license = ?, allowed_packages = ?, created_at = ?, tenant_uuid = ?, updated_at = ?, phase = ?, non_editable = ?, language = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
+            "UPDATE %s SET uuid = ?, name = ?, id = ?, version = ?, metamodel_version = ?, description = ?, readme = ?, license = ?, allowed_packages = ?, created_at = ?, tenant_uuid = ?, updated_at = ?, phase = ?, non_editable = ?, language = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?"
             [entityName]
   let params = init (init (toRow dt)) ++ [toField dt.workspaceUuid, toField tenantUuid, toField dt.uuid]
   logQuery sql params

@@ -18,8 +18,7 @@ type List_GET =
     :> "knowledge-model-packages"
     :> QueryParam "w" U.UUID
     :> QueryParam "tenant" Bool
-    :> QueryParam "organizationId" String
-    :> QueryParam "kmId" String
+    :> QueryParam "id" String
     :> QueryParam "q" String
     :> QueryParam "outdated" Bool
     :> QueryParam "page" Int
@@ -35,14 +34,13 @@ list_GET
   -> Maybe Bool
   -> Maybe String
   -> Maybe String
-  -> Maybe String
   -> Maybe Bool
   -> Maybe Int
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page KnowledgeModelPackageSimpleDTO))
-list_GET mTokenHeader mServerUrl mW mTenant mOrganizationId mKmId mQuery mOutdated mPage mSize mSort =
+list_GET mTokenHeader mServerUrl mW mTenant mId mQuery mOutdated mPage mSize mSort =
   getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
-        =<< getPackagesPage mOrganizationId mKmId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)
+        =<< getPackagesPage mId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)

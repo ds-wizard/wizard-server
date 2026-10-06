@@ -127,7 +127,7 @@ instance HasField "workspaceRoles'" RequestContext (M.Map U.UUID RoleSimple) whe
 instance WizardRequestContextC RequestContext RequestContextM where
   runRequestContextWithRequestContext function requestContext = do
     let loggingLevel = requestContext.serverConfig.logging.level
-    eResult <- runExceptT . runLogging loggingLevel $ runReaderT (runRequestContextM function) requestContext
+    eResult <- runExceptT . runLogging loggingLevel $ runReaderT function.runRequestContextM requestContext
     case eResult of
       Right result -> return . Right $ result
       Left error ->
@@ -152,7 +152,7 @@ instance AclContext RequestContextM where
       (all (`elem` userPerms) perms)
       (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permissions (need all): " ++ show perms))
   hasPermission perm = do
-    mCurrentUser <- asks currentUser
+    mCurrentUser <- asks (.currentUser)
     case mCurrentUser of
       Nothing -> return False
       Just _ -> (perm `elem`) <$> scopePermissions
@@ -162,7 +162,7 @@ instance AclContext RequestContextM where
       (perm `elem` perms)
       (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ perm))
   hasPermissionInWorkspace perm mWorkspaceUuid = do
-    mCurrentUser <- asks currentUser
+    mCurrentUser <- asks (.currentUser)
     case mCurrentUser of
       Nothing -> return False
       Just _ -> (perm `elem`) <$> currentPermissionsInWorkspace mWorkspaceUuid
@@ -181,7 +181,7 @@ currentPermissionsInWorkspace mWorkspaceUuid = do
 
 currentUserOrForbidden :: RequestContextM UserDTO
 currentUserOrForbidden = do
-  mCurrentUser <- asks currentUser
+  mCurrentUser <- asks (.currentUser)
   case mCurrentUser of
     Nothing -> throwError . ForbiddenError $ _ERROR_SERVICE_USER__MISSING_USER
     Just user -> return user

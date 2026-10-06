@@ -2,7 +2,6 @@ module Shared.Api.Resource.DocumentTemplate.WizardDocumentTemplateSimpleSM where
 
 import Data.Swagger
 
-import RegistryPublic.Api.Resource.Organization.OrganizationSimpleSM ()
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateSM ()
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateStateSM ()

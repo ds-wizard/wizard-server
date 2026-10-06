@@ -21,13 +21,13 @@ assertExistenceOfEditorInDB requestContext kmEditor previousPackageUuid forkOfPa
 -- --------------------------------
 compareKnowledgeModelEditor resDto expDto previousPackageUuid forkOfPackageId createdBy = do
   liftIO $ resDto.name `shouldBe` expDto.name
-  liftIO $ resDto.kmId `shouldBe` expDto.kmId
+  liftIO $ resDto.id `shouldBe` expDto.id
   liftIO $ resDto.previousPackageUuid `shouldBe` previousPackageUuid
   liftIO $ resDto.createdBy `shouldBe` createdBy
 
 compareEditorDtos resDto expDto previousPackage forkOfPackageId createdBy = do
   liftIO $ resDto.name `shouldBe` expDto.name
-  liftIO $ resDto.kmId `shouldBe` expDto.kmId
+  liftIO $ resDto.id `shouldBe` expDto.id
   liftIO $ resDto.version `shouldBe` expDto.version
   liftIO $ resDto.description `shouldBe` expDto.description
   liftIO $ resDto.readme `shouldBe` expDto.readme

@@ -56,6 +56,7 @@ list_GET requestContext =
     test_400 requestContext
     test_401 requestContext
     test_403 requestContext
+    test_403_not_member requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -95,12 +96,6 @@ test_200 requestContext = do
     requestContext
     insertSecondWorkspace
     (BS.pack $ "/api/project-files?w=" ++ U.toString differentWorkspaceUuid)
-    (Page "projectFiles" (PageMetadata 20 0 0 0) ([] :: [ProjectFileList]))
-  create_test_200
-    "HTTP 200 OK (not a member of w)"
-    requestContext
-    insertSecondWorkspaceWithoutCaller
-    (BS.pack $ "/api/project-files?w=" ++ U.toString secondWorkspaceUuid)
     (Page "projectFiles" (PageMetadata 20 0 0 0) ([] :: [ProjectFileList]))
 
 create_test_200 title requestContext prepareWorkspace reqUrl expDto =
@@ -186,3 +181,6 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "projects.edit"
+
+test_403_not_member requestContext =
+  createNotMemberTest requestContext (runInContextIO U.runMigration requestContext) reqMethod (BS.pack $ "/api/project-files?w=" ++ U.toString secondWorkspaceUuid) reqBody "projects.edit"

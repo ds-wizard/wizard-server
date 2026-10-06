@@ -72,8 +72,7 @@ findDocumentsPage floored mProjectUuid mProjectName mDocumentTemplateUuid mQuery
               \       project_version.name, \
               \       doc_tml.uuid, \
               \       doc_tml.name, \
-              \       doc_tml.organization_id, \
-              \       doc_tml.template_id, \
+              \       doc_tml.id, \
               \       doc_tml.version, \
               \       dt_format.uuid, \
               \       dt_format.name, \

@@ -22,6 +22,7 @@ import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.WizardPublic
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Error.Error
 import Shared.Model.User.Role
 import Shared.Model.User.RoleList
@@ -45,6 +46,7 @@ detail_PUT requestContext =
     test_400_invalid requestContext
     test_400_admin requestContext
     test_400_workspace requestContext
+    test_400_single_workspace requestContext
     test_200_workspace_manager requestContext
     test_401 requestContext
     test_403 requestContext
@@ -129,8 +131,24 @@ test_400_workspace requestContext =
     let expBody = encode (UserError $ _ERROR_VALIDATION__USER_ROLE_ORGANIZATION_ONLY_PERMISSION _USERS_MANAGE_ROLE_PERMISSION)
     -- AND: Run migrations
     runInContextIO U_Migration.runMigration requestContext
+    enableMultiWorkspace requestContext
     -- WHEN: Call API
     response <- request reqMethod (BS.pack $ "/api/roles/" ++ U.toString defaultWorkspaceAdminRole.uuid) reqHeaders (encode (reqDto {permissions = [_USERS_MANAGE_ROLE_PERMISSION]} :: RoleChangeDTO))
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+
+test_400_single_workspace requestContext =
+  it "HTTP 400 BAD REQUEST when a workspace role is edited in a single-workspace tenant" $ do
+    -- GIVEN: Prepare expectation
+    let expStatus = 400
+    let expHeaders = resCtHeader : resCorsHeaders
+    let expBody = encode (UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_PLANE_UNAVAILABLE)
+    -- AND: Run migrations
+    runInContextIO U_Migration.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod (BS.pack $ "/api/roles/" ++ U.toString defaultWorkspaceUserRole.uuid) reqHeaders reqBody
     -- THEN: Compare response with expectation
     let responseMatcher =
           ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
@@ -142,6 +160,7 @@ test_200_workspace_manager requestContext =
     runInContextIO U_Migration.runMigration requestContext
     demoteToResearcher requestContext userAlbert
     runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userAlbert.uuid defaultWorkspaceAdminRole.uuid) requestContext
+    enableMultiWorkspace requestContext
     -- WHEN: Call API
     response <- request reqMethod (BS.pack $ "/api/roles/" ++ U.toString defaultWorkspaceUserRole.uuid) reqHeaders reqBody
     -- THEN: Compare response with expectation

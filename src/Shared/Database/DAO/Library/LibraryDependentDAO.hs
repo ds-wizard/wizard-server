@@ -31,7 +31,7 @@ findPackageDependents pkgUuids = do
       \                                FROM knowledge_model_package p \
       \                                JOIN package_tree pt ON p.previous_package_uuid = pt.uuid \
       \                                WHERE p.tenant_uuid = '${tenantUuid}') \
-      \SELECT 'PackageLibraryDependentEntity', p.uuid, p.name, concat(p.organization_id, '.', p.km_id), p.version, p.workspace_uuid, p.workspace_uuid IS NULL OR ${packageVisible} \
+      \SELECT 'PackageLibraryDependentEntity', p.uuid, p.name, p.id, p.version, p.workspace_uuid, p.workspace_uuid IS NULL OR ${packageVisible} \
       \FROM knowledge_model_package p \
       \WHERE p.uuid IN (SELECT uuid FROM package_tree) AND p.uuid NOT IN (${pkgUuids}) \
       \UNION ALL \

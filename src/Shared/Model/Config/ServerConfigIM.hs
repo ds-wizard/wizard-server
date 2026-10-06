@@ -103,6 +103,14 @@ instance FromEnv ServerConfigPersistentCommand where
       , \c -> applyStringEnvVariable "PERSISTENT_COMMAND_RETRY_LAMBDA_JOB_CRON" c.retryLambdaJob.cron (\x -> c {retryLambdaJob = c.retryLambdaJob {cron = x}} :: ServerConfigPersistentCommand)
       ]
 
+instance FromEnv ServerConfigUserEmailLink where
+  applyEnv serverConfig =
+    applyEnvVariables
+      serverConfig
+      [ \c -> applyEnvVariable "USER_EMAIL_LINK_CLEAN_ENABLED" c.clean.enabled (\x -> c {clean = c.clean {enabled = x}} :: ServerConfigUserEmailLink)
+      , \c -> applyStringEnvVariable "USER_EMAIL_LINK_CLEAN_CRON" c.clean.cron (\x -> c {clean = c.clean {cron = x}} :: ServerConfigUserEmailLink)
+      ]
+
 -- --------------------------------------------------------------------------------------------------------------
 -- --------------------------------------------------------------------------------------------------------------
 class FromEnv config where

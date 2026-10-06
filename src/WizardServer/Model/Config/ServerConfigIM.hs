@@ -53,14 +53,8 @@ instance FromEnv ServerConfigGeneral where
       , \c -> applyStringEnvVariable "GENERAL_SECRET" c.secret (\x -> c {secret = x})
       , \c -> applyRSAPrivateKeyEnvVariable "GENERAL_RSA_PRIVATE_KEY" c.rsaPrivateKey (\x -> c {rsaPrivateKey = x} :: ServerConfigGeneral)
       , \c -> applyStringEnvVariable "GENERAL_INTEGRATION_CONFIG" c.integrationConfig (\x -> c {integrationConfig = x})
-      ]
-
-instance FromEnv ServerConfigUserEmailLink where
-  applyEnv serverConfig =
-    applyEnvVariables
-      serverConfig
-      [ \c -> applyEnvVariable "USER_EMAIL_LINK_CLEAN_ENABLED" c.clean.enabled (\x -> c {clean = c.clean {enabled = x}} :: ServerConfigUserEmailLink)
-      , \c -> applyStringEnvVariable "USER_EMAIL_LINK_CLEAN_CRON" c.clean.cron (\x -> c {clean = c.clean {cron = x}} :: ServerConfigUserEmailLink)
+      , \c -> applyMaybeStringEnvVariable "GENERAL_PRIVACY_URL" c.privacyUrl (\x -> c {privacyUrl = x} :: ServerConfigGeneral)
+      , \c -> applyMaybeStringEnvVariable "GENERAL_TERMS_OF_SERVICE_URL" c.termsOfServiceUrl (\x -> c {termsOfServiceUrl = x} :: ServerConfigGeneral)
       ]
 
 instance FromEnv ServerConfigUserRegistration where

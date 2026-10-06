@@ -88,7 +88,6 @@ createUserSubmissionPropsTable = do
         \    updated_at  timestamptz NOT NULL, \
         \    CONSTRAINT user_entity_submission_prop_pk PRIMARY KEY (user_uuid, service_id), \
         \    CONSTRAINT user_entity_submission_prop_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT user_entity_submission_prop_service_id_fk FOREIGN KEY (tenant_uuid, service_id) REFERENCES config_submission_service (tenant_uuid, id) ON DELETE CASCADE, \
         \    CONSTRAINT user_entity_submission_prop_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql

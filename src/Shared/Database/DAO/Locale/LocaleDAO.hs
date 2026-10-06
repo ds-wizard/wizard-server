@@ -30,23 +30,23 @@ findLocales = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid]
 
-findLocalesByOrganizationIdAndLocaleId :: RequestContextC s sc m => String -> String -> m [Locale]
-findLocalesByOrganizationIdAndLocaleId organizationId localeId = do
+findLocalesById :: RequestContextC s sc m => String -> m [Locale]
+findLocalesById localeId = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("organization_id", organizationId), ("locale_id", localeId)]
+  createFindEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("id", localeId)]
 
 findLocaleSuggestions :: RequestContextC s sc m => Maybe String -> Pageable -> [Sort] -> m (Page LocaleSuggestion)
 findLocaleSuggestions mQuery pageable sort = do
   tenantUuid <- asks (.tenantUuid')
-  let condition = "WHERE (organization_id ~* ? OR locale_id ~* ? OR version ~* ? OR name ~* ?) AND enabled = true AND tenant_uuid = ?"
+  let condition = "WHERE (id ~* ? OR version ~* ? OR name ~* ?) AND enabled = true AND tenant_uuid = ?"
   createFindEntitiesPageableQuerySortFn
     entityName
     pageLabel
     pageable
     sort
-    "uuid, name, description, code, organization_id, locale_id, version, default_locale"
+    "uuid, name, description, code, id, version, default_locale"
     condition
-    [regexM mQuery, regexM mQuery, regexM mQuery, regexM mQuery, U.toString tenantUuid]
+    [regexM mQuery, regexM mQuery, regexM mQuery, U.toString tenantUuid]
 
 findLocaleByUuid :: RequestContextC s sc m => U.UUID -> m Locale
 findLocaleByUuid uuid = do
@@ -56,12 +56,12 @@ findLocaleByUuid uuid = do
 findLocaleByCoordinate :: RequestContextC s sc m => Coordinate -> m Locale
 findLocaleByCoordinate Coordinate {..} = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("organization_id", organizationId), ("locale_id", entityId), ("version", version)]
+  createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("id", id), ("version", version)]
 
 findLocaleByCoordinate' :: RequestContextC s sc m => Coordinate -> m (Maybe Locale)
 findLocaleByCoordinate' Coordinate {..} = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("organization_id", organizationId), ("locale_id", entityId), ("version", version)]
+  createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("id", id), ("version", version)]
 
 findLocaleByUuid' :: RequestContextC s sc m => U.UUID -> m (Maybe Locale)
 findLocaleByUuid' uuid = do
@@ -70,15 +70,15 @@ findLocaleByUuid' uuid = do
 
 findLocaleSuggestionBy :: RequestContextC s sc m => [(String, String)] -> m LocaleSuggestion
 findLocaleSuggestionBy queryParams = do
-  createFindEntityWithFieldsByFn "uuid, name, description, code, organization_id, locale_id, version, default_locale" False entityName queryParams
+  createFindEntityWithFieldsByFn "uuid, name, description, code, id, version, default_locale" False entityName queryParams
 
-countLocalesGroupedByOrganizationIdAndLocaleId :: RequestContextC s sc m => m Int
-countLocalesGroupedByOrganizationIdAndLocaleId = do
+countLocalesGroupedById :: RequestContextC s sc m => m Int
+countLocalesGroupedById = do
   tenantUuid <- asks (.tenantUuid')
-  countLocalesGroupedByOrganizationIdAndLocaleIdWithTenant tenantUuid
+  countLocalesGroupedByIdWithTenant tenantUuid
 
-countLocalesGroupedByOrganizationIdAndLocaleIdWithTenant :: RequestContextC s sc m => U.UUID -> m Int
-countLocalesGroupedByOrganizationIdAndLocaleIdWithTenant tenantUuid = do
+countLocalesGroupedByIdWithTenant :: RequestContextC s sc m => U.UUID -> m Int
+countLocalesGroupedByIdWithTenant tenantUuid = do
   let sql =
         fromString $
           f'
@@ -86,7 +86,7 @@ countLocalesGroupedByOrganizationIdAndLocaleIdWithTenant tenantUuid = do
             \FROM (SELECT 1 \
             \      FROM %s \
             \      WHERE tenant_uuid = ? \
-            \      GROUP BY organization_id, locale_id) nested;"
+            \      GROUP BY id) nested;"
             [entityName]
   let params = [U.toString tenantUuid]
   logQuery sql params
@@ -102,7 +102,7 @@ updateLocaleByUuid locale = do
   let sql =
         fromString $
           f'
-            "UPDATE %s SET uuid = ?, name = ?, description = ?, code = ?, organization_id = ?, locale_id = ?, version = ?, default_locale = ?, license = ?, readme = ?, recommended_app_version = ?, enabled = ?, tenant_uuid = ?, created_at = ?, updated_at = ? WHERE tenant_uuid = ? AND uuid = ?"
+            "UPDATE %s SET uuid = ?, name = ?, description = ?, code = ?, id = ?, version = ?, default_locale = ?, license = ?, readme = ?, recommended_app_version = ?, enabled = ?, tenant_uuid = ?, created_at = ?, updated_at = ? WHERE tenant_uuid = ? AND uuid = ?"
             [entityName]
   let params = toRow locale ++ [toField tenantUuid, toField locale.uuid]
   logQuery sql params

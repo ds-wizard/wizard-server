@@ -7,7 +7,7 @@ import GHC.Generics
 data KnowledgeModelEditor = KnowledgeModelEditor
   { uuid :: U.UUID
   , name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
   , readme :: String

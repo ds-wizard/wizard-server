@@ -10,8 +10,7 @@ import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
 data DocumentTemplateDTO = DocumentTemplateDTO
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , phase :: DocumentTemplatePhase
   , description :: String

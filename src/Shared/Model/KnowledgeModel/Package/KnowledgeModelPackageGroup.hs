@@ -3,8 +3,7 @@ module Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageGroup where
 import GHC.Generics
 
 data KnowledgeModelPackageGroup = KnowledgeModelPackageGroup
-  { organizationId :: String
-  , kmId :: String
+  { id :: String
   , versions :: String
   }
   deriving (Show, Eq, Generic)

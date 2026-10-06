@@ -7,7 +7,6 @@ import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTempl
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateLocales
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
-import Shared.Database.Migration.Development.Registry.Data.RegistryOrganizations
 import Shared.Database.Migration.Development.Registry.Data.RegistryTemplates
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateWithCoordinate
@@ -20,7 +19,6 @@ wizardDocumentTemplateSimpleDTO =
     ( toList
         wizardDocumentTemplate
         (Just commonWizardRegistryTemplate)
-        (Just globalRegistryOrganization)
         ReleasedDocumentTemplatePhase
     )
 
@@ -31,9 +29,8 @@ wizardDocumentTemplateDetailDTO =
     wizardDocumentTemplateFormats
     True
     [commonWizardRegistryTemplate]
-    [globalRegistryOrganization]
     [(wizardDocumentTemplate.uuid, wizardDocumentTemplate.version)]
-    (Just "https://registry-test.ds-wizard.org/document-templates/global:project-report:1.0.0")
+    (Just "https://registry-test.ds-wizard.org/document-templates/global.project-report:1.0.0")
     [globalKmPackage, netherlandsKmPackageV2]
     [czechWizardDocumentTemplateLocaleList]
 

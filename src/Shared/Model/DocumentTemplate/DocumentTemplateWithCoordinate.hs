@@ -6,8 +6,7 @@ import GHC.Generics
 data DocumentTemplateWithCoordinate = DocumentTemplateWithCoordinate
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   }
   deriving (Show, Eq, Generic)

@@ -10,10 +10,8 @@ import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper
 netherlandsV2KmBundle :: KnowledgeModelBundle
 netherlandsV2KmBundle =
   KnowledgeModelBundle
-    { bundleId = createCoordinate netherlandsKmPackageV2
-    , name = netherlandsKmPackageV2.name
-    , organizationId = netherlandsKmPackageV2.organizationId
-    , kmId = netherlandsKmPackageV2.kmId
+    { name = netherlandsKmPackageV2.name
+    , id = netherlandsKmPackageV2.id
     , version = netherlandsKmPackageV2.version
     , metamodelVersion = netherlandsKmPackageV2.metamodelVersion
     , packages = [globalKmBundlePackage, netherlandsKmBundlePackage, netherlandsV2KmBundlePackage]

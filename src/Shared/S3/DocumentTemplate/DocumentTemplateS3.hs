@@ -9,8 +9,8 @@ import Shared.Util.String (f')
 
 folderName = "document-templates"
 
-potFileName :: String -> String -> String -> String
-potFileName organizationId templateId version = f' "%s_%s_%s.pot" [organizationId, templateId, version]
+potFileName :: String -> String -> String
+potFileName dtId version = f' "%s_%s.pot" [dtId, version]
 
 retrievePotFile :: WizardRequestContextC s m => U.UUID -> String -> m BS.ByteString
 retrievePotFile documentTemplateUuid fileName = createGetObjectFn (f' "%s/%s/%s" [folderName, U.toString documentTemplateUuid, fileName])
