@@ -29,6 +29,7 @@ import Shared.Model.User.UserSubmissionPropList
 import Shared.S3.Document.DocumentS3
 import Shared.Service.Common
 import Shared.Service.Document.DocumentAcl
+import Shared.Service.Document.DocumentAuditLog
 import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Submission.SubmissionAcl
 import Shared.Service.Submission.SubmissionMapper
@@ -67,6 +68,7 @@ submitDocument docUuid reqDto =
             Right mLocation -> sub {state = DoneSubmissionState, location = mLocation} :: Submission
             Left error -> sub {state = ErrorSubmissionState, returnedData = Just error} :: Submission
     savedSubmission <- updateSubmissionByUuid updatedSub
+    al_submitDocument doc service savedSubmission
     currentUser <- getCurrentUser
     return $ toList savedSubmission service (Just $ toSuggestion' currentUser)
   where

@@ -9,7 +9,6 @@ import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.Plugin.PluginSettingsDTO
 import Shared.Api.Resource.Plugin.PluginSettingsJM ()
 import Shared.Model.Context.TransactionState
-import Shared.Model.Plugin.PluginChange
 import Shared.Service.Plugin.PluginSettingsService
 
 type List_PUT =
@@ -23,14 +22,13 @@ type List_PUT =
 
 list_PUT
   :: WizardHandlerC s sm r rm
-  => (PluginChange -> rm ())
-  -> Maybe String
+  => Maybe String
   -> Maybe String
   -> M.Map U.UUID PluginSettingsChangeDTO
   -> Maybe U.UUID
   -> Maybe Bool
   -> sm (Headers '[Header "x-trace-uuid" String] [PluginSettingsListDTO])
-list_PUT auditFn mTokenHeader mServerUrl reqDto mW mTenant =
+list_PUT mTokenHeader mServerUrl reqDto mW mTenant =
   getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $
-      addTraceUuidHeader =<< modifyPluginSettingsList auditFn reqDto
+      addTraceUuidHeader =<< modifyPluginSettingsList reqDto

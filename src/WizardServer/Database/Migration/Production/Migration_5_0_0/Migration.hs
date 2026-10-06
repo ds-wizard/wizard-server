@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, replace organization id by a single id, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -68,6 +68,8 @@ migrateShared dbPool = do
   dropConfigTables dbPool
   createWorkspacePluginSettings dbPool
   dropUserGroupMembershipCommands dbPool
+  renameAuditToTelemetryEvent dbPool
+  createAuditLog dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -692,6 +694,45 @@ createWorkspacePluginSettings dbPool =
 dropUserGroupMembershipCommands :: Pool Connection -> LoggingT IO ()
 dropUserGroupMembershipCommands dbPool =
   runSql dbPool "DELETE FROM persistent_command WHERE component = 'user_group_membership';"
+
+renameAuditToTelemetryEvent :: Pool Connection -> LoggingT IO ()
+renameAuditToTelemetryEvent dbPool =
+  runSql
+    dbPool
+    "ALTER TABLE audit RENAME TO telemetry_event; \
+    \ALTER TABLE telemetry_event RENAME CONSTRAINT audit_pk TO telemetry_event_pk; \
+    \ALTER TABLE telemetry_event RENAME CONSTRAINT audit_tenant_uuid_fk TO telemetry_event_tenant_uuid_fk; \
+    \ALTER TABLE telemetry_event DROP CONSTRAINT audit_created_by_fk; \
+    \ALTER TABLE telemetry_event \
+    \    ADD CONSTRAINT telemetry_event_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE SET NULL;"
+
+createAuditLog :: Pool Connection -> LoggingT IO ()
+createAuditLog dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE audit_log \
+    \( \
+    \    uuid                  uuid        NOT NULL, \
+    \    component             varchar     NOT NULL, \
+    \    action                varchar     NOT NULL, \
+    \    action_data           jsonb       NOT NULL, \
+    \    workspace_uuid        uuid, \
+    \    workspace_name        varchar, \
+    \    created_by_uuid       uuid, \
+    \    created_by_first_name varchar, \
+    \    created_by_last_name  varchar, \
+    \    created_by_email      varchar, \
+    \    created_by_image_url  varchar, \
+    \    source_type           varchar     NOT NULL, \
+    \    source_uuid           uuid, \
+    \    tenant_uuid           uuid        NOT NULL, \
+    \    created_at            timestamptz NOT NULL, \
+    \    CONSTRAINT audit_log_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT audit_log_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \); \
+    \ \
+    \CREATE INDEX audit_log_tenant_uuid_created_at_idx ON audit_log (tenant_uuid, created_at DESC); \
+    \CREATE INDEX audit_log_tenant_uuid_workspace_uuid_created_at_idx ON audit_log (tenant_uuid, workspace_uuid, created_at DESC);"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

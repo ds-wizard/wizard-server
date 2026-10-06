@@ -14,6 +14,7 @@ data ServerConfig = ServerConfig
   , aws :: ServerConfigAws
   , sentry :: ServerConfigSentry
   , userEmailLink :: ServerConfigUserEmailLink
+  , auditLog :: ServerConfigAuditLog
   , cache :: ServerConfigCache
   , document :: ServerConfigDocument
   , externalLink :: ServerConfigExternalLink

@@ -10,7 +10,6 @@ import Shared.Api.Resource.User.Group.UserGroupChangeJM ()
 import Shared.Api.Resource.User.Group.UserGroupJM ()
 import Shared.Model.Context.TransactionState
 import Shared.Model.User.UserGroup
-import Shared.Model.User.UserGroupChange
 import Shared.Service.User.Group.UserGroupService
 
 type Detail_PUT =
@@ -23,12 +22,11 @@ type Detail_PUT =
 
 detail_PUT
   :: WizardHandlerC s sm r rm
-  => (UserGroupChange -> rm ())
-  -> Maybe String
+  => Maybe String
   -> Maybe String
   -> UserGroupChangeDTO
   -> U.UUID
   -> sm (Headers '[Header "x-trace-uuid" String] UserGroup)
-detail_PUT auditFn mTokenHeader mServerUrl reqDto uuid =
+detail_PUT mTokenHeader mServerUrl reqDto uuid =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
-    runInAuthService Transactional $ addTraceUuidHeader =<< modifyUserGroup auditFn uuid reqDto
+    runInAuthService Transactional $ addTraceUuidHeader =<< modifyUserGroup uuid reqDto

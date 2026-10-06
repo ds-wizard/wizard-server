@@ -41,6 +41,7 @@ import Shared.S3.DocumentTemplate.DocumentTemplateS3
 import Shared.Service.Acl.LibraryAcl
 import Shared.Service.Document.DocumentCleanService
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
+import Shared.Service.DocumentTemplate.DocumentTemplateAuditLog
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import qualified Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMapper as DocumentTemplateLocaleMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
@@ -116,23 +117,26 @@ modifyDocumentTemplate uuid reqDto =
     tml <- findDocumentTemplateByUuid uuid
     let templateUpdated = fromChangeDTO reqDto tml
     updateDocumentTemplateById templateUpdated
+    al_modifyDocumentTemplate tml templateUpdated
     deleteTemporalDocumentsByDocumentTemplateUuid uuid
     getDocumentTemplateByUuidDto uuid
 
 getDocumentTemplateDependents :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m LibraryDependents
 getDocumentTemplateDependents uuid mAllVersions = do
   checkManagePermissionToDocumentTemplate uuid
-  dtUuids <- getDocumentTemplateUuidsToDelete uuid mAllVersions
-  toLibraryDependents <$> findDocumentTemplateDependents dtUuids
+  dts <- getDocumentTemplatesToDelete uuid mAllVersions
+  toLibraryDependents <$> findDocumentTemplateDependents (fmap (.uuid) dts)
 
 deleteDocumentTemplate :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m ()
 deleteDocumentTemplate uuid mAllVersions =
   runInTransaction $ do
     checkManagePermissionToDocumentTemplate uuid
-    dtUuids <- getDocumentTemplateUuidsToDelete uuid mAllVersions
-    dependents <- toLibraryDependents <$> findDocumentTemplateDependents dtUuids
+    dt <- findDocumentTemplateByUuid uuid
+    dts <- getDocumentTemplatesToDelete uuid mAllVersions
+    dependents <- toLibraryDependents <$> findDocumentTemplateDependents (fmap (.uuid) dts)
     checkDeleteAllowed dependents
-    traverse_ deleteDocumentTemplateWithAssets dtUuids
+    al_deleteDocumentTemplate dt mAllVersions dts dependents
+    traverse_ (deleteDocumentTemplateWithAssets . (.uuid)) dts
 
 -- --------------------------------
 -- PRIVATE
@@ -142,12 +146,12 @@ getDocumentTemplateVersions tml = do
   allTmls <- findDocumentTemplatesByIdInWorkspace tml.id tml.workspaceUuid
   return . fmap (\t -> (t.uuid, t.version)) . filter (\t -> t.phase == ReleasedDocumentTemplatePhase || t.phase == DeprecatedDocumentTemplatePhase) $ allTmls
 
-getDocumentTemplateUuidsToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [U.UUID]
-getDocumentTemplateUuidsToDelete uuid mAllVersions = do
+getDocumentTemplatesToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [DocumentTemplate]
+getDocumentTemplatesToDelete uuid mAllVersions = do
   tml <- findDocumentTemplateByUuid uuid
   case mAllVersions of
-    Just True -> fmap (.uuid) . filter (\t -> t.phase /= DraftDocumentTemplatePhase) <$> findDocumentTemplatesByIdInWorkspace tml.id tml.workspaceUuid
-    _ -> return [tml.uuid]
+    Just True -> filter (\t -> t.phase /= DraftDocumentTemplatePhase) <$> findDocumentTemplatesByIdInWorkspace tml.id tml.workspaceUuid
+    _ -> return [tml]
 
 deleteDocumentTemplateWithAssets :: WizardRequestContextC s m => U.UUID -> m ()
 deleteDocumentTemplateWithAssets uuid = do

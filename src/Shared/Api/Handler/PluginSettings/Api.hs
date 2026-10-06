@@ -9,7 +9,6 @@ import Shared.Api.Handler.PluginSettings.Detail_PUT
 import Shared.Api.Handler.PluginSettings.List_GET
 import Shared.Api.Handler.PluginSettings.List_PUT
 import Shared.Api.Handler.WizardCommon
-import Shared.Model.Plugin.PluginChange
 
 type PluginSettingsAPI =
   Tags "Plugin Settings"
@@ -23,10 +22,10 @@ type PluginSettingsAPI =
 pluginSettingsApi :: Proxy PluginSettingsAPI
 pluginSettingsApi = Proxy
 
-pluginSettingsServer :: WizardHandlerC s sm r rm => (PluginChange -> rm ()) -> ServerT PluginSettingsAPI sm
-pluginSettingsServer auditFn =
+pluginSettingsServer :: WizardHandlerC s sm r rm => ServerT PluginSettingsAPI sm
+pluginSettingsServer =
   list_GET
-    :<|> list_PUT auditFn
+    :<|> list_PUT
     :<|> detail_GET
-    :<|> detail_PUT auditFn
-    :<|> detail_DELETE auditFn
+    :<|> detail_PUT
+    :<|> detail_DELETE

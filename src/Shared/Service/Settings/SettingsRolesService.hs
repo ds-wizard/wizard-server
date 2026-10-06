@@ -19,6 +19,7 @@ import Shared.Model.Error.Error
 import Shared.Model.Settings.Settings
 import Shared.Model.User.Role
 import Shared.Model.Workspace.Workspace
+import Shared.Service.Settings.SettingsAuditLog
 import Shared.Service.Settings.SettingsService
 import Shared.Service.User.RoleAcl
 
@@ -35,7 +36,9 @@ modifySettingsRoles reqDto =
     mWorkspaceUuid <- requireSettingsScope
     checkScopedPermission _ROLES_MANAGE_ROLE_PERMISSION _ROLES_MANAGE_ROLE_PERMISSION mWorkspaceUuid
     role <- findRoleByUuid reqDto.value.defaultRoleUuid
+    old <- findSettingsRolesValue mWorkspaceUuid
     saveSettingsRolesValue mWorkspaceUuid role
+    al_updateSettings mWorkspaceUuid "roles" (rolesChanges old reqDto.value)
     return $ SettingsDTO reqDto.value Nothing Nothing
 
 findSettingsRolesValue :: WizardRequestContextC s m => Maybe U.UUID -> m SettingsRoles

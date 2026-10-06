@@ -8,7 +8,6 @@ import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.User.GroupMembership.UserGroupMembershipChangeDTO
 import Shared.Api.Resource.User.GroupMembership.UserGroupMembershipChangeJM ()
 import Shared.Model.Context.TransactionState
-import Shared.Model.User.UserGroupChange
 import Shared.Service.User.GroupMembership.UserGroupMembershipService
 
 type List_PUT =
@@ -22,12 +21,11 @@ type List_PUT =
 
 list_PUT
   :: WizardHandlerC s sm r rm
-  => (UserGroupChange -> rm ())
-  -> Maybe String
+  => Maybe String
   -> Maybe String
   -> [UserGroupMembershipChangeDTO]
   -> U.UUID
   -> sm (Headers '[Header "x-trace-uuid" String] [UserGroupMembershipChangeDTO])
-list_PUT auditFn mTokenHeader mServerUrl reqDto uuid =
+list_PUT mTokenHeader mServerUrl reqDto uuid =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
-    runInAuthService Transactional $ addTraceUuidHeader =<< modifyUserGroupMembership auditFn uuid reqDto
+    runInAuthService Transactional $ addTraceUuidHeader =<< modifyUserGroupMembership uuid reqDto

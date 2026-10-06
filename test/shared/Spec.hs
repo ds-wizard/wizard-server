@@ -17,6 +17,7 @@ import Shared.Database.Connection
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Integration.Http.Common.HttpClientFactory
 import Shared.Integration.Http.Common.ServantClient
+import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.Scope
@@ -76,6 +77,7 @@ import Specs.Integration.Http.Common.SsrfProtectionSpec
 import Specs.Model.Common.PageSpec
 import Specs.Model.KnowledgeModel.KnowledgeModelAccessorsSpec
 import Specs.Service.Acl.AclServiceSpec
+import Specs.Service.AuditLog.AuditLogServiceSpec
 import Specs.Service.Coordinate.CoordinateValidationSpec
 import Specs.Service.Document.DocumentServiceSpec
 import Specs.Service.DocumentTemplate.DocumentTemplateUtilSpec
@@ -178,6 +180,7 @@ prepareWebApp runCallback =
                 , scope = NoScope
                 , tenantMultiWorkspace = False
                 , workspaceRoles = M.empty
+                , auditLogSource = userAuditLogSource
                 }
         putStrLn "DB: start creating schema"
         buildSchema requestContext
@@ -287,6 +290,7 @@ main =
                     KM_SanitizerSpec.sanitizerSpec requestContext
                   knowledgeModelEditorServiceSpec requestContext
                 describe "Package" $ packageValidationSpec requestContext
+              auditLogServiceSpec requestContext
               persistentCommandServiceSpec requestContext
               typeHintServiceSpec requestContext
               describe "Project" $ do

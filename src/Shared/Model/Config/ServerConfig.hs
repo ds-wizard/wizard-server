@@ -91,6 +91,11 @@ data ServerConfigCronWorker = ServerConfigCronWorker
   }
   deriving (Generic, Show)
 
+data ServerConfigAuditLog = ServerConfigAuditLog
+  { eventBridgePublishingEnabled :: Bool
+  }
+  deriving (Generic, Show)
+
 data ServerConfigUserEmailLink = ServerConfigUserEmailLink
   { clean :: ServerConfigCronWorker
   }

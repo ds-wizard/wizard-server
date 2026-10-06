@@ -4,7 +4,6 @@ module Specs.Api.Handler.PluginSettings.List_PUT (
 
 import Data.Aeson (encode)
 import qualified Data.Map.Strict as M
-import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -76,7 +75,7 @@ test_200_tenant requestContext =
     -- AND: Find result in DB and compare with expectation state
     plugin <- getOneFromDB (findPluginByUuid plugin1.uuid) requestContext
     liftIO $ plugin.enabled `shouldBe` False
-    assertPluginAuditInDB requestContext "update" (M.fromList [("enabled", "False")])
+    assertNoAuditLogInDB requestContext
 
 test_200_tenant_override_allowed_ignored requestContext =
   it "HTTP 200 OK (workspaceOverrideAllowed is ignored in a single-workspace tenant)" $ do
@@ -89,7 +88,7 @@ test_200_tenant_override_allowed_ignored requestContext =
     -- AND: Find result in DB and compare with expectation state
     plugin <- getOneFromDB (findPluginByUuid plugin1.uuid) requestContext
     liftIO $ plugin.workspaceOverrideAllowed `shouldBe` True
-    assertPluginAuditInDB requestContext "update" (M.fromList [("enabled", "True")])
+    assertNoAuditLogInDB requestContext
 
 test_200_tenant_override_allowed_kept requestContext =
   it "HTTP 200 OK (workspaceOverrideAllowed omitted keeps the stored flag)" $ do
@@ -104,7 +103,7 @@ test_200_tenant_override_allowed_kept requestContext =
     -- AND: Find result in DB and compare with expectation state
     plugin <- getOneFromDB (findPluginByUuid plugin1.uuid) requestContext
     liftIO $ plugin.workspaceOverrideAllowed `shouldBe` False
-    assertPluginAuditInDB requestContext "update" (M.fromList [("enabled", "True")])
+    assertNoAuditLogInDB requestContext
 
 test_200_tenant_override_not_allowed_resets_values requestContext =
   it "HTTP 200 OK (workspaceOverrideAllowed false resets the values of every workspace and keeps enabled)" $ do
@@ -120,7 +119,7 @@ test_200_tenant_override_not_allowed_resets_values requestContext =
     -- AND: Find result in DB and compare with expectation state
     assertWorkspacePluginSettingsInDB requestContext defaultWorkspaceUuid plugin1.uuid False Nothing
     assertWorkspacePluginSettingsInDB requestContext secondWorkspaceUuid plugin1.uuid True Nothing
-    assertPluginAuditInDB requestContext "update" (M.fromList [("enabled", "True"), ("workspaceOverrideAllowed", "False")])
+    assertNoAuditLogInDB requestContext
 
 test_200_tenant_disable_keeps_workspace_rows requestContext =
   it "HTTP 200 OK (disabling and re-enabling on the organization keeps the workspace rows)" $ do
@@ -149,7 +148,7 @@ test_200_workspace requestContext =
     assertWorkspacePluginSettingsInDB requestContext defaultWorkspaceUuid plugin1.uuid False Nothing
     plugin <- getOneFromDB (findPluginByUuid plugin1.uuid) requestContext
     liftIO $ plugin.enabled `shouldBe` True
-    assertPluginAuditInDB requestContext "updateInWorkspace" (M.fromList [("workspaceUuid", U.toString defaultWorkspaceUuid), ("enabled", "False")])
+    assertNoAuditLogInDB requestContext
 
 test_200_workspace_keeps_values requestContext =
   it "HTTP 200 OK (w keeps the override when switching the plugin off)" $ do

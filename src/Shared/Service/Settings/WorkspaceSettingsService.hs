@@ -10,19 +10,20 @@ import qualified Shared.Database.DAO.Settings.SettingsSupportDAO as Support
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Settings.Settings
 import Shared.Service.Project.ProjectValidation
+import Shared.Service.Settings.SettingsAuditLog
 import Shared.Service.Settings.SettingsService
 
 dashboardAndMenuSection :: WizardRequestContextC s m => OverridableSettings m SettingsDashboardAndMenu
-dashboardAndMenuSection = OverridableSettings DashboardAndMenu.table DashboardAndMenu.childTables DashboardAndMenu.findSettingsDashboardAndMenu DashboardAndMenu.saveSettingsDashboardAndMenu (const (return ()))
+dashboardAndMenuSection = OverridableSettings "dashboardAndMenu" DashboardAndMenu.table DashboardAndMenu.childTables DashboardAndMenu.findSettingsDashboardAndMenu DashboardAndMenu.saveSettingsDashboardAndMenu (const (return ())) dashboardAndMenuChanges
 
 projectsSection :: WizardRequestContextC s m => OverridableSettings m SettingsProjects
-projectsSection = OverridableSettings Projects.table Projects.childTables Projects.findSettingsProjects Projects.saveSettingsProjects (\settings -> validateProjectTags settings.projectTagging.tags)
+projectsSection = OverridableSettings "projects" Projects.table Projects.childTables Projects.findSettingsProjects Projects.saveSettingsProjects (\settings -> validateProjectTags settings.projectTagging.tags) projectsChanges
 
 supportSection :: WizardRequestContextC s m => OverridableSettings m SettingsSupport
-supportSection = OverridableSettings Support.table Support.childTables Support.findSettingsSupport Support.saveSettingsSupport (const (return ()))
+supportSection = OverridableSettings "support" Support.table Support.childTables Support.findSettingsSupport Support.saveSettingsSupport (const (return ())) supportChanges
 
 submissionSection :: WizardRequestContextC s m => OverridableSettings m SettingsSubmission
-submissionSection = OverridableSettings Submission.table Submission.childTables Submission.findSettingsSubmission Submission.saveSettingsSubmission (const (return ()))
+submissionSection = OverridableSettings "submission" Submission.table Submission.childTables Submission.findSettingsSubmission Submission.saveSettingsSubmission (const (return ())) submissionChanges
 
 getEffectiveSettingsDashboardAndMenu :: WizardRequestContextC s m => Maybe U.UUID -> m SettingsDashboardAndMenu
 getEffectiveSettingsDashboardAndMenu = getEffectiveSettings dashboardAndMenuSection

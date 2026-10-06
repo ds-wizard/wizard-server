@@ -9,6 +9,8 @@ import qualified Data.Text as T
 import Data.Typeable
 import GHC.Generics
 import Servant (Accept (..), MimeRender (..), MimeUnrender (..), OctetStream (..))
+import Text.Blaze.Html (ToMarkup (..))
+import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 data ApplicationJavascript
   deriving (Typeable)
@@ -29,6 +31,16 @@ newtype Javascript
 
 instance ToSchema Javascript where
   declareNamedSchema _ = return $ NamedSchema (Just "Javascript") binarySchema
+
+-- ------------------------------------------------------------------------
+data HTML
+  deriving (Typeable)
+
+instance Accept HTML where
+  contentTypes _ = "text/html" NE.:| ["text/html; charset=utf-8", "text/html;charset=utf-8"]
+
+instance ToMarkup a => MimeRender HTML a where
+  mimeRender _ = renderHtml . toMarkup
 
 -- ------------------------------------------------------------------------
 data JSONPlain

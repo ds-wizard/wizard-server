@@ -23,6 +23,7 @@ import Shared.Model.Project.Project
 import Shared.S3.Project.ProjectFileS3
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Project.File.ProjectFileAcl
+import Shared.Service.Project.File.ProjectFileAuditLog
 import Shared.Service.Project.File.ProjectFileMapper
 import Shared.Service.Project.File.ProjectFileValidation
 import Shared.Service.Project.ProjectAcl
@@ -54,6 +55,7 @@ createProjectFile projectUuid questionUuid reqDto =
     insertProjectFile projectFile
     putFile projectUuid uuid reqDto.contentType reqDto.content
     addFile projectUuid (toSimple projectFile)
+    al_uploadProjectFile project projectFile
     return $ toList projectFile project mCurrentUser
 
 cloneProjectFiles :: WizardRequestContextC s m => U.UUID -> U.UUID -> m [(ProjectFile, ProjectFile)]
@@ -86,6 +88,8 @@ deleteProjectFile :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteProjectFile projectUuid fileUuid = do
   runInTransaction $ do
     checkEditPermissionToFile projectUuid
-    _ <- findProjectFileByProjectUuidAndUuid projectUuid fileUuid
+    project <- findProjectByUuid projectUuid
+    projectFile <- findProjectFileByProjectUuidAndUuid projectUuid fileUuid
     void $ deleteProjectFileByUuid fileUuid
+    al_deleteProjectFile project projectFile
     void $ deleteProjectCacheByProjectUuid projectUuid

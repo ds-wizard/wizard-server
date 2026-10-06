@@ -9,6 +9,7 @@ import Network.HTTP.Client (Manager)
 import Servant.Client (ClientEnv)
 
 import Shared.Api.Resource.User.UserDTO
+import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContext
@@ -26,6 +27,8 @@ class
   , HasField "scope'" context Scope
   , HasField "tenantMultiWorkspace'" context Bool
   , HasField "workspaceRoles'" context (M.Map U.UUID RoleSimple)
+  , HasField "auditLogEnabled'" context Bool
+  , HasField "auditLogSource'" context AuditLogSource
   ) =>
   WizardRequestContextType context
   where
@@ -33,6 +36,7 @@ class
   setCurrentUser :: Maybe UserDTO -> context -> context
   setTraceUuid :: U.UUID -> context -> context
   setDbConnection :: Maybe Connection -> context -> context
+  setAuditLogSource :: AuditLogSource -> context -> context
 
 class (RequestContextC context ServerConfig m, WizardRequestContextType context) => WizardRequestContextC context m | m -> context where
   runRequestContextWithRequestContext :: m a -> context -> IO (Either String a)

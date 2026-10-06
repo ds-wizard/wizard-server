@@ -26,9 +26,9 @@ import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.Event.ProjectEventMapper
 import Shared.Service.Project.Migration.Migrator.Sanitizer
-import Shared.Service.Project.Migration.ProjectMigrationAudit
 import Shared.Service.Project.Migration.ProjectMigrationMapper
 import Shared.Service.Project.ProjectAcl
+import Shared.Service.Project.ProjectAuditLog
 import Shared.Service.Project.ProjectService
 import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
@@ -59,8 +59,8 @@ migrateProject projectUuid reqDto =
             }
             :: Project
     updateProjectByUuid updatedProject
+    al_migrateProject project newPkg
     insertProjectEvents (fmap (toEvent project.uuid project.tenantUuid) deltaEvents ++ phaseEvents)
-    auditProjectMigration reqDto project
     logOutOnlineUsersWhenProjectDramaticallyChanged project.uuid
     getProjectDetailQuestionnaireByUuid project.uuid
 

@@ -24,13 +24,13 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.User.UserGroup
-import Shared.Model.User.UserGroupChange
 import Shared.Model.User.UserGroupList
 import Shared.Model.User.UserGroupMembership
 import Shared.Model.User.UserGroupSuggestion
 import Shared.Model.User.UserWithMembership
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.User.Group.UserGroupAcl
+import Shared.Service.User.Group.UserGroupAuditLog
 import Shared.Service.User.Group.UserGroupMapper
 import Shared.Service.User.GroupMembership.UserGroupMembershipService
 import Shared.Service.Workspace.WorkspaceScopeService
@@ -49,8 +49,8 @@ getUserGroupByUuid uuid = do
   checkViewPermission userGroup users
   return $ toDetailDTO userGroup users
 
-createUserGroup :: WizardRequestContextC s m => (UserGroupChange -> m ()) -> UserGroupChangeDTO -> m UserGroup
-createUserGroup auditFn reqDto =
+createUserGroup :: WizardRequestContextC s m => UserGroupChangeDTO -> m UserGroup
+createUserGroup reqDto =
   runInTransaction $ do
     workspaceUuid <- requireWorkspaceScope
     checkCreatePermission workspaceUuid
@@ -62,22 +62,22 @@ createUserGroup auditFn reqDto =
     currentUser <- getCurrentUser
     isMember <- isWorkspaceMember workspaceUuid currentUser.uuid
     when isMember (createDefaultOwnerMembership uuid)
-    auditFn (UserGroupCreated userGroup)
+    al_createUserGroup userGroup
     return userGroup
 
-modifyUserGroup :: WizardRequestContextC s m => (UserGroupChange -> m ()) -> U.UUID -> UserGroupChangeDTO -> m UserGroup
-modifyUserGroup auditFn uuid reqDto =
+modifyUserGroup :: WizardRequestContextC s m => U.UUID -> UserGroupChangeDTO -> m UserGroup
+modifyUserGroup uuid reqDto =
   runInTransaction $ do
     userGroup <- findUserGroupByUuid uuid
     checkEditPermission userGroup
     now <- liftIO getCurrentTime
     let updatedUserGroup = fromChangeDTO userGroup reqDto now
     updateUserGroupByUuid updatedUserGroup
-    auditFn (UserGroupUpdated userGroup updatedUserGroup)
+    al_updateUserGroup userGroup updatedUserGroup
     return updatedUserGroup
 
-deleteUserGroup :: WizardRequestContextC s m => (UserGroupChange -> m ()) -> U.UUID -> m ()
-deleteUserGroup auditFn uuid =
+deleteUserGroup :: WizardRequestContextC s m => U.UUID -> m ()
+deleteUserGroup uuid =
   runInTransaction $ do
     userGroup <- findUserGroupByUuid uuid
     checkEditPermission userGroup
@@ -87,7 +87,7 @@ deleteUserGroup auditFn uuid =
     deleteProjectPermGroupByUserGroupUuid uuid
     deleteUserGroupMembershipsByUserGroupUuid uuid
     deleteUserGroupByUuid uuid
-    auditFn (UserGroupDeleted userGroup)
+    al_deleteUserGroup userGroup
     removeUserGroupFromUsers uuid (fmap (.userUuid) memberships)
     traverse_ (updatePermsWithoutUserGroup uuid) projects
 

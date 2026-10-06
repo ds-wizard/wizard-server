@@ -21,10 +21,10 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.User.UserGroup
-import Shared.Model.User.UserGroupChange
 import Shared.Model.User.UserGroupMembership
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.User.Group.UserGroupAcl
+import Shared.Service.User.Group.UserGroupAuditLog
 import Shared.Service.User.GroupMembership.UserGroupMembershipMapper
 import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
@@ -36,8 +36,8 @@ createDefaultOwnerMembership userGroupUuid = do
   now <- liftIO getCurrentTime
   void $ insertUserGroupMembership (fromDefaultOwner userGroupUuid user tenantUuid now)
 
-modifyUserGroupMembership :: WizardRequestContextC s m => (UserGroupChange -> m ()) -> U.UUID -> [UserGroupMembershipChangeDTO] -> m [UserGroupMembershipChangeDTO]
-modifyUserGroupMembership auditFn userGroupUuid members =
+modifyUserGroupMembership :: WizardRequestContextC s m => U.UUID -> [UserGroupMembershipChangeDTO] -> m [UserGroupMembershipChangeDTO]
+modifyUserGroupMembership userGroupUuid members =
   runInTransaction $ do
     checkDuplicateMembers members
     userGroup <- findUserGroupByUuid userGroupUuid
@@ -50,7 +50,7 @@ modifyUserGroupMembership auditFn userGroupUuid members =
     newMembers <- findUsersByUserGroupUuid userGroupUuid
     now <- liftIO getCurrentTime
     updateUserGroupByUuid $ userGroup {updatedAt = now}
-    auditFn (UserGroupMembersUpdated userGroup oldMembers newMembers)
+    al_updateMembers userGroup oldMembers newMembers
     unless (null userUuidsToDelete) (removeUserGroupMembersFromOnlineUsers userGroupUuid userUuidsToDelete)
     return members
 

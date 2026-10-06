@@ -12,6 +12,7 @@ import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Model.Context.Scope
 import Shared.Model.Context.TransactionState
 import Shared.Model.Context.WizardRequestContext
+import Shared.Service.AuditLog.AuditLogMapper (toAuditLogSource)
 import Shared.Service.User.WizardUserMapper
 import Shared.Util.Logger
 import Shared.Util.Uuid
@@ -62,6 +63,7 @@ requestContextFromServerContext tenantUuid mUser transactionState serverContext 
           , scope = NoScope
           , tenantMultiWorkspace = False
           , workspaceRoles = M.empty
+          , auditLogSource = toAuditLogSource mUser
           }
   case transactionState of
     Transactional -> do

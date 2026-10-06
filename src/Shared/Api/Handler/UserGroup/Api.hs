@@ -11,7 +11,6 @@ import Shared.Api.Handler.UserGroup.List_POST
 import Shared.Api.Handler.UserGroup.List_Suggestions_GET
 import Shared.Api.Handler.UserGroup.Membership.Api
 import Shared.Api.Handler.WizardCommon
-import Shared.Model.User.UserGroupChange
 
 type UserGroupAPI =
   Tags "User Group"
@@ -27,12 +26,12 @@ type UserGroupAPI =
 userGroupApi :: Proxy UserGroupAPI
 userGroupApi = Proxy
 
-userGroupServer :: WizardHandlerC s sm r rm => (UserGroupChange -> rm ()) -> ServerT UserGroupAPI sm
-userGroupServer auditFn =
+userGroupServer :: WizardHandlerC s sm r rm => ServerT UserGroupAPI sm
+userGroupServer =
   list_GET
-    :<|> list_POST auditFn
+    :<|> list_POST
     :<|> list_suggestions_GET
     :<|> detail_GET
-    :<|> detail_PUT auditFn
-    :<|> detail_DELETE auditFn
-    :<|> userGroupMembershipServer auditFn
+    :<|> detail_PUT
+    :<|> detail_DELETE
+    :<|> userGroupMembershipServer

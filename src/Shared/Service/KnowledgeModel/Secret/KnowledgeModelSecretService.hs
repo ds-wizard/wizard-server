@@ -11,6 +11,7 @@ import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
+import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretAuditLog
 import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretMapper
 import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Uuid
@@ -30,6 +31,7 @@ createKnowledgeModelSecret reqDto =
     tenantUuid <- asks (.tenantUuid')
     let kmSecret = fromCreateDTO reqDto uuid tenantUuid workspaceUuid now
     insertKnowledgeModelSecret kmSecret
+    al_createKnowledgeModelSecret kmSecret
     return kmSecret
 
 modifyKnowledgeModelSecret :: WizardRequestContextC s m => U.UUID -> KnowledgeModelSecretChangeDTO -> m KnowledgeModelSecret
@@ -42,6 +44,7 @@ modifyKnowledgeModelSecret uuid reqDto =
     tenantUuid <- asks (.tenantUuid')
     let kmSecretUpdated = fromChangeDTO kmSecret reqDto now
     updateKnowledgeModelSecretByUuid kmSecretUpdated
+    al_updateKnowledgeModelSecret kmSecret kmSecretUpdated
     return kmSecretUpdated
 
 deleteKnowledgeModelSecret :: WizardRequestContextC s m => U.UUID -> m ()
@@ -50,3 +53,4 @@ deleteKnowledgeModelSecret uuid = do
   kmSecret <- findKnowledgeModelSecretByUuid uuid
   checkPermissionInWorkspace _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION kmSecret.workspaceUuid
   void $ deleteKnowledgeModelSecretByUuid uuid
+  al_deleteKnowledgeModelSecret kmSecret

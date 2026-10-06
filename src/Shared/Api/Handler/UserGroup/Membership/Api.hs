@@ -5,7 +5,6 @@ import Servant.Swagger.Tags
 
 import Shared.Api.Handler.UserGroup.Membership.List_PUT
 import Shared.Api.Handler.WizardCommon
-import Shared.Model.User.UserGroupChange
 
 type UserGroupMembershipAPI =
   Tags "User Group Membership"
@@ -14,5 +13,5 @@ type UserGroupMembershipAPI =
 userGroupMembershipApi :: Proxy UserGroupMembershipAPI
 userGroupMembershipApi = Proxy
 
-userGroupMembershipServer :: WizardHandlerC s sm r rm => (UserGroupChange -> rm ()) -> ServerT UserGroupMembershipAPI sm
+userGroupMembershipServer :: WizardHandlerC s sm r rm => ServerT UserGroupMembershipAPI sm
 userGroupMembershipServer = list_PUT

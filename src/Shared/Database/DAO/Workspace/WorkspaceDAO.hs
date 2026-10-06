@@ -67,6 +67,22 @@ findWorkspaceUuidsForUpdate = do
   let action conn = query conn sql params
   fmap (fmap fromOnly) (runDB action)
 
+countWorkspaceDependents :: RequestContextC s sc m => U.UUID -> m (Int, Int, Int)
+countWorkspaceDependents uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql =
+        fromString
+          "SELECT (SELECT COUNT(*) FROM document WHERE tenant_uuid = ? AND workspace_uuid = ?), \
+          \       (SELECT COUNT(*) FROM document_template WHERE tenant_uuid = ? AND workspace_uuid = ? AND phase = 'DraftDocumentTemplatePhase'), \
+          \       (SELECT COUNT(*) FROM user_group WHERE tenant_uuid = ? AND workspace_uuid = ?)"
+  let params = concat (replicate 3 [toField tenantUuid, toField uuid])
+  logQuery sql params
+  let action conn = query conn sql params
+  result <- runDB action
+  case result of
+    [counts] -> return counts
+    _ -> return (0, 0, 0)
+
 insertWorkspace :: RequestContextC s sc m => Workspace -> m Int64
 insertWorkspace = createInsertFn entityName
 

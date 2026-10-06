@@ -31,6 +31,7 @@ import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Project.Comment.ProjectCommentService
 import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.ProjectAcl
+import Shared.Service.Project.ProjectAuditLog
 import Shared.Service.Project.ProjectMapper
 import Shared.Service.Project.Version.ProjectVersionMapper
 import Shared.Service.Project.Version.ProjectVersionValidation
@@ -56,6 +57,7 @@ createVersion projectUuid reqDto =
     now <- liftIO getCurrentTime
     let version = fromVersionChangeDTO reqDto uuid projectUuid tenantUuid currentUser.uuid now
     insertProjectVersion version
+    al_createProjectVersion project version
     return $ toVersionList version (Just currentUser)
 
 cloneProjectVersions :: WizardRequestContextC s m => U.UUID -> U.UUID -> [(U.UUID, ProjectEventList)] -> m [(ProjectVersion, ProjectVersion)]
@@ -85,6 +87,7 @@ modifyVersion projectUuid versionUuid reqDto =
     version <- findProjectVersionByProjectUuidAndUuid projectUuid versionUuid
     let updatedVersion = fromVersionChangeDTO' version reqDto now
     updateProjectVersionByUuid updatedVersion
+    al_updateProjectVersion project version updatedVersion
     createdBy <-
       case version.createdBy of
         Just vCreatedBy -> do
@@ -98,8 +101,9 @@ deleteVersion projectUuid vUuid =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
-    _ <- findProjectVersionByProjectUuidAndUuid projectUuid vUuid
+    version <- findProjectVersionByProjectUuidAndUuid projectUuid vUuid
     void $ deleteProjectVersionByUuid vUuid
+    al_deleteProjectVersion project version
     void $ deleteProjectCacheByProjectUuid projectUuid
 
 revertToEvent :: WizardRequestContextC s m => U.UUID -> ProjectVersionRevertDTO -> Bool -> m ProjectContentDTO
@@ -124,6 +128,7 @@ revertToEvent projectUuid reqDto shouldSave =
           event <- findProjectEventByUuid reqDto.eventUuid
           deleteProjectFilesNewerThen projectUuid (getCreatedAt event)
           void $ updateProjectUpdatedAtByUuid projectUuid
+          al_revertProject project reqDto.eventUuid (getCreatedAt event)
       )
     let projectContent = compileProjectEvents updatedEvents
     versionDto <-

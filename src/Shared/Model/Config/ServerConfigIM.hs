@@ -103,6 +103,13 @@ instance FromEnv ServerConfigPersistentCommand where
       , \c -> applyStringEnvVariable "PERSISTENT_COMMAND_RETRY_LAMBDA_JOB_CRON" c.retryLambdaJob.cron (\x -> c {retryLambdaJob = c.retryLambdaJob {cron = x}} :: ServerConfigPersistentCommand)
       ]
 
+instance FromEnv ServerConfigAuditLog where
+  applyEnv serverConfig =
+    applyEnvVariables
+      serverConfig
+      [ \c -> applyEnvVariable "EVENT_BRIDGE_PUBLISHING_ENABLED" c.eventBridgePublishingEnabled (\x -> c {eventBridgePublishingEnabled = x} :: ServerConfigAuditLog)
+      ]
+
 instance FromEnv ServerConfigUserEmailLink where
   applyEnv serverConfig =
     applyEnvVariables

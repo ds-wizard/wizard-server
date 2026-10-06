@@ -20,7 +20,7 @@ import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
-import qualified Shared.Database.Migration.Development.Audit.AuditSchemaMigration as Audit
+import qualified Shared.Database.Migration.Development.AuditLog.AuditLogSchemaMigration as AuditLog
 import qualified Shared.Database.Migration.Development.Common.CommonSchemaMigration as Common
 import qualified Shared.Database.Migration.Development.Component.ComponentSchemaMigration as Component
 import qualified Shared.Database.Migration.Development.Document.DocumentSchemaMigration as Document
@@ -48,6 +48,7 @@ import qualified Shared.Database.Migration.Development.Registry.RegistrySchemaMi
 import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Settings.SettingsMigration
 import qualified Shared.Database.Migration.Development.Submission.SubmissionSchemaMigration as Submission
+import qualified Shared.Database.Migration.Development.Telemetry.TelemetryEventSchemaMigration as TelemetryEvent
 import qualified Shared.Database.Migration.Development.TemporaryFile.TemporaryFileSchemaMigration as TemporaryFile
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenantLimitBundles
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
@@ -87,7 +88,8 @@ buildSchema requestContext = do
   runInContext ExternalLink.dropTables requestContext
   runInContext Component.dropTables requestContext
   runInContext Registry.dropTables requestContext
-  runInContext Audit.dropTables requestContext
+  runInContext AuditLog.dropTables requestContext
+  runInContext TelemetryEvent.dropTables requestContext
   runInContext Prefab.dropTables requestContext
   runInContext PersistentCommand.dropTables requestContext
   runInContext Submission.dropTables requestContext
@@ -146,7 +148,8 @@ buildSchema requestContext = do
   runInContext Submission.createTables requestContext
   runInContext PersistentCommand.createTables requestContext
   runInContext Prefab.createTables requestContext
-  runInContext Audit.createTables requestContext
+  runInContext TelemetryEvent.createTables requestContext
+  runInContext AuditLog.createTables requestContext
   runInContext Registry.createTables requestContext
   runInContext Component.createTables requestContext
   runInContext ExternalLink.createTables requestContext
@@ -221,7 +224,8 @@ deleteAllEntitiesSql =
     [ "external_link_usage"
     , "registry_knowledge_model_package"
     , "registry_document_template"
-    , "audit"
+    , "audit_log"
+    , "telemetry_event"
     , "prefab"
     , "persistent_command"
     , "submission"

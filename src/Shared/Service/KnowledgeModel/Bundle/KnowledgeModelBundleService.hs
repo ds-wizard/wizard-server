@@ -41,11 +41,12 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageEvent
 import Shared.Model.Localization.LocaleRecord
 import Shared.Service.Acl.LibraryAcl
+import Shared.Service.AuditLog.AuditLogService (whenAuditLogEnabled)
 import Shared.Service.Coordinate.CoordinateValidation
-import Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleAudit
 import Shared.Service.KnowledgeModel.KnowledgeModelValidation
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAuditLog
 import qualified Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageMapper as KnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation (
@@ -63,6 +64,7 @@ getTemporaryFileWithBundle :: WizardRequestContextC s m => U.UUID -> m Temporary
 getTemporaryFileWithBundle uuid =
   runInTransaction $ do
     bundle <- exportBundle uuid
+    whenAuditLogEnabled (al_exportKnowledgeModel =<< findPackageByUuid uuid)
     mCurrentUserUuid <- getCurrentUserUuid
     url <- createTemporaryFile (f' "%s.km" [show . createCoordinate $ bundle]) "application/octet-stream" mCurrentUserUuid (encode bundle)
     return $ TemporaryFileMapper.toDTO url "application/octet-stream"
@@ -85,7 +87,6 @@ exportBundle uuid =
                 , metamodelVersion = knowledgeModelMetamodelVersion
                 , packages = packages
                 }
-        auditKnowledgeModelBundleExport (show (createCoordinate bundle))
         return bundle
       Nothing -> throwError . UserError $ _ERROR_SERVICE_PB__PULL_NON_EXISTING_PKG (show uuid)
 
@@ -112,10 +113,9 @@ importAndConvertBundle contentS fromRegistry =
         encodedPb <- migrateKnowledgeModelBundle content
         case eitherDecode . encode $ encodedPb of
           Right pb -> do
-            if fromRegistry
-              then auditKnowledgeModelBundlePullFromRegistry (show (createCoordinate pb))
-              else auditKnowledgeModelBundleImportFromFile (show (createCoordinate pb))
-            importBundle pb workspaceUuid
+            pkg <- importBundle pb workspaceUuid
+            al_importKnowledgeModel fromRegistry pkg
+            return pkg
           Left error -> do
             logWarnI _CMP_SERVICE ("Could not deserialize migrated Knowledge Model Bundle content (" ++ show error ++ ")")
             throwError . UserError $ _ERROR_API_COMMON__CANT_DESERIALIZE_OBJ
