@@ -15,8 +15,8 @@ permissionMappingSpec =
     it "renamePermissionsSql splits the old settings and users permissions" $ do
       renamePermissionsSql "c" `shouldContain` "ARRAY['organizationSettings.manage', 'settings.manage', 'roles.manage']"
       renamePermissionsSql "c" `shouldContain` "ARRAY['users.manage', 'members.manage', 'userGroups.manage']"
-    it "renamePermissionsSql grants projects.create to everyone" $
-      renamePermissionsSql "c" `shouldContain` "'projects.create'"
+    it "renamePermissionsSql grants projects.create and userGroups.create to everyone" $
+      renamePermissionsSql "c" `shouldContain` "ARRAY['projects.create', 'userGroups.create']"
     it "renamePermissionsSql produces known permissions only" $ do
       newPermissions (renamePermissionsSql "c") `shouldSatisfy` (not . null)
       filter (`notElem` knownPermissions) (newPermissions (renamePermissionsSql "c")) `shouldBe` []

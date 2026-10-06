@@ -17,16 +17,9 @@ import Shared.Model.User.RolePermission
 defaultTenantModules :: [TenantModule]
 defaultTenantModules =
   [ defaultTenantModule {position = 0, moduleKey = "wizard", title = "Wizard", url = "http://localhost:8080"}
-  , defaultTenantModule {position = 1, moduleKey = "admin", title = "Administration", url = "http://localhost:8080/admin"}
+  , defaultTenantModule {position = 1, moduleKey = "admin", title = "Administration", url = "http://localhost:8080"}
   , defaultTenantModule
       { position = 2
-      , moduleKey = "integrationHub"
-      , title = "Integration Hub"
-      , url = "http://localhost:8080/integration-hub"
-      , requiredPermission = Just _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
-      }
-  , defaultTenantModule
-      { position = 3
       , moduleKey = "analytics"
       , title = "Analytics"
       , url = "http://localhost:8080/analytics"

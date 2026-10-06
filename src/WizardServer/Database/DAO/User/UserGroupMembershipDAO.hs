@@ -5,7 +5,6 @@ import qualified Data.UUID as U
 import Shared.Database.DAO.Common
 import Shared.Database.Mapping.Common ()
 import Shared.Model.Context.WizardRequestContext
-import WizardServer.Database.Mapping.User.UserGroupSuggestion ()
 
 entityName = "user_group_membership"
 

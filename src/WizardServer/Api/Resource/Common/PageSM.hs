@@ -27,6 +27,8 @@ import Shared.Api.Resource.Project.ProjectSM ()
 import Shared.Api.Resource.Project.ProjectSuggestionSM ()
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.WizardTenantSM ()
+import Shared.Api.Resource.User.Group.UserGroupListSM ()
+import Shared.Api.Resource.User.Group.UserGroupSuggestionSM ()
 import Shared.Api.Resource.User.RoleListJM ()
 import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserSM ()
@@ -65,6 +67,8 @@ import Shared.Model.Project.File.ProjectFileList
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectSuggestion
 import Shared.Model.User.RoleList
+import Shared.Model.User.UserGroupList
+import Shared.Model.User.UserGroupSuggestion
 import Shared.Model.User.UserSuggestion
 import Shared.Model.Workspace.Workspace
 import Shared.Model.Workspace.WorkspaceMember
@@ -74,6 +78,7 @@ import qualified Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPacka
 import Shared.Service.Project.Event.ProjectEventMapper
 import qualified Shared.Service.Project.ProjectMapper as PRJ_Mapper
 import qualified Shared.Service.Tenant.TenantMapper as TNT_Mapper
+import qualified Shared.Service.User.Group.UserGroupMapper as UG_Mapper
 import Shared.Service.User.RoleMapper (toRoleSimple)
 import qualified Shared.Service.User.RoleMapper as R_Mapper
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
@@ -81,11 +86,8 @@ import qualified Shared.Service.Workspace.WorkspaceMapper as W_Mapper
 import Shared.Util.Swagger
 import WizardServer.Api.Resource.Locale.LocaleDTO
 import WizardServer.Api.Resource.Locale.LocaleSM ()
-import WizardServer.Api.Resource.User.Group.UserGroupSuggestionSM ()
 import WizardServer.Api.Resource.User.RoleListSM ()
 import WizardServer.Database.Migration.Development.Locale.Data.Locales
-import WizardServer.Model.User.UserGroupSuggestion
-import qualified WizardServer.Service.User.Group.UserGroupMapper as UG_Mapper
 
 instance ToSchema (Page Workspace) where
   declareNamedSchema =
@@ -111,6 +113,10 @@ instance ToSchema (Page UserSuggestion) where
     toSwaggerWithDtoName
       "Page UserSuggestion"
       (Page "users" pageMetadata [U_Mapper.toSuggestion . U_Mapper.toSimple $ userAlbert])
+
+instance ToSchema (Page UserGroupList) where
+  declareNamedSchema =
+    toSwaggerWithDtoName "Page UserGroupList" (Page "userGroups" pageMetadata [UG_Mapper.toList bioGroup True True])
 
 instance ToSchema (Page UserGroupSuggestion) where
   declareNamedSchema =

@@ -8,19 +8,91 @@ import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 import GHC.Int
 
+import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.WizardCommon
 import Shared.Database.Mapping.User.UserGroup ()
+import Shared.Database.Mapping.User.UserGroupList ()
+import Shared.Database.Mapping.User.UserGroupSuggestion ()
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
+import Shared.Model.Context.AclContext
+import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.User.UserGroup
+import Shared.Model.User.UserGroupList
+import Shared.Model.User.UserGroupSuggestion
 import Shared.Util.String
 
 entityName = "user_group"
 
 pageLabel = "userGroups"
+
+findUserGroupsPage :: WizardRequestContextC s m => Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page UserGroupList)
+findUserGroupsPage mQuery mMember pageable sort = do
+  tenantUuid <- asks (.tenantUuid')
+  currentUser <- getCurrentUser
+  manageAccess <- workspaceAccess (Just _USER_GROUPS_MANAGE_ROLE_PERMISSION)
+  let manageCondition = workspaceAccessSql "ug.workspace_uuid" manageAccess
+  let member = memberSql tenantUuid currentUser.uuid
+  let memberCondition =
+        case mMember of
+          Just True -> f' " AND %s = true " [member]
+          Just False -> f' " AND %s = false " [member]
+          Nothing -> ""
+  createFindUserGroupPage
+    ( f''
+        "ug.uuid, \
+        \ug.name, \
+        \ug.description, \
+        \ug.private, \
+        \${editable} AS editable, \
+        \${member} AS member, \
+        \ug.updated_at, \
+        \ug.workspace_uuid"
+        [("editable", editableSql tenantUuid currentUser.uuid manageCondition), ("member", member)]
+    )
+    currentUser.uuid
+    manageCondition
+    mQuery
+    memberCondition
+    pageable
+    sort
+
+editableSql :: U.UUID -> U.UUID -> String -> String
+editableSql tenantUuid currentUserUuid manageCondition =
+  f''
+    "(${manageCondition} OR (SELECT count(*) > 0 \
+    \    FROM user_group_membership ugm \
+    \    WHERE ugm.user_group_uuid = ug.uuid \
+    \      AND ugm.user_uuid = '${currentUserUuid}' \
+    \      AND ugm.tenant_uuid = '${tenantUuid}' \
+    \      AND ugm.type = 'OwnerUserGroupMembershipType'))"
+    [("manageCondition", manageCondition), ("currentUserUuid", U.toString currentUserUuid), ("tenantUuid", U.toString tenantUuid)]
+
+memberSql :: U.UUID -> U.UUID -> String
+memberSql tenantUuid currentUserUuid =
+  f''
+    "(SELECT count(*) > 0 \
+    \    FROM user_group_membership ugm \
+    \    WHERE ugm.user_group_uuid = ug.uuid \
+    \      AND ugm.user_uuid = '${currentUserUuid}' \
+    \      AND ugm.tenant_uuid = '${tenantUuid}')"
+    [("currentUserUuid", U.toString currentUserUuid), ("tenantUuid", U.toString tenantUuid)]
+
+findUserGroupSuggestionsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page UserGroupSuggestion)
+findUserGroupSuggestionsPage mQuery pageable sort = do
+  currentUser <- getCurrentUser
+  manageAccess <- workspaceAccess (Just _USER_GROUPS_MANAGE_ROLE_PERMISSION)
+  createFindUserGroupPage
+    "ug.uuid, ug.name, ug.description, ug.private"
+    currentUser.uuid
+    (workspaceAccessSql "ug.workspace_uuid" manageAccess)
+    mQuery
+    ""
+    pageable
+    sort
 
 createFindUserGroupPage :: (WizardRequestContextC s m, FromRow userGroup) => String -> U.UUID -> String -> Maybe String -> String -> Pageable -> [Sort] -> m (Page userGroup)
 createFindUserGroupPage fields currentUserUuid manageCondition mQuery additionalCondition pageable sort =
@@ -102,6 +174,11 @@ findUserGroupByUuid :: WizardRequestContextC s m => U.UUID -> m UserGroup
 findUserGroupByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+
+findUserGroupByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe UserGroup)
+findUserGroupByUuid' uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
 insertUserGroup :: WizardRequestContextC s m => UserGroup -> m Int64
 insertUserGroup userGroup = do

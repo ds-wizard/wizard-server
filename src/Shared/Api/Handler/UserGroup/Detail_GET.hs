@@ -1,4 +1,4 @@
-module WizardServer.Api.Handler.UserGroup.Detail_GET where
+module Shared.Api.Handler.UserGroup.Detail_GET where
 
 import qualified Data.UUID as U
 import Servant
@@ -8,7 +8,7 @@ import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.User.Group.UserGroupDetailDTO
 import Shared.Api.Resource.User.Group.UserGroupDetailJM ()
 import Shared.Model.Context.TransactionState
-import WizardServer.Service.User.Group.UserGroupService
+import Shared.Service.User.Group.UserGroupService
 
 type Detail_GET =
   Header "Authorization" String

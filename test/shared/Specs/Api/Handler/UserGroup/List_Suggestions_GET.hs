@@ -13,15 +13,18 @@ import Shared.Constant.Workspace
 import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
+import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
+import Shared.Model.Error.Error
 import Shared.Model.User.UserGroup
+import Shared.Service.User.Group.UserGroupMapper
 import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
-import WizardServer.Service.User.Group.UserGroupMapper
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.UserGroup.Common
 import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
@@ -33,6 +36,8 @@ list_suggestions_GET requestContext =
   describe "GET /api/user-groups/suggestions" $ do
     test_200 requestContext
     test_200_workspace requestContext
+    test_200_w requestContext
+    test_400_tenant requestContext
     test_401 requestContext
 
 -- ----------------------------------------------------
@@ -113,6 +118,26 @@ test_200_workspace requestContext =
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+test_200_w requestContext =
+  it "HTTP 200 OK (w narrows to one workspace)" $ do
+    -- GIVEN: Run migrations
+    runInContextIO U.runMigration requestContext
+    insertSecondWorkspace requestContext
+    runInContextIO (insertUserGroup secondWorkspaceGroup) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod ("/api/user-groups/suggestions?sort=uuid,asc&" <> workspaceQuery) [reqAuthHeader] reqBody
+    -- THEN: Compare response with expectation
+    expectJson 200 (Page "userGroups" (PageMetadata 20 2 1 0) [toSuggestion bioGroup, toSuggestion plantGroup]) response
+
+test_400_tenant requestContext =
+  it "HTTP 400 BAD REQUEST (tenant=true)" $ do
+    -- GIVEN: Run migrations
+    runInContextIO U.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod "/api/user-groups/suggestions?tenant=true" [reqAuthHeader] reqBody
+    -- THEN: Compare response with expectation
+    expectJson 400 (UserError _ERROR_SERVICE_WORKSPACE__TENANT_NOT_ACCEPTED) response
 
 secondWorkspaceGroup :: UserGroup
 secondWorkspaceGroup =
