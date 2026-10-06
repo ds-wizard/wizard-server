@@ -1,12 +1,12 @@
-module WizardServer.Database.Migration.Development.Tenant.Data.TenantPluginSettings where
+module Shared.Database.Migration.Development.Plugin.Data.TenantPluginSettings where
 
 import Shared.Database.Migration.Development.Plugin.Data.PluginSettings
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Model.Plugin.Plugin
+import Shared.Model.Plugin.TenantPluginSettings
 import Shared.Model.Tenant.Tenant
 import Shared.Util.Date
-import WizardServer.Model.Tenant.PluginSettings.TenantPluginSettings
 
 defaultTenantPluginSettings :: TenantPluginSettings
 defaultTenantPluginSettings =
@@ -21,11 +21,14 @@ defaultTenantPluginSettings =
 defaultTenantPluginSettingsEdited :: TenantPluginSettings
 defaultTenantPluginSettingsEdited =
   defaultTenantPluginSettings
-    { tenantUuid = defaultTenant.uuid
-    , pluginUuid = plugin1.uuid
-    , values = plugin1Values1Edited
-    , createdAt = dt' 2018 1 21
-    , updatedAt = dt' 2018 1 21
+    { values = plugin1Values1Edited
+    }
+
+disabledPluginTenantPluginSettings :: TenantPluginSettings
+disabledPluginTenantPluginSettings =
+  defaultTenantPluginSettings
+    { pluginUuid = plugin2.uuid
+    , values = plugin1Values2
     }
 
 differentTenantPluginSettings :: TenantPluginSettings

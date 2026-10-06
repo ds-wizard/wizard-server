@@ -20,5 +20,7 @@ apiSpec =
       shouldServe ["/users", "/users/current/submission-props", "/user-groups/suggestions", "/tokens/system"]
     it "serves one bootstrap and the settings flat" $
       shouldServe ["/bootstrap", "/bootstrap/workspace", "/settings/support", "/settings/registry"]
+    it "serves the plugin settings flat on both planes" $
+      shouldServe ["/plugin-settings", "/plugin-settings/{pluginUuid}", "/users/current/plugin-settings/{pluginUuid}"]
     it "mounts neither the old config endpoints nor the fair-wizard ones" $
-      filter (`elem` ["/configs/bootstrap", "/tenants/current/config", "/settings/analytics", "/settings/look-and-feel/logo", "/registry/signup", "/registry/confirmation", "/workspaces/{uuid}/logo"]) declaredPaths `shouldBe` []
+      filter (`elem` ["/configs/bootstrap", "/tenants/current/config", "/tenants/current/plugin-settings", "/tenants/current/plugin-settings/{pluginUuid}", "/settings/analytics", "/settings/look-and-feel/logo", "/registry/signup", "/registry/confirmation", "/workspaces/{uuid}/logo"]) declaredPaths `shouldBe` []

@@ -2,10 +2,15 @@ module WizardServer.Api.Resource.Bootstrap.BootstrapSM where
 
 import Data.Swagger
 
+import Shared.Api.Resource.Bootstrap.BootstrapCommonDTO
+
 import Shared.Api.Resource.Bootstrap.BootstrapSM ()
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientSimpleSM ()
+import Shared.Api.Resource.Plugin.PluginListSM ()
 import Shared.Api.Resource.Settings.SettingsSM ()
 import Shared.Database.Migration.Development.OpenId.Data.OpenIdClients
+import Shared.Database.Migration.Development.Plugin.Data.PluginSettings
+import Shared.Database.Migration.Development.Plugin.Data.Plugins
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Model.Config.WizardServerConfig
@@ -31,7 +36,7 @@ bootstrapSettingsExample =
     }
 
 instance ToSchema BootstrapDTO where
-  declareNamedSchema = toSwaggerWithType "type" (toBootstrapDTO S.defaultConfig defaultTenant bootstrapSettingsExample [defaultOpenIdClientSimple] (Just userAlbertProfile) [] defaultTenantModules)
+  declareNamedSchema = toSwaggerWithType "type" (toBootstrapDTO S.defaultConfig defaultTenant bootstrapSettingsExample [defaultOpenIdClientSimple] (Just userAlbertProfile) [] defaultTenantModules (BootstrapPlugins [plugin1List] plugin1Dict))
 
 instance ToSchema BootstrapAuthenticationDTO where
   declareNamedSchema = toSwagger (BootstrapAuthenticationDTO defaultSettingsAuthentication [defaultOpenIdClientSimple])

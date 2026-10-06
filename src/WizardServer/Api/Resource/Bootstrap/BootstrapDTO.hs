@@ -1,9 +1,13 @@
 module WizardServer.Api.Resource.Bootstrap.BootstrapDTO where
 
+import qualified Data.Aeson as A
+import qualified Data.Map.Strict as M
+import qualified Data.UUID as U
 import GHC.Generics
 
 import Shared.Api.Resource.Bootstrap.BootstrapCommonDTO
 import Shared.Model.OpenId.OpenIdClientSimple
+import Shared.Model.Plugin.PluginList
 import Shared.Model.Settings.Settings
 import Shared.Model.User.UserProfile
 
@@ -26,6 +30,8 @@ data BootstrapDTO
       , admin :: BootstrapAdminDTO
       , signalBridge :: BootstrapSignalBridgeDTO
       , modules :: [BootstrapModuleDTO]
+      , plugins :: [PluginList]
+      , pluginSettings :: M.Map U.UUID A.Value
       , multiWorkspace :: Bool
       }
   deriving (Show, Eq, Generic)

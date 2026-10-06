@@ -8,7 +8,6 @@ import Shared.Api.Resource.Bootstrap.BootstrapJM ()
 import Shared.Api.Resource.Bootstrap.WorkspaceBootstrapDTO
 import Shared.Api.Resource.Common.AesonSM ()
 import Shared.Api.Resource.Config.SimpleFeatureSM ()
-import Shared.Api.Resource.Plugin.PluginListSM ()
 import Shared.Api.Resource.Settings.SettingsSM ()
 import Shared.Model.Config.SimpleFeature
 import Shared.Model.Settings.SettingsDM
@@ -36,7 +35,7 @@ instance ToSchema WorkspaceBootstrapDTO where
           , projects = defaultSettingsProjects
           , support = defaultSettingsSupport
           , submission = SimpleFeature False
-          , plugins = []
+          , disabledPlugins = []
           , pluginSettings = M.empty
           }
       )

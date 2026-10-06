@@ -3,7 +3,6 @@ module Shared.Service.Plugin.PluginService where
 import Control.Monad (void)
 import Control.Monad.Reader (liftIO)
 import Data.Foldable (traverse_)
-import qualified Data.Map.Strict as M
 import Data.Time
 import qualified Data.UUID as U
 import Prelude hiding (id)
@@ -33,8 +32,3 @@ createPluginForTenant tenantUuid uuid url enabled =
     now <- liftIO getCurrentTime
     let plugin = toPlugin uuid url enabled tenantUuid now
     void $ insertPlugin plugin
-
-updatePluginsEnabled :: WizardRequestContextC s m => M.Map U.UUID Bool -> m ()
-updatePluginsEnabled reqDto =
-  runInTransaction $
-    traverse_ (uncurry updatePluginEnabled) (M.toList reqDto)

@@ -18,6 +18,7 @@ import Shared.Api.Handler.KnowledgeModelEditor.Api
 import Shared.Api.Handler.KnowledgeModelPackage.Api
 import Shared.Api.Handler.KnowledgeModelSecret.Api
 import Shared.Api.Handler.PersistentCommand.Api
+import Shared.Api.Handler.PluginSettings.Api
 import Shared.Api.Handler.Prefab.Api
 import Shared.Api.Handler.Project.Api
 import Shared.Api.Handler.ProjectCommentThread.Api
@@ -28,6 +29,7 @@ import Shared.Api.Handler.Token.Api
 import Shared.Api.Handler.TypeHint.Api
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Handler.Workspace.Api
+import Shared.Service.Plugin.PluginAudit
 import WizardServer.Api.Handler.Bootstrap.Api
 import WizardServer.Api.Handler.Locale.Api
 import WizardServer.Api.Handler.OpenIdClient.Api
@@ -59,6 +61,7 @@ type ApplicationAPI =
     :<|> LocalePullAPI
     :<|> OpenIdClientAPI
     :<|> PersistentCommandAPI
+    :<|> PluginSettingsAPI
     :<|> PrefabAPI
     :<|> ProjectAPI
     :<|> ProjectCommentThreadAPI
@@ -103,6 +106,7 @@ applicationServer =
     :<|> localePullServer
     :<|> openIdClientServer
     :<|> persistentCommandServer
+    :<|> pluginSettingsServer auditPluginChange
     :<|> prefabServer
     :<|> projectServer
     :<|> projectCommentThreadServer

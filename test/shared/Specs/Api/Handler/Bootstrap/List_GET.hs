@@ -5,12 +5,18 @@ module Specs.Api.Handler.Bootstrap.List_GET (
 import Control.Monad (when)
 import Data.Aeson (Value (..), encode)
 import qualified Data.Aeson.KeyMap as KM
+import qualified Data.Map.Strict as M
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
+import Shared.Api.Resource.Bootstrap.BootstrapCommonDTO
+import Shared.Database.DAO.Plugin.TenantPluginSettingsDAO
+import Shared.Database.Migration.Development.Plugin.Data.PluginSettings
+import Shared.Database.Migration.Development.Plugin.Data.Plugins
+import Shared.Database.Migration.Development.Plugin.Data.TenantPluginSettings
 import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
@@ -71,11 +77,14 @@ create_test_200 title requestContext reqHeaders mUserProfile tenant =
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = toBootstrapDTO requestContext.serverConfig tenant bootstrapSettings [] mUserProfile [] defaultTenantModules
+      let pluginSettings = maybe M.empty (const plugin1Dict) mUserProfile
+      let expDto = toBootstrapDTO requestContext.serverConfig tenant bootstrapSettings [] mUserProfile [] defaultTenantModules (BootstrapPlugins [plugin1List, plugin2List] pluginSettings)
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO U.runMigration requestContext
       when tenant.multiWorkspace (enableMultiWorkspace requestContext)
+      runInContextIO (insertTenantPluginSettings defaultTenantPluginSettings) requestContext
+      runInContextIO (insertTenantPluginSettings disabledPluginTenantPluginSettings) requestContext
       runInContextIO (insertUserPluginSettings userAlbertPluginSettings) requestContext
       runInContextIO (insertUserPluginSettings userCharlesPluginSettings) requestContext
       -- WHEN: Call API

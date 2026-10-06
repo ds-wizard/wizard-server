@@ -47,6 +47,7 @@ import Specs.Api.Handler.KnowledgeModelPackage.ApiSpec
 import Specs.Api.Handler.KnowledgeModelSecret.ApiSpec
 import Specs.Api.Handler.Locale.ApiSpec
 import Specs.Api.Handler.OpenIdClient.ApiSpec
+import Specs.Api.Handler.PluginSettings.ApiSpec
 import Specs.Api.Handler.Prefab.ApiSpec
 import Specs.Api.Handler.Project.ApiSpec
 import Specs.Api.Handler.Project.Detail_WS.WebsocketSpec
@@ -254,6 +255,7 @@ main =
               knowledgeModelSecretAPI serverContext requestContext
               localeAPI serverContext requestContext
               openIdClientAPI serverContext requestContext
+              pluginSettingsAPI serverContext requestContext
               prefabAPI serverContext requestContext
               projectAPI serverContext requestContext
               projectCommentThreadAPI serverContext requestContext

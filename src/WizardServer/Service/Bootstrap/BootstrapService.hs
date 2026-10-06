@@ -46,7 +46,8 @@ getBootstrap mServerUrl mClientUrl = do
       mUserProfile <- getBootstrapUserProfile tenant.uuid
       tours <- getBootstrapTours
       tenantModules <- findTenantModulesByTenantUuid tenant.uuid
-      return $ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours tenantModules
+      bootstrapPlugins <- getBootstrapPlugins tenant.uuid
+      return $ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours tenantModules bootstrapPlugins
 
 getBootstrapSettings :: WizardRequestContextC s m => U.UUID -> m BootstrapSettings
 getBootstrapSettings tenantUuid = do

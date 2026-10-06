@@ -1,5 +1,6 @@
 module WizardServer.Service.Bootstrap.BootstrapMapper where
 
+import Shared.Api.Resource.Bootstrap.BootstrapCommonDTO
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.OpenId.OpenIdClientSimple
 import Shared.Model.Settings.Settings
@@ -11,8 +12,8 @@ import Shared.Service.Bootstrap.BootstrapMapper
 import WizardServer.Api.Resource.Bootstrap.BootstrapDTO
 import WizardServer.Model.Bootstrap.BootstrapSettings
 
-toBootstrapDTO :: ServerConfig -> Tenant -> BootstrapSettings -> [OpenIdClientSimple] -> Maybe UserProfile -> [String] -> [TenantModule] -> BootstrapDTO
-toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours tenantModules =
+toBootstrapDTO :: ServerConfig -> Tenant -> BootstrapSettings -> [OpenIdClientSimple] -> Maybe UserProfile -> [String] -> [TenantModule] -> BootstrapPlugins -> BootstrapDTO
+toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours tenantModules bootstrapPlugins =
   BootstrapDTO
     { user = mUserProfile
     , tours = tours
@@ -28,6 +29,8 @@ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours ten
     , admin = BootstrapAdminDTO {enabled = serverConfig.admin.enabled}
     , signalBridge = toSignalBridgeDTO serverConfig.cloud
     , modules = if serverConfig.admin.enabled then maybe [] (\profile -> toModuleDTOs (profilePermissions tenant profile) tenantModules) mUserProfile else []
+    , plugins = bootstrapPlugins.plugins
+    , pluginSettings = bootstrapPlugins.pluginSettings
     , multiWorkspace = tenant.multiWorkspace
     }
 

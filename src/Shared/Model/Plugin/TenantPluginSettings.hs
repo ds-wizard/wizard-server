@@ -1,4 +1,4 @@
-module WizardServer.Model.Tenant.PluginSettings.TenantPluginSettings where
+module Shared.Model.Plugin.TenantPluginSettings where
 
 import qualified Data.Aeson as A
 import Data.Time

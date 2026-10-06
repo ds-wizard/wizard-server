@@ -1,4 +1,4 @@
-module WizardServer.Database.Mapping.Tenant.PluginSettings.TenantPluginSettings where
+module Shared.Database.Mapping.Plugin.TenantPluginSettings where
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
@@ -6,7 +6,7 @@ import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 
-import WizardServer.Model.Tenant.PluginSettings.TenantPluginSettings
+import Shared.Model.Plugin.TenantPluginSettings
 
 instance ToRow TenantPluginSettings where
   toRow TenantPluginSettings {..} =

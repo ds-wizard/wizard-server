@@ -11,7 +11,6 @@ import WizardServer.Api.Handler.Tenant.Limit.Api
 import WizardServer.Api.Handler.Tenant.List_GET
 import WizardServer.Api.Handler.Tenant.List_POST
 import WizardServer.Api.Handler.Tenant.List_Suggestions_GET
-import WizardServer.Api.Handler.Tenant.PluginSettings.Api
 import WizardServer.Api.Handler.Tenant.Usage.Api
 
 type TenantAPI =
@@ -23,7 +22,6 @@ type TenantAPI =
            :<|> Detail_PUT
            :<|> Detail_DELETE
            :<|> TenantLimitAPI
-           :<|> TenantPluginSettingsAPI
            :<|> TenantUsageAPI
        )
 
@@ -39,5 +37,4 @@ tenantServer =
     :<|> detail_PUT
     :<|> detail_DELETE
     :<|> tenantLimitServer
-    :<|> tenantPluginSettingsServer
     :<|> tenantUsageServer

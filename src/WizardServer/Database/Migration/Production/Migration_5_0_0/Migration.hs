@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, replace organization id by a single id, replace registry organizations by accounts, rework tenant config into settings and add workspace branding"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, replace organization id by a single id, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -66,6 +66,7 @@ migrateShared dbPool = do
   createSettingsTables dbPool
   copyConfigIntoSettings dbPool
   dropConfigTables dbPool
+  createWorkspacePluginSettings dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -665,6 +666,26 @@ dropConfigTables dbPool =
     \DROP TABLE config_authentication; \
     \DROP TABLE config_organization; \
     \DROP TYPE config_dashboard_and_login_screen_announcement_type;"
+
+createWorkspacePluginSettings :: Pool Connection -> LoggingT IO ()
+createWorkspacePluginSettings dbPool =
+  runSql
+    dbPool
+    "ALTER TABLE plugin ADD COLUMN workspace_override_allowed boolean NOT NULL DEFAULT true; \
+    \CREATE TABLE workspace_plugin_settings \
+    \( \
+    \    workspace_uuid uuid        NOT NULL, \
+    \    plugin_uuid    uuid        NOT NULL, \
+    \    tenant_uuid    uuid        NOT NULL, \
+    \    enabled        boolean     NOT NULL DEFAULT true, \
+    \    values         jsonb, \
+    \    created_at     timestamptz NOT NULL, \
+    \    updated_at     timestamptz NOT NULL, \
+    \    CONSTRAINT workspace_plugin_settings_pk PRIMARY KEY (workspace_uuid, plugin_uuid), \
+    \    CONSTRAINT workspace_plugin_settings_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT workspace_plugin_settings_plugin_uuid_fk FOREIGN KEY (plugin_uuid, tenant_uuid) REFERENCES plugin (uuid, tenant_uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT workspace_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \);"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do
