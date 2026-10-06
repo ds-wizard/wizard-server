@@ -12,5 +12,7 @@ data Workspace = Workspace
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
   , defaultRoleUuid :: Maybe U.UUID
+  , logo :: Maybe String
+  , primaryColor :: Maybe String
   }
   deriving (Show, Eq, Generic)

@@ -37,7 +37,7 @@ instance WizardHandlerC ServerContext ServerContextM RequestContext RequestConte
         eResult <-
           liftIO $ requestContextFromServerContext tenant.uuid mUser transactionState serverContext $ \requestContext -> do
             let tenantContext = requestContext {tenantMultiWorkspace = tenant.multiWorkspace}
-            guardRequestContext tenantContext (runMonads (runRequestContextM (withScope mW mTenant function)) tenantContext)
+            guardRequestContext tenantContext (runMonads (withScope mW mTenant function).runRequestContextM tenantContext)
         case eResult of
           Right result -> return result
           Left error -> throwError =<< sendError error
@@ -54,7 +54,7 @@ instance WizardHandlerC ServerContext ServerContextM RequestContext RequestConte
 withScope :: Maybe U.UUID -> Maybe Bool -> RequestContextM a -> RequestContextM a
 withScope mW mTenant function = do
   scope <- resolveScope mW mTenant
-  mCurrentUser <- asks currentUser
+  mCurrentUser <- asks (.currentUser)
   workspaceRoles <- maybe (return M.empty) (findWorkspaceRolesByUserUuid . (.uuid)) mCurrentUser
   local (\context -> context {scope = scope, workspaceRoles = workspaceRoles}) function
 
@@ -63,7 +63,7 @@ runWithSystemUser function = do
   serverContext <- ask
   eResult <-
     liftIO $ requestContextFromServerContext defaultTenantUuid (Just . toDTO $ userSystem) NoTransaction serverContext $ \requestContext ->
-      guardRequestContext requestContext (runMonads (runRequestContextM function) requestContext)
+      guardRequestContext requestContext (runMonads function.runRequestContextM requestContext)
   case eResult of
     Right result -> return result
     Left error -> throwError =<< sendError error

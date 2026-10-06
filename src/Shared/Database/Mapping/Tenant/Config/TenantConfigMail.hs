@@ -6,7 +6,7 @@ import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 
 import Shared.Database.Mapping.Common ()
-import Shared.Model.Tenant.Config.TenantConfig
+import Shared.Model.Tenant.Config.TenantConfigMail
 
 instance FromRow TenantConfigMail where
   fromRow = do

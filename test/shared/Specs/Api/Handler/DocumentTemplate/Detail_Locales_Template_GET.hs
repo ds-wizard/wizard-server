@@ -64,7 +64,7 @@ test_200 requestContext =
       -- AND: Run migrations
       runInContextIO DT_Migration.runMigration requestContext
       runInContextIO (updateDocumentTemplatePotFileReadyByUuid wizardDocumentTemplate.uuid True) requestContext
-      let fileName = potFileName wizardDocumentTemplate.organizationId wizardDocumentTemplate.templateId wizardDocumentTemplate.version
+      let fileName = potFileName wizardDocumentTemplate.id wizardDocumentTemplate.version
       runInContextIO (putPotFile wizardDocumentTemplate.uuid fileName wizardDocumentTemplatePotContent) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody

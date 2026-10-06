@@ -11,8 +11,7 @@ data Locale = Locale
   , name :: String
   , description :: String
   , code :: String
-  , organizationId :: String
-  , localeId :: String
+  , id :: String
   , version :: String
   , defaultLocale :: Bool
   , license :: String
@@ -27,14 +26,12 @@ data Locale = Locale
 
 instance Ord Locale where
   compare a b =
-    compare a.organizationId b.organizationId
-      <> compare a.localeId b.localeId
+    compare a.id b.id
       <> compare a.version b.version
 
 instance CoordinateFactory Locale where
   createCoordinate locale =
     Coordinate
-      { organizationId = locale.organizationId
-      , entityId = locale.localeId
+      { id = locale.id
       , version = locale.version
       }

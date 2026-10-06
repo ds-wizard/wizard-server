@@ -26,12 +26,12 @@ data UserToken = UserToken
 
 instance Eq UserToken where
   a == b =
-    uuid a == uuid b
-      && name a == name b
-      && tType a == tType b
-      && userUuid a == userUuid b
-      && value a == value b
-      && userAgent a == userAgent b
-      && sessionState a == sessionState b
-      && expiresAt a == expiresAt b
-      && tenantUuid a == tenantUuid b
+    a.uuid == b.uuid
+      && a.name == b.name
+      && a.tType == b.tType
+      && a.userUuid == b.userUuid
+      && a.value == b.value
+      && a.userAgent == b.userAgent
+      && a.sessionState == b.sessionState
+      && a.expiresAt == b.expiresAt
+      && a.tenantUuid == b.tenantUuid

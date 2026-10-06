@@ -22,7 +22,6 @@ import Shared.Database.DAO.DocumentTemplate.WizardDocumentTemplateDAO
 import Shared.Database.DAO.Library.LibraryDependentDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO (unsetDocumentTemplateInProjects)
-import Shared.Database.DAO.Registry.RegistryOrganizationDAO
 import Shared.Database.DAO.Registry.RegistryTemplateDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.WizardPublic
@@ -37,7 +36,7 @@ import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateSuggestion
 import Shared.Model.Error.Error
 import Shared.Model.Library.LibraryDependents
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
 import Shared.Service.Acl.LibraryAcl
 import Shared.Service.Document.DocumentCleanService
@@ -47,15 +46,15 @@ import qualified Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMa
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
 import Shared.Service.Library.LibraryDependentMapper
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.OrganizationSettingsService
 
-getDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateSimpleDTO)
-getDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated pageable sort = do
-  tcRegistry <- getCurrentTenantConfigRegistry
+getDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateSimpleDTO)
+getDocumentTemplatesPage mId mQuery mOutdated pageable sort = do
+  tcRegistry <- getCurrentSettingsRegistry
   if mOutdated == Just True && not tcRegistry.enabled
     then return $ Page "documentTemplates" (PageMetadata 0 0 0 0) []
     else do
-      templates <- findDocumentTemplatesPage mOrganizationId mTemplateId mQuery mOutdated Nothing pageable sort
+      templates <- findDocumentTemplatesPage mId mQuery mOutdated Nothing pageable sort
       return . fmap (toSimpleDTO' tcRegistry.enabled) $ templates
 
 getDocumentTemplateSuggestions :: WizardRequestContextC s m => Maybe U.UUID -> Bool -> Maybe DocumentTemplatePhase -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateSuggestionDTO)
@@ -102,13 +101,12 @@ getDocumentTemplateByUuidDto uuid = do
   formats <- findDocumentTemplateFormats uuid
   versions <- getDocumentTemplateVersions tml
   tmlRs <- findRegistryTemplates
-  orgRs <- findRegistryOrganizations
   serverConfig <- asks (.serverConfig')
   let registryLink = buildRegistryTemplateUrl serverConfig.registry.clientUrl tml tmlRs
   usableKnowledgeModels <- findUsablePackagesForDocumentTemplate tml.uuid
-  tcRegistry <- getCurrentTenantConfigRegistry
+  tcRegistry <- getCurrentSettingsRegistry
   locales <- findDocumentTemplateLocalesByDocumentTemplateUuid uuid
-  return $ toDetailDTO tml formats tcRegistry.enabled tmlRs orgRs versions registryLink usableKnowledgeModels (fmap DocumentTemplateLocaleMapper.toList locales)
+  return $ toDetailDTO tml formats tcRegistry.enabled tmlRs versions registryLink usableKnowledgeModels (fmap DocumentTemplateLocaleMapper.toList locales)
 
 modifyDocumentTemplate :: WizardRequestContextC s m => U.UUID -> DocumentTemplateChangeDTO -> m DocumentTemplateDetailDTO
 modifyDocumentTemplate uuid reqDto =
@@ -141,14 +139,14 @@ deleteDocumentTemplate uuid mAllVersions =
 -- --------------------------------
 getDocumentTemplateVersions :: WizardRequestContextC s m => DocumentTemplate -> m [(U.UUID, String)]
 getDocumentTemplateVersions tml = do
-  allTmls <- findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace tml.organizationId tml.templateId tml.workspaceUuid
+  allTmls <- findDocumentTemplatesByIdInWorkspace tml.id tml.workspaceUuid
   return . fmap (\t -> (t.uuid, t.version)) . filter (\t -> t.phase == ReleasedDocumentTemplatePhase || t.phase == DeprecatedDocumentTemplatePhase) $ allTmls
 
 getDocumentTemplateUuidsToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [U.UUID]
 getDocumentTemplateUuidsToDelete uuid mAllVersions = do
   tml <- findDocumentTemplateByUuid uuid
   case mAllVersions of
-    Just True -> fmap (.uuid) . filter (\t -> t.phase /= DraftDocumentTemplatePhase) <$> findDocumentTemplatesByOrganizationIdAndTemplateIdInWorkspace tml.organizationId tml.templateId tml.workspaceUuid
+    Just True -> fmap (.uuid) . filter (\t -> t.phase /= DraftDocumentTemplatePhase) <$> findDocumentTemplatesByIdInWorkspace tml.id tml.workspaceUuid
     _ -> return [tml.uuid]
 
 deleteDocumentTemplateWithAssets :: WizardRequestContextC s m => U.UUID -> m ()

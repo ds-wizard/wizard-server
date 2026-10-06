@@ -15,8 +15,7 @@ type List_GET =
     :> Header "x-doc-count" String
     :> Header "x-tml-count" String
     :> "knowledge-model-packages"
-    :> QueryParam "organizationId" String
-    :> QueryParam "kmId" String
+    :> QueryParam "id" String
     :> QueryParam "metamodelVersion" Int
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] [KnowledgeModelPackageSimpleDTO])
 

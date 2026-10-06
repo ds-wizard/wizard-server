@@ -90,6 +90,10 @@ _ERROR_SERVICE_KNOWLEDGE_MODEL_EDITOR__COLLABORATION__FORCE_DISCONNECT projectUu
     "Knowledge Model Editor ('%s') dramatically changed its state. Therefore, users has to be disconnected"
     [projectUuid]
 
+-- Registry
+_ERROR_SERVICE_REGISTRY__API_KEY_REJECTED =
+  LocaleRecord "error.service.registry.api_key_rejected" "Registry rejected the API key, check the registry settings" []
+
 -- Locale Bundle
 _ERROR_SERVICE_LB__PULL_NON_EXISTING_LOCALE lclId =
   LocaleRecord "error.service.lb.pull_non_existing_locale" "Desired locale ('%s') wasn't found in Registry" [lclId]

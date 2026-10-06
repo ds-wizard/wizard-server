@@ -8,8 +8,6 @@ packages:
 extra-deps:
   - github: haskellify/postgresql-migration
     commit: v1.2.0
-  - github: haskellify/rdf4h
-    commit: v5.0.1
   - github: haskellify/servant-errors
     commit: v0.1.7.0
   - github: haskellify/servant-mock

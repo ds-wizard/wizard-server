@@ -136,8 +136,7 @@ toTemporaryPackage tenantUuid createdAt =
   KnowledgeModelPackage
     { uuid = U.nil
     , name = "Example Knowledge Model"
-    , organizationId = "org.example"
-    , kmId = "km-example"
+    , id = "org.example.km-example"
     , version = "1.0.0"
     , phase = ReleasedKnowledgeModelPackagePhase
     , metamodelVersion = knowledgeModelMetamodelVersion

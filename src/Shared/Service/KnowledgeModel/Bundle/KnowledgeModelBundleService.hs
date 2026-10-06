@@ -6,7 +6,7 @@ module Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleService (
   importBundle,
 ) where
 
-import Control.Monad (forM, when)
+import Control.Monad (forM, forM_, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Aeson
@@ -41,6 +41,7 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageEvent
 import Shared.Model.Localization.LocaleRecord
 import Shared.Service.Acl.LibraryAcl
+import Shared.Service.Coordinate.CoordinateValidation
 import Shared.Service.KnowledgeModel.Bundle.KnowledgeModelBundleAudit
 import Shared.Service.KnowledgeModel.KnowledgeModelValidation
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
@@ -78,15 +79,13 @@ exportBundle uuid =
           (throwError . UserError $ _ERROR_SERVICE_PKG__NON_EDITABLE_PKG)
         let bundle =
               KnowledgeModelBundle
-                { bundleId = newestPackage.pId
-                , name = newestPackage.name
-                , organizationId = newestPackage.organizationId
-                , kmId = newestPackage.kmId
+                { name = newestPackage.name
+                , id = newestPackage.id
                 , version = newestPackage.version
                 , metamodelVersion = knowledgeModelMetamodelVersion
                 , packages = packages
                 }
-        auditKnowledgeModelBundleExport (show bundle.bundleId)
+        auditKnowledgeModelBundleExport (show (createCoordinate bundle))
         return bundle
       Nothing -> throwError . UserError $ _ERROR_SERVICE_PB__PULL_NON_EXISTING_PKG (show uuid)
 
@@ -114,8 +113,8 @@ importAndConvertBundle contentS fromRegistry =
         case eitherDecode . encode $ encodedPb of
           Right pb -> do
             if fromRegistry
-              then auditKnowledgeModelBundlePullFromRegistry (show pb.bundleId)
-              else auditKnowledgeModelBundleImportFromFile (show pb.bundleId)
+              then auditKnowledgeModelBundlePullFromRegistry (show (createCoordinate pb))
+              else auditKnowledgeModelBundleImportFromFile (show (createCoordinate pb))
             importBundle pb workspaceUuid
           Left error -> do
             logWarnI _CMP_SERVICE ("Could not deserialize migrated Knowledge Model Bundle content (" ++ show error ++ ")")
@@ -128,22 +127,23 @@ importBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> Maybe U.UUI
 importBundle pb workspaceUuid =
   runInTransaction $ do
     pkg <- extractMainPackage pb
+    forM_ pb.packages (validateIdentifierFormat "id" . (.id))
     validatePackageIdUniqueness (createCoordinate pkg) workspaceUuid
-    pkgs <- forM pb.packages (importPackage workspaceUuid)
+    pkgs <- forM pb.packages (importPackage workspaceUuid (createCoordinate pkg))
     case lastSafe . catMaybes $ pkgs of
       Just createdPkg -> return createdPkg
       Nothing -> throwError . UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ pkg)
   where
     extractMainPackage pb =
-      case find (\p -> p.pId == pb.bundleId) pb.packages of
+      case find (\p -> createCoordinate p == createCoordinate pb) pb.packages of
         Just pkg -> return pkg
         Nothing -> throwError . UserError $ _ERROR_VALIDATION__MAIN_PKG_OF_PB_ABSENCE
 
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
-importPackage :: WizardRequestContextC s m => Maybe U.UUID -> KnowledgeModelBundlePackage -> m (Maybe KnowledgeModelPackageSimpleDTO)
-importPackage workspaceUuid dto =
+importPackage :: WizardRequestContextC s m => Maybe U.UUID -> Coordinate -> KnowledgeModelBundlePackage -> m (Maybe KnowledgeModelPackageSimpleDTO)
+importPackage workspaceUuid mainCoordinate dto =
   runInTransaction $ do
     tenantUuid <- asks (.tenantUuid')
     uuid <- liftIO generateUuid
@@ -157,11 +157,13 @@ importPackage workspaceUuid dto =
       createdPkg <- catchError (createPackage (pkg, fixedKmEvents)) (handleCreatePackageError pkg)
       return . Just $ createdPkg
   where
-    skipIfPackageIsAlreadyImported pkg callback = do
-      eitherPackage <- findPackageByCoordinate' (createCoordinate pkg) pkg.workspaceUuid
-      case eitherPackage of
-        Nothing -> callback
-        Just _ -> return Nothing
+    skipIfPackageIsAlreadyImported pkg callback
+      | createCoordinate pkg == mainCoordinate = callback
+      | otherwise = do
+          eitherPackage <- findPackageByCoordinate' (createCoordinate pkg) pkg.workspaceUuid
+          case eitherPackage of
+            Nothing -> callback
+            Just _ -> return Nothing
     handleCreatePackageError pkg (UserError (LocaleRecord "error.database.unique_constraint_violation" _ _)) =
       throwError . UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show . createCoordinate $ pkg)
     handleCreatePackageError _ error = throwError error

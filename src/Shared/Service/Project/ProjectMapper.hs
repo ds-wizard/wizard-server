@@ -42,7 +42,7 @@ import Shared.Model.Project.ProjectState
 import Shared.Model.Project.ProjectSuggestion
 import Shared.Model.Project.Version.ProjectVersionList
 import Shared.Model.Report.Report
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.User
 import Shared.Model.User.UserGroup
 import Shared.Service.Acl.AclMapper
@@ -284,6 +284,7 @@ fromProjectCreateDTO
   -> ProjectVisibility
   -> ProjectSharing
   -> Maybe U.UUID
+  -> [ProjectPerm]
   -> U.UUID
   -> U.UUID
   -> Maybe U.UUID
@@ -291,7 +292,7 @@ fromProjectCreateDTO
   -> U.UUID
   -> UTCTime
   -> (Project, [ProjectEvent])
-fromProjectCreateDTO dto projectUuid visibility sharing mCurrentUserUuid pkgUuid phaseEventUuid mPhase tenantUuid workspaceUuid now =
+fromProjectCreateDTO dto projectUuid visibility sharing mCurrentUserUuid permissions pkgUuid phaseEventUuid mPhase tenantUuid workspaceUuid now =
   ( Project
       { uuid = projectUuid
       , name = dto.name
@@ -306,10 +307,7 @@ fromProjectCreateDTO dto projectUuid visibility sharing mCurrentUserUuid pkgUuid
       , formatUuid = dto.formatUuid
       , documentTemplateLanguage = dto.documentTemplateLanguage
       , creatorUuid = mCurrentUserUuid
-      , permissions =
-          case mCurrentUserUuid of
-            Just currentUserUuid -> [toUserProjectPerm projectUuid currentUserUuid ownerPermissions tenantUuid]
-            Nothing -> []
+      , permissions = permissions
       , isTemplate = False
       , squashed = True
       , tenantUuid = tenantUuid
@@ -348,8 +346,8 @@ fromProjectPermChangeDTO projectUuid tenantUuid dto =
     , tenantUuid = tenantUuid
     }
 
-fromCreateProjectCommand :: CreateProjectCommand -> U.UUID -> [ProjectPerm] -> TenantConfigProject -> U.UUID -> U.UUID -> UTCTime -> Project
-fromCreateProjectCommand command uuid permissions tcProject createdBy workspaceUuid now = do
+fromCreateProjectCommand :: CreateProjectCommand -> U.UUID -> [ProjectPerm] -> SettingsProjects -> U.UUID -> U.UUID -> U.UUID -> UTCTime -> Project
+fromCreateProjectCommand command uuid permissions tcProject tenantUuid createdBy workspaceUuid now = do
   Project
     { uuid = uuid
     , name = command.name
@@ -367,7 +365,7 @@ fromCreateProjectCommand command uuid permissions tcProject createdBy workspaceU
     , permissions = permissions
     , isTemplate = False
     , squashed = True
-    , tenantUuid = tcProject.tenantUuid
+    , tenantUuid = tenantUuid
     , createdAt = now
     , updatedAt = now
     , workspaceUuid = workspaceUuid

@@ -15,7 +15,7 @@ import qualified Shared.Database.Migration.Development.DocumentTemplate.Document
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
+import Shared.Database.Migration.Development.Settings.Data.Settings
 import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata

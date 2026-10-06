@@ -47,18 +47,13 @@ defaultGeneral =
     , secret = ""
     , rsaPrivateKey = undefined
     , integrationConfig = "config/wizard/integration.yml"
+    , privacyUrl = Nothing
+    , termsOfServiceUrl = Nothing
     }
 
 defaultRegistrySyncJob :: ServerConfigCronWorker
 defaultRegistrySyncJob =
   ServerConfigCronWorker {enabled = True, cron = "*/15 * * * *"}
-
-defaultUserEmailLink :: ServerConfigUserEmailLink
-defaultUserEmailLink = ServerConfigUserEmailLink {clean = defaultUserEmailLinkClean}
-
-defaultUserEmailLinkClean :: ServerConfigCronWorker
-defaultUserEmailLinkClean =
-  ServerConfigCronWorker {enabled = True, cron = "20 0 * * *"}
 
 defaultUserRegistration :: ServerConfigUserRegistration
 defaultUserRegistration = ServerConfigUserRegistration {clean = defaultUserRegistrationClean}

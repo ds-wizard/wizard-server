@@ -20,10 +20,7 @@ computeDocumentTemplateState' tml
   | not (isDocumentTemplateSupported tml.metamodelVersion) = UnsupportedMetamodelVersionDocumentTemplateState
   | otherwise = DefaultDocumentTemplateState
 
-selectDocumentTemplateByOrgIdAndTmlId tml =
-  L.find (\t -> t.organizationId == tml.organizationId && t.templateId == tml.templateId)
-
-selectOrganizationByOrgId tml = L.find (\org -> org.organizationId == tml.organizationId)
+selectDocumentTemplateById tml = L.find (\t -> t.id == tml.id)
 
 isDocumentTemplateInPhase (Just phase) tml = tml.phase == phase
 isDocumentTemplateInPhase _ _ = True

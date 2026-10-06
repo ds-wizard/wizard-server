@@ -15,7 +15,7 @@ pageLabel = "tenants"
 
 findTenantSuggestions :: RequestContextC s sc m => Maybe String -> m [TenantSuggestion]
 findTenantSuggestions mQuery = do
-  let lookAndFeelTable = "config_look_and_feel"
+  let lookAndFeelTable = "settings_look_and_feel"
   let sql =
         fromString $
           f''

@@ -17,19 +17,19 @@ import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Event.ProjectEventLenses ()
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectState
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Service.Project.ProjectMapper
-import Shared.Service.Tenant.Config.ConfigService
-import Shared.Util.Coordinate
+import Shared.Service.Settings.WorkspaceSettingsService
+import Shared.Util.Reference
 
-extractVisibility dto = do
-  tcProject <- getCurrentTenantConfigProject
+extractVisibility workspaceUuid dto = do
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   if tcProject.projectVisibility.enabled
     then return dto.visibility
     else return tcProject.projectVisibility.defaultValue
 
-extractSharing dto = do
-  tcProject <- getCurrentTenantConfigProject
+extractSharing workspaceUuid dto = do
+  tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
   if tcProject.projectSharing.enabled
     then return dto.sharing
     else return tcProject.projectSharing.defaultValue
@@ -46,7 +46,7 @@ enhanceProjectPerm projectPerm =
 
 getKnowledgeModelProjectState :: WizardRequestContextC s m => KnowledgeModelPackage -> Maybe U.UUID -> m KnowledgeModelProjectState
 getKnowledgeModelProjectState pkg mWorkspaceUuid = do
-  mLatestPkg <- findLatestPackageByOrganizationIdAndKmId' pkg.organizationId pkg.kmId (Just ReleasedKnowledgeModelPackagePhase) mWorkspaceUuid
+  mLatestPkg <- findLatestPackageById' pkg.id (Just ReleasedKnowledgeModelPackagePhase) mWorkspaceUuid
   case mLatestPkg of
     Just latestPkg ->
       if latestPkg.uuid == pkg.uuid
@@ -60,7 +60,7 @@ getDocumentTemplateProjectState mDocumentTemplateUuid mWorkspaceUuid =
     Nothing -> return Nothing
     Just documentTemplateUuid -> do
       documentTemplate <- findDocumentTemplateByUuid documentTemplateUuid
-      templates <- findDocumentTemplatesByOrganizationIdAndKmId documentTemplate.organizationId documentTemplate.templateId mWorkspaceUuid
+      templates <- findDocumentTemplatesById documentTemplate.id mWorkspaceUuid
       let releasedTemplates = filter (\t -> t.phase == ReleasedDocumentTemplatePhase) templates
       case releasedTemplates of
         [] -> return (Just UpToDateDocumentTemplateProjectState)
@@ -72,7 +72,7 @@ getDocumentTemplateProjectState mDocumentTemplateUuid mWorkspaceUuid =
 
 skipIfAssigningProject :: WizardRequestContextC s m => Project -> m () -> m ()
 skipIfAssigningProject project action = do
-  tcProject <- getCurrentTenantConfigProject
+  tcProject <- getEffectiveSettingsProjects (Just project.workspaceUuid)
   let projectSharingEnabled = tcProject.projectSharing.enabled
   let projectSharingAnonymousEnabled = tcProject.projectSharing.anonymousEnabled
   when

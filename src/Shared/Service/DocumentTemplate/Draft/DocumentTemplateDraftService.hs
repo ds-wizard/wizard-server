@@ -2,7 +2,7 @@ module Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftService where
 
 import Control.Monad (void, when)
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (liftIO)
+import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
 import Data.Time
 import qualified Data.UUID as U
@@ -20,7 +20,6 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFileDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFormatDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.Project.ProjectDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.KnowledgeModel.Public
 import Shared.Model.Common.Page
@@ -34,7 +33,6 @@ import Shared.Model.DocumentTemplate.DocumentTemplateDraftDetail
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
 import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetService
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
@@ -60,7 +58,7 @@ createDraft reqDto =
     checkDocumentTemplateDraftLimit
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
-    tcOrganization <- findTenantConfigOrganization
+    tenantUuid <- asks (.tenantUuid')
     case reqDto.basedOn of
       Just dtUuid -> do
         tml <- findDocumentTemplateByUuid dtUuid
@@ -69,7 +67,7 @@ createDraft reqDto =
         when
           tml.nonEditable
           (throwError . UserError $ _ERROR_SERVICE_DOC_TML__NON_EDITABLE_DOC_TML)
-        let (draft, draftFormats) = fromCreateDTO reqDto uuid tml formats tcOrganization.organizationId workspaceUuid now
+        let (draft, draftFormats) = fromCreateDTO reqDto uuid tml formats workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         traverse_ insertDocumentTemplateFormat draftFormats
@@ -81,7 +79,7 @@ createDraft reqDto =
         insertDraftData draftData
         return $ toSimple draft
       Nothing -> do
-        let draft = fromCreateDTO' reqDto uuid tcOrganization.organizationId tcOrganization.tenantUuid workspaceUuid now
+        let draft = fromCreateDTO' reqDto uuid tenantUuid workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         let draftData = fromCreateDraftData draft

@@ -16,7 +16,6 @@ import Shared.Database.Migration.Development.KnowledgeModel.Data.KnowledgeModels
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.Report.Data.Reports
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Model.Document.Document
@@ -74,8 +73,6 @@ dmp1 =
         DocumentContextConfig
           { clientUrl = "https://example.com"
           , appTitle = Nothing
-          , appTitleShort = Nothing
-          , illustrationsColor = Nothing
           , primaryColor = Nothing
           , logoUrl = Nothing
           }
@@ -110,7 +107,7 @@ dmp1 =
     , knowledgeModel = km1WithQ4
     , report = report1
     , knowledgeModelPackage = toDocumentContextPackage germanyKmPackage
-    , organization = defaultOrganization
+    , organization = DocumentContextOrganization {name = defaultTenant.name, affiliations = []}
     , metamodelVersion = TemplateConstant.documentTemplateMetamodelVersion
     , users =
         [ DocumentContextUserPerm

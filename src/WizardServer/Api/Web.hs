@@ -21,5 +21,5 @@ webServer serverContext =
     :<|> (swaggerServer version :<|> hoistServer applicationApi run applicationServer)
   where
     run :: ServerContextM a -> Handler a
-    run = convert serverContext runServerContextM
+    run = convert serverContext (.runServerContextM)
     version = serverContext.buildInfoConfig.releaseVersion

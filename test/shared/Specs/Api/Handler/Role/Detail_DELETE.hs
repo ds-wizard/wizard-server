@@ -25,6 +25,7 @@ import WizardServer.Model.Context.RequestContext
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Role.Common
+import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -95,6 +96,7 @@ createDeleteValidationTest requestContext title roleUuid expError =
     -- AND: Run migrations
     runInContextIO U_Migration.runMigration requestContext
     runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userAlbert.uuid defaultWorkspaceAdminRole.uuid) requestContext
+    enableMultiWorkspace requestContext
     -- WHEN: Call API
     response <- request reqMethod ("/api/roles/" `mappend` roleUuid) reqHeaders reqBody
     -- THEN: Compare response with expectation

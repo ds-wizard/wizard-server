@@ -4,7 +4,6 @@ import Data.Aeson
 
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePhaseJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
-import Shared.Api.Resource.Registry.RegistryOrganizationJM ()
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSimple
 import Shared.Util.Aeson
 

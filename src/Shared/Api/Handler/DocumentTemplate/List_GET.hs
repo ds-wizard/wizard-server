@@ -17,8 +17,7 @@ type List_GET =
     :> "document-templates"
     :> QueryParam "w" U.UUID
     :> QueryParam "tenant" Bool
-    :> QueryParam "organizationId" String
-    :> QueryParam "templateId" String
+    :> QueryParam "id" String
     :> QueryParam "q" String
     :> QueryParam "outdated" Bool
     :> QueryParam "page" Int
@@ -34,14 +33,13 @@ list_GET
   -> Maybe Bool
   -> Maybe String
   -> Maybe String
-  -> Maybe String
   -> Maybe Bool
   -> Maybe Int
   -> Maybe Int
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] (Page DocumentTemplateSimpleDTO))
-list_GET mTokenHeader mServerUrl mW mTenant mOrganizationId mTmlId mQuery mOutdated mPage mSize mSort =
+list_GET mTokenHeader mServerUrl mW mTenant mId mQuery mOutdated mPage mSize mSort =
   getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService NoTransaction $
       addTraceUuidHeader
-        =<< getDocumentTemplatesPage mOrganizationId mTmlId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)
+        =<< getDocumentTemplatesPage mId mQuery mOutdated (Pageable mPage mSize) (parseSortQuery mSort)

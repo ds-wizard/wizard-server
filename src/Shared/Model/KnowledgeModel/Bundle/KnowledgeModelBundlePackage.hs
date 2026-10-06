@@ -8,10 +8,8 @@ import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 
 data KnowledgeModelBundlePackage = KnowledgeModelBundlePackage
-  { pId :: Coordinate
+  { id :: String
   , name :: String
-  , organizationId :: String
-  , kmId :: String
   , version :: String
   , phase :: KnowledgeModelPackagePhase
   , metamodelVersion :: Int
@@ -31,7 +29,6 @@ data KnowledgeModelBundlePackage = KnowledgeModelBundlePackage
 instance CoordinateFactory KnowledgeModelBundlePackage where
   createCoordinate dt =
     Coordinate
-      { organizationId = dt.organizationId
-      , entityId = dt.kmId
+      { id = dt.id
       , version = dt.version
       }

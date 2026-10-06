@@ -15,7 +15,6 @@ import qualified Shared.Database.Migration.Development.DocumentTemplate.Document
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelPackageMigration as KnowledgeModelPackage
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
-import Shared.Database.Migration.Development.Registry.Data.RegistryOrganizations
 import Shared.Database.Migration.Development.Registry.Data.RegistryPackages
 import qualified Shared.Database.Migration.Development.Registry.RegistryMigration as R_Migration
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
@@ -58,7 +57,6 @@ reqBody = ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_200 requestContext = do
-  let expOrgRs = [globalRegistryOrganization, nlRegistryOrganization]
   create_test_200
     "HTTP 200 OK"
     requestContext
@@ -66,24 +64,24 @@ test_200 requestContext = do
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
-        [ toSimpleDTO' [] expOrgRs germanyKmPackage
-        , toSimpleDTO' [globalRegistryPackage] expOrgRs globalKmPackage
-        , toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2
+        [ toSimpleDTO' [] germanyKmPackage
+        , toSimpleDTO' [globalRegistryPackage] globalKmPackage
+        , toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2
         ]
     )
   create_test_200
     "HTTP 200 OK (query - q)"
     requestContext
     "/api/knowledge-model-packages?q=Germany Knowledge Model"
-    (Page "knowledgeModelPackages" (PageMetadata 20 1 1 0) [toSimpleDTO' [] expOrgRs germanyKmPackage])
+    (Page "knowledgeModelPackages" (PageMetadata 20 1 1 0) [toSimpleDTO' [] germanyKmPackage])
   create_test_200
-    "HTTP 200 OK (query - kmId)"
+    "HTTP 200 OK (query - id)"
     requestContext
-    "/api/knowledge-model-packages?kmId=core-nl"
+    "/api/knowledge-model-packages?id=org.nl.core-nl"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 1 1 0)
-        [toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2]
+        [toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2]
     )
   create_test_200
     "HTTP 200 OK (query for non-existing)"
@@ -97,9 +95,9 @@ test_200 requestContext = do
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
-        [ toSimpleDTO' [] expOrgRs germanyKmPackage
-        , toSimpleDTO' [globalRegistryPackage] expOrgRs globalKmPackage
-        , toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2
+        [ toSimpleDTO' [] germanyKmPackage
+        , toSimpleDTO' [globalRegistryPackage] globalKmPackage
+        , toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2
         ]
     )
   create_test_200
@@ -115,9 +113,9 @@ test_200 requestContext = do
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 3 1 0)
-        [ toSimpleDTO' [] expOrgRs germanyKmPackage
-        , toSimpleDTO' [globalRegistryPackage] expOrgRs globalKmPackage
-        , toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2
+        [ toSimpleDTO' [] germanyKmPackage
+        , toSimpleDTO' [globalRegistryPackage] globalKmPackage
+        , toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2
         ]
     )
   create_test_200_workspace
@@ -128,10 +126,10 @@ test_200 requestContext = do
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 4 1 0)
-        [ toSimpleDTO' [] expOrgRs germanyKmPackage
-        , toSimpleDTO' [globalRegistryPackage] expOrgRs globalKmPackage
-        , toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2
-        , toSimpleDTO' [] expOrgRs workspaceKmPackage
+        [ toSimpleDTO' [] germanyKmPackage
+        , toSimpleDTO' [globalRegistryPackage] globalKmPackage
+        , toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2
+        , toSimpleDTO' [] workspaceKmPackage
         ]
     )
   create_test_200_workspace
@@ -142,10 +140,10 @@ test_200 requestContext = do
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 4 1 0)
-        [ toSimpleDTO' [] expOrgRs germanyKmPackage
-        , toSimpleDTO' [globalRegistryPackage] expOrgRs globalKmPackage
-        , toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2
-        , toSimpleDTO' [] expOrgRs workspaceKmPackage
+        [ toSimpleDTO' [] germanyKmPackage
+        , toSimpleDTO' [globalRegistryPackage] globalKmPackage
+        , toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2
+        , toSimpleDTO' [] workspaceKmPackage
         ]
     )
   create_test_200_workspace
@@ -158,23 +156,23 @@ test_200 requestContext = do
     "HTTP 200 OK (w - same coordinate in the tenant and the workspace plane)"
     requestContext
     insertSecondWorkspaceWithNetherlandsKmPackage
-    "/api/knowledge-model-packages?kmId=core-nl&w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9&sort=name,asc"
+    "/api/knowledge-model-packages?id=org.nl.core-nl&w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9&sort=name,asc"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 2 1 0)
-        [ toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2
-        , toSimpleDTO' [nlRegistryPackage] expOrgRs workspaceNetherlandsKmPackage
+        [ toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2
+        , toSimpleDTO' [nlRegistryPackage] workspaceNetherlandsKmPackage
         ]
     )
   create_test_200_workspace
     "HTTP 200 OK (tenant=true - same coordinate only once)"
     requestContext
     insertSecondWorkspaceWithNetherlandsKmPackage
-    "/api/knowledge-model-packages?kmId=core-nl&tenant=true&sort=name,asc"
+    "/api/knowledge-model-packages?id=org.nl.core-nl&tenant=true&sort=name,asc"
     ( Page
         "knowledgeModelPackages"
         (PageMetadata 20 1 1 0)
-        [toSimpleDTO' [nlRegistryPackage] expOrgRs netherlandsKmPackageV2]
+        [toSimpleDTO' [nlRegistryPackage] netherlandsKmPackageV2]
     )
 
 create_test_200 title requestContext reqUrl expDto =
@@ -222,7 +220,7 @@ workspaceKmPackage =
   germanyKmPackage
     { uuid = u' "9c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f"
     , name = "Workspace Knowledge Model"
-    , kmId = "core-ws"
+    , id = "org.de.core-ws"
     , workspaceUuid = Just secondWorkspace.uuid
     }
 

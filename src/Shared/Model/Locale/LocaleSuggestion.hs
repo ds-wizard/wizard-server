@@ -8,8 +8,7 @@ data LocaleSuggestion = LocaleSuggestion
   , name :: String
   , description :: String
   , code :: String
-  , organizationId :: String
-  , localeId :: String
+  , id :: String
   , version :: String
   , defaultLocale :: Bool
   }

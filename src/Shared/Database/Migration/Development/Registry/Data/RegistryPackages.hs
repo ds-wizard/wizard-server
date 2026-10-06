@@ -7,8 +7,7 @@ import Shared.Model.Registry.RegistryPackage
 globalRegistryPackage :: RegistryPackage
 globalRegistryPackage =
   RegistryPackage
-    { organizationId = globalKmPackage.organizationId
-    , kmId = globalKmPackage.kmId
+    { id = globalKmPackage.id
     , remoteVersion = globalKmPackage.version
     , createdAt = globalKmPackage.createdAt
     }
@@ -16,8 +15,7 @@ globalRegistryPackage =
 nlRegistryPackage :: RegistryPackage
 nlRegistryPackage =
   RegistryPackage
-    { organizationId = netherlandsKmPackageV2.organizationId
-    , kmId = netherlandsKmPackageV2.kmId
+    { id = netherlandsKmPackageV2.id
     , remoteVersion = netherlandsKmPackageV2.version
     , createdAt = netherlandsKmPackageV2.createdAt
     }

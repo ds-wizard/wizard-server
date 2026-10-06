@@ -14,10 +14,10 @@ import Shared.Model.Error.Error
 import Shared.Model.Locale.Locale
 import Shared.Service.Coordinate.CoordinateValidation
 
-validateLocaleCreate :: WizardRequestContextC s m => LocaleCreateDTO -> String -> m ()
-validateLocaleCreate reqDto organizationId = do
-  validateCoordinatePartFormat "localeId" reqDto.localeId
-  validateLocaleIdUniqueness (Coordinate organizationId reqDto.localeId reqDto.version)
+validateLocaleCreate :: WizardRequestContextC s m => LocaleCreateDTO -> m ()
+validateLocaleCreate reqDto = do
+  validateIdentifierFormat "id" reqDto.id
+  validateLocaleIdUniqueness (Coordinate reqDto.id reqDto.version)
 
 validateLocaleChange :: WizardRequestContextC s m => LocaleChangeDTO -> Locale -> m ()
 validateLocaleChange reqDto locale = do
@@ -27,7 +27,7 @@ validateLocaleChange reqDto locale = do
 validateLocaleDeletion :: WizardRequestContextC s m => Locale -> m ()
 validateLocaleDeletion locale = do
   when locale.defaultLocale (throwError . UserError $ _ERROR_VALIDATION__DEFAULT_LOCALE_DELETION)
-  when (locale.organizationId == defaultLocaleOrganizationId) (throwError . UserError $ _ERROR_VALIDATION__DEFAULT_WIZARD_LOCALE_DELETION)
+  when (locale.id == defaultLocaleId) (throwError . UserError $ _ERROR_VALIDATION__DEFAULT_WIZARD_LOCALE_DELETION)
 
 validateLocaleIdUniqueness :: WizardRequestContextC s m => Coordinate -> m ()
 validateLocaleIdUniqueness coordinate = do

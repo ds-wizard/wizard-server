@@ -37,7 +37,7 @@ detail_PUT requestContext =
   describe "PUT /api/knowledge-model-editors/uuid" $ do
     test_200 requestContext
     test_400_invalid_json requestContext
-    test_400_not_valid_kmId requestContext
+    test_400_not_valid_id requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -97,21 +97,21 @@ test_200 requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400_invalid_json requestContext = createInvalidJsonTest reqMethod reqUrl "kmId"
+test_400_invalid_json requestContext = createInvalidJsonTest reqMethod reqUrl "id"
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400_not_valid_kmId requestContext =
-  it "HTTP 400 BAD REQUEST when kmId is not in valid format" $
+test_400_not_valid_id requestContext =
+  it "HTTP 400 BAD REQUEST when id is not in valid format" $
     -- GIVEN: Prepare request
     do
-      let reqDto = amsterdamKnowledgeModelEditorChange {kmId = "amsterdam:km"} :: KnowledgeModelEditorChangeDTO
+      let reqDto = amsterdamKnowledgeModelEditorChange {id = "amsterdam:km"} :: KnowledgeModelEditorChangeDTO
       let reqBody = encode reqDto
       -- AND: Prepare expectation
       let expStatus = 400
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = ValidationError [] (M.singleton "kmId" [_ERROR_VALIDATION__INVALID_COORDINATE_PART_FORMAT "kmId" "amsterdam:km"])
+      let expDto = ValidationError [] (M.singleton "id" [_ERROR_VALIDATION__INVALID_COORDINATE_PART_FORMAT "id" "amsterdam:km"])
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO

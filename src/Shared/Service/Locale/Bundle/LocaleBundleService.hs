@@ -20,6 +20,7 @@ import Shared.Model.Error.Error
 import Shared.Model.Locale.Locale
 import Shared.Model.Locale.LocaleSimple
 import Shared.S3.Locale.LocaleS3
+import Shared.Service.Coordinate.CoordinateValidation
 import Shared.Service.Locale.Bundle.LocaleBundleAudit
 import Shared.Service.Locale.Bundle.LocaleBundleMapper
 import Shared.Service.Locale.LocaleMapper
@@ -63,7 +64,8 @@ importBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool -> m LocaleS
 importBundle contentS fromRegistry =
   case fromLocaleArchive contentS of
     Right (bundle, wizardTranslation, mailTranslation) -> do
-      checkLocaleLimit bundle.organizationId bundle.localeId
+      validateIdentifierFormat "id" bundle.id
+      checkLocaleLimit bundle.id
       validateLocaleIdUniqueness (createCoordinate bundle)
       uuid <- liftIO generateUuid
       tenantUuid <- asks (.tenantUuid')

@@ -56,6 +56,7 @@ test_201 requestContext =
   it "HTTP 201 OK" $
     -- GIVEN: Prepare expectation
     do
+      pendingUntilRegistryTestUpgrade
       let expStatus = 201
       let expHeaders = resCorsHeadersPlain
       let expDto = toSimpleDTO globalKmPackage
@@ -81,11 +82,12 @@ test_400 requestContext =
   it "HTTP 400 BAD REQUEST - Package was not found in Registry" $
     -- GIVEN: Prepare request
     do
-      let reqUrl = "/api/knowledge-model-packages/global:non-existing-package:1.0.0/pull"
+      pendingUntilRegistryTestUpgrade
+      let reqUrl = "/api/knowledge-model-packages/global.non-existing-package:1.0.0/pull"
       -- AND: Prepare expectation
       let expStatus = 400
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = UserError (_ERROR_SERVICE_PB__PULL_NON_EXISTING_PKG "global:non-existing-package:1.0.0")
+      let expDto = UserError (_ERROR_SERVICE_PB__PULL_NON_EXISTING_PKG "global.non-existing-package:1.0.0")
       let expBody = encode expDto
       -- WHEN: Call APIA
       response <- request reqMethod reqUrl reqHeaders reqBody

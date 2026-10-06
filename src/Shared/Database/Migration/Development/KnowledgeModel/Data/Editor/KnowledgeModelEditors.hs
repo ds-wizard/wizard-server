@@ -41,7 +41,7 @@ amsterdamKnowledgeModelEditorList =
   KnowledgeModelEditorList
     { uuid = u' "6474b24b-262b-42b1-9451-008e8363f2b6"
     , name = amsterdamKmPackage.name
-    , kmId = amsterdamKmPackage.kmId
+    , id = amsterdamKmPackage.id
     , version = amsterdamKmPackage.version
     , previousPackageUuid = Just netherlandsKmPackage.uuid
     , forkOfPackage = Just $ PM.toSuggestion netherlandsKmPackage
@@ -57,7 +57,7 @@ amsterdamKnowledgeModelEditor =
   KnowledgeModelEditor
     { uuid = amsterdamKnowledgeModelEditorList.uuid
     , name = amsterdamKnowledgeModelEditorList.name
-    , kmId = amsterdamKnowledgeModelEditorList.kmId
+    , id = amsterdamKnowledgeModelEditorList.id
     , version = "1.0.0"
     , description = "First Release"
     , readme = "# Netherlands Knowledge Model"
@@ -115,7 +115,7 @@ amsterdamKnowledgeModelEditorCreate :: KnowledgeModelEditorCreateDTO
 amsterdamKnowledgeModelEditorCreate =
   KnowledgeModelEditorCreateDTO
     { name = amsterdamKnowledgeModelEditorList.name
-    , kmId = amsterdamKnowledgeModelEditorList.kmId
+    , id = amsterdamKnowledgeModelEditorList.id
     , version = "1.0.0"
     , language = Nothing
     , previousPackageUuid = amsterdamKnowledgeModelEditorList.previousPackageUuid
@@ -125,7 +125,7 @@ amsterdamKnowledgeModelEditorChange :: KnowledgeModelEditorChangeDTO
 amsterdamKnowledgeModelEditorChange =
   KnowledgeModelEditorChangeDTO
     { name = "EDITED: " ++ amsterdamKnowledgeModelEditorList.name
-    , kmId = amsterdamKnowledgeModelEditorList.kmId
+    , id = amsterdamKnowledgeModelEditorList.id
     , version = "2.0.0"
     , description = "EDITED: description"
     , readme = "EDITED: Readme"
@@ -142,7 +142,7 @@ amsterdamKnowledgeModelEditorDetail =
   KnowledgeModelEditorDetailDTO
     { uuid = amsterdamKnowledgeModelEditorList.uuid
     , name = amsterdamKnowledgeModelEditorList.name
-    , kmId = amsterdamKnowledgeModelEditorList.kmId
+    , id = amsterdamKnowledgeModelEditorList.id
     , version = amsterdamKnowledgeModelEditor.version
     , description = amsterdamKnowledgeModelEditor.description
     , readme = amsterdamKnowledgeModelEditor.readme
@@ -165,7 +165,7 @@ leidenKnowledgeModelEditor =
   KnowledgeModelEditorList
     { uuid = u' "47421955-ba30-48d4-8c49-9ec47eda2cad"
     , name = "Leiden KM"
-    , kmId = "leiden-km"
+    , id = "org.nl.amsterdam.leiden-km"
     , version = "1.0.0"
     , state = DefaultKnowledgeModelEditorState
     , previousPackageUuid = Just netherlandsKmPackage.uuid
@@ -180,7 +180,7 @@ leidenKnowledgeModelEditorCreate :: KnowledgeModelEditorCreateDTO
 leidenKnowledgeModelEditorCreate =
   KnowledgeModelEditorCreateDTO
     { name = leidenKnowledgeModelEditor.name
-    , kmId = leidenKnowledgeModelEditor.kmId
+    , id = leidenKnowledgeModelEditor.id
     , version = "1.0.0"
     , language = Nothing
     , previousPackageUuid = leidenKnowledgeModelEditor.previousPackageUuid
@@ -191,7 +191,7 @@ differentKnowledgeModelEditor =
   KnowledgeModelEditor
     { uuid = u' "fc49b6a5-51ae-4442-82e8-c3bf216545ec"
     , name = "KnowledgeModelEditor Events"
-    , kmId = "my-km"
+    , id = "org.nl.amsterdam.my-km"
     , version = "1.0.0"
     , description = "Some desc"
     , readme = "Some readme"
@@ -232,7 +232,7 @@ secondWorkspaceKnowledgeModelEditor =
   amsterdamKnowledgeModelEditor
     { uuid = u' "b7e2d4c6-1a3f-4e5b-9c8d-2f6a7b8c9d0e"
     , name = "Second Workspace Knowledge Model"
-    , kmId = "core-second-workspace"
+    , id = "org.nl.amsterdam.core-second-workspace"
     , workspaceUuid = secondWorkspace.uuid
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
@@ -243,7 +243,7 @@ secondWorkspaceKnowledgeModelEditorList =
   amsterdamKnowledgeModelEditorList
     { uuid = secondWorkspaceKnowledgeModelEditor.uuid
     , name = secondWorkspaceKnowledgeModelEditor.name
-    , kmId = secondWorkspaceKnowledgeModelEditor.kmId
+    , id = secondWorkspaceKnowledgeModelEditor.id
     , state = DefaultKnowledgeModelEditorState
     , createdAt = secondWorkspaceKnowledgeModelEditor.createdAt
     , updatedAt = secondWorkspaceKnowledgeModelEditor.updatedAt

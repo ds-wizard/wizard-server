@@ -3,24 +3,25 @@ module Specs.Service.User.UserServiceSpec where
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
+import Shared.Constant.Tenant
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.OpenId.Data.OpenIdClients
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientMigration as OpenIdClient
+import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Public
-import Shared.Model.Config.SimpleFeature
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Model.Workspace.Workspace
 import Shared.Model.Workspace.WorkspaceMembership
-import Shared.Service.Tenant.Config.ConfigService
 import Shared.Service.User.UserService
 import WizardServer.Model.Context.RequestContext
 
@@ -54,9 +55,7 @@ userServiceIntegrationSpec requestContext =
         do
           let expectation = Left . UserError . _ERROR_SERVICE_COMMON__FEATURE_IS_DISABLED $ "Registration"
           -- AND: Update config in DB
-          (Right tcAuthentication) <- runInContext getCurrentTenantConfigAuthentication requestContext
-          let tcAuthenticationUpdated = tcAuthentication {internal = tcAuthentication.internal {registration = tcAuthentication.internal.registration {enabled = False}}}
-          tcAuthentication <- runInContext (modifyTenantConfigAuthentication tcAuthenticationUpdated) requestContext
+          runInContext (saveSettingsAuthentication defaultTenantUuid (settingsAuthentication {registrationEnabled = False} :: SettingsAuthentication)) requestContext
           -- WHEN:
           result <- runInContext (registerUser userJohnCreate) requestContext
           -- THEN:

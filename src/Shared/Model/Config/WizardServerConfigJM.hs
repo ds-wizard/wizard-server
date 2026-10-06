@@ -68,13 +68,9 @@ instance FromJSON ServerConfigGeneral where
             Nothing -> fail _ERROR_SERVICE_CONFIG__VALIDATION_CFG_RSA_PRIVATE_KEY_FORMAT
         Nothing -> return dummyRsaPrivateKey
     integrationConfig <- o .:? "integrationConfig" .!= defaultGeneral.integrationConfig
+    privacyUrl <- o .:? "privacyUrl"
+    termsOfServiceUrl <- o .:? "termsOfServiceUrl"
     return ServerConfigGeneral {..}
-  parseJSON _ = mzero
-
-instance FromJSON ServerConfigUserEmailLink where
-  parseJSON (Object o) = do
-    clean <- o .:? "clean" .!= defaultUserEmailLink.clean
-    return ServerConfigUserEmailLink {..}
   parseJSON _ = mzero
 
 instance FromJSON ServerConfigUserRegistration where

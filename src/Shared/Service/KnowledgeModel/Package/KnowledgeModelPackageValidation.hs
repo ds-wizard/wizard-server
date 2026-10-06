@@ -1,8 +1,7 @@
 module Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageValidation where
 
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, when)
 import Control.Monad.Except (throwError)
-import Data.Maybe (maybeToList)
 import qualified Data.UUID as U
 
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
@@ -11,7 +10,8 @@ import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.Error.Error
-import Shared.Util.Coordinate
+import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Util.Reference
 
 validateIsVersionHigher :: WizardRequestContextC s m => String -> String -> m ()
 validateIsVersionHigher newVersion oldVersion =
@@ -21,11 +21,8 @@ validateIsVersionHigher newVersion oldVersion =
 
 validatePackageIdUniqueness :: WizardRequestContextC s m => Coordinate -> Maybe U.UUID -> m ()
 validatePackageIdUniqueness pkgCoordinate mWorkspaceUuid = do
-  pkgs <-
-    case mWorkspaceUuid of
-      Just _ -> maybeToList <$> findPackageByCoordinate' pkgCoordinate mWorkspaceUuid
-      Nothing -> findPackagesFiltered [("organization_id", pkgCoordinate.organizationId), ("km_id", pkgCoordinate.entityId), ("version", pkgCoordinate.version)]
-  unless (null pkgs) (throwError . UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show pkgCoordinate))
+  pkgs <- findPackagesByIdInWorkspace pkgCoordinate.id mWorkspaceUuid
+  when (any (\pkg -> pkg.version == pkgCoordinate.version) pkgs) (throwError . UserError $ _ERROR_VALIDATION__PKG_ID_UNIQUENESS (show pkgCoordinate))
 
 validatePreviousPackageIdExistence :: WizardRequestContextC s m => Coordinate -> Coordinate -> Maybe U.UUID -> m ()
 validatePreviousPackageIdExistence pkgCoordinate previousPkgCoordinate mWorkspaceUuid = do

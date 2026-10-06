@@ -5,7 +5,7 @@ import GHC.Generics
 
 data KnowledgeModelEditorCreateDTO = KnowledgeModelEditorCreateDTO
   { name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , language :: Maybe String
   , previousPackageUuid :: Maybe U.UUID

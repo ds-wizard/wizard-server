@@ -30,7 +30,7 @@ toList editor mForkOfPackage state =
   KnowledgeModelEditorList
     { uuid = editor.uuid
     , name = editor.name
-    , kmId = editor.kmId
+    , id = editor.id
     , version = editor.version
     , state = state
     , previousPackageUuid = editor.previousPackageUuid
@@ -46,7 +46,7 @@ toDetailDTO editor kmEditorEvents kmEditorReplies mPreviousPackage knowledgeMode
   KnowledgeModelEditorDetailDTO
     { uuid = editor.uuid
     , name = editor.name
-    , kmId = editor.kmId
+    , id = editor.id
     , version = editor.version
     , description = editor.description
     , readme = editor.readme
@@ -69,7 +69,7 @@ fromCreateDTO dto uuid mPreviousPkg createdBy tenantUuid workspaceUuid now =
   KnowledgeModelEditor
     { uuid = uuid
     , name = dto.name
-    , kmId = dto.kmId
+    , id = dto.id
     , version = dto.version
     , description = maybe "" (.description) mPreviousPkg
     , readme = maybe "" (.readme) mPreviousPkg
@@ -90,7 +90,7 @@ fromChangeDTO dto editor bUpdatedAt =
   KnowledgeModelEditor
     { uuid = editor.uuid
     , name = dto.name
-    , kmId = dto.kmId
+    , id = dto.id
     , version = dto.version
     , description = dto.description
     , readme = dto.readme

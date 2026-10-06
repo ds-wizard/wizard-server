@@ -16,8 +16,7 @@ instance ToRow DocumentTemplate where
   toRow DocumentTemplate {..} =
     [ toField uuid
     , toField name
-    , toField organizationId
-    , toField templateId
+    , toField id
     , toField version
     , toField metamodelVersion
     , toField description
@@ -38,8 +37,7 @@ instance FromRow DocumentTemplate where
   fromRow = do
     uuid <- field
     name <- field
-    organizationId <- field
-    templateId <- field
+    id <- field
     version <- field
     metamodelVersion <- field
     description <- field

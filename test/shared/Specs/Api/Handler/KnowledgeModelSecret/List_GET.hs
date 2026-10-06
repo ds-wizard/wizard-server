@@ -17,7 +17,6 @@ import Shared.Database.Migration.Development.KnowledgeModel.Data.Secret.Knowledg
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelSecretMigration as KMS
 import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
-import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Model.User.Role
 import Shared.Model.User.User
 import Specs.Api.Handler.Workspace.Common
@@ -36,6 +35,7 @@ list_GET requestContext =
     test_200 requestContext
     test_200_workspace_role requestContext
     test_200_scope requestContext
+    test_403_not_member requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -103,12 +103,6 @@ test_200_scope requestContext = do
     insertSecondWorkspace
     "/api/knowledge-model-secrets?w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9"
     [kmSecret1, secondWorkspaceKmSecret]
-  create_test_200_scope
-    "HTTP 200 OK (not a member of w - empty list)"
-    requestContext
-    insertSecondWorkspaceWithoutCaller
-    "/api/knowledge-model-secrets?w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9"
-    ([] :: [KnowledgeModelSecret])
 
 create_test_200_scope title requestContext prepareWorkspace reqUrl expDto =
   it title $
@@ -128,3 +122,6 @@ create_test_200_scope title requestContext prepareWorkspace reqUrl expDto =
       let responseMatcher =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
+
+test_403_not_member requestContext =
+  createNotMemberTest requestContext (runInContextIO KMS.runMigration requestContext) reqMethod "/api/knowledge-model-secrets?w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9" reqBody "knowledgeModels.manage"

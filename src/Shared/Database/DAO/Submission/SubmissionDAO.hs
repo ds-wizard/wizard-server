@@ -51,9 +51,16 @@ findSubmissionsByDocumentUuid documentUuid = do
           \       user_entity.image_url, \
           \       user_entity.affiliation \
           \FROM submission \
-          \LEFT JOIN config_submission_service service ON service.tenant_uuid = submission.tenant_uuid AND service.id = submission.service_id \
+          \LEFT JOIN document ON document.uuid = submission.document_uuid AND document.tenant_uuid = submission.tenant_uuid \
+          \LEFT JOIN LATERAL (SELECT settings_service.id, settings_service.name \
+          \                   FROM settings_submission_service settings_service \
+          \                   WHERE settings_service.tenant_uuid = submission.tenant_uuid \
+          \                     AND settings_service.id = submission.service_id \
+          \                     AND (settings_service.workspace_uuid IS NULL OR settings_service.workspace_uuid = document.workspace_uuid) \
+          \                   ORDER BY settings_service.workspace_uuid NULLS LAST \
+          \                   LIMIT 1) service ON true \
           \LEFT JOIN user_entity ON user_entity.tenant_uuid = submission.tenant_uuid AND user_entity.uuid = submission.created_by \
-          \WHERE submission.tenant_uuid = ? AND document_uuid = ? \
+          \WHERE submission.tenant_uuid = ? AND submission.document_uuid = ? \
           \ORDER BY submission.created_at DESC"
   let params = [toField tenantUuid, toField documentUuid]
   logQuery sql params

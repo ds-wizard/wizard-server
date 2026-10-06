@@ -14,13 +14,13 @@ import Shared.Service.Coordinate.CoordinateValidation
 
 validateCreateDto :: WizardRequestContextC s m => KnowledgeModelEditorCreateDTO -> m ()
 validateCreateDto reqDto = do
-  validateCoordinatePartFormat "kmId" reqDto.kmId
+  validateIdentifierFormat "id" reqDto.id
   validateVersionFormat False reqDto.version
   validatePackageExistence reqDto.previousPackageUuid
 
 validateChangeDto :: WizardRequestContextC s m => KnowledgeModelEditorChangeDTO -> m ()
 validateChangeDto reqDto = do
-  validateCoordinatePartFormat "kmId" reqDto.kmId
+  validateIdentifierFormat "id" reqDto.id
   validateVersionFormat False reqDto.version
 
 validatePackageExistence :: WizardRequestContextC s m => Maybe U.UUID -> m ()

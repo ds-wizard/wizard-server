@@ -32,8 +32,7 @@ assertExistenceOfDraftDataInDB requestContext draftData = do
 -- --------------------------------
 compareDtos resDto expDto = do
   liftIO $ resDto.uuid `shouldBe` expDto.uuid
-  liftIO $ resDto.organizationId `shouldBe` expDto.organizationId
-  liftIO $ resDto.templateId `shouldBe` expDto.templateId
+  liftIO $ resDto.id `shouldBe` expDto.id
   liftIO $ resDto.version `shouldBe` expDto.version
   liftIO $ resDto.name `shouldBe` expDto.name
   liftIO $ resDto.description `shouldBe` expDto.description

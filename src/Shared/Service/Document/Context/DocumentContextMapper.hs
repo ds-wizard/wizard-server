@@ -17,8 +17,7 @@ import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Project.Version.ProjectVersionList
 import Shared.Model.Report.Report
-import Shared.Model.Tenant.Config.TenantConfig
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.User
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 
@@ -36,8 +35,8 @@ toDocumentContext
   -> DocumentTemplate
   -> Report
   -> KnowledgeModelPackage
-  -> TenantConfigOrganization
-  -> TenantConfigLookAndFeel
+  -> DocumentContextOrganization
+  -> SettingsLookAndFeel
   -> Maybe User
   -> Maybe User
   -> Maybe DocumentTemplateLocale
@@ -50,8 +49,6 @@ toDocumentContext doc appClientUrl project phaseUuid replies labels mProjectVers
         DocumentContextConfig
           { clientUrl = appClientUrl
           , appTitle = lookAndFeel.appTitle
-          , appTitleShort = lookAndFeel.appTitleShort
-          , illustrationsColor = lookAndFeel.illustrationsColor
           , primaryColor = lookAndFeel.primaryColor
           , logoUrl = lookAndFeel.logoUrl
           }
@@ -98,13 +95,11 @@ toDocumentContextPackage pkg =
    in DocumentContextPackage
         { uuid = pkg.uuid
         , name = dto.name
-        , organizationId = dto.organizationId
-        , kmId = pkg.kmId
+        , id = pkg.id
         , version = dto.version
         , versions = []
         , remoteLatestVersion = dto.remoteLatestVersion
         , description = dto.description
-        , organization = dto.organization
         , language = dto.language
         , createdAt = dto.createdAt
         }

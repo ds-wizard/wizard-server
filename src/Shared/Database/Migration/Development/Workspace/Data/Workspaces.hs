@@ -23,6 +23,8 @@ defaultWorkspace =
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , defaultRoleUuid = Just defaultWorkspaceUserRole.uuid
+    , logo = Nothing
+    , primaryColor = Nothing
     }
 
 defaultWorkspaceEdited :: Workspace
@@ -30,6 +32,7 @@ defaultWorkspaceEdited =
   defaultWorkspace
     { name = "EDITED: Default Tenant"
     , description = Just "EDITED: description"
+    , primaryColor = Just "#D81B60"
     }
 
 secondWorkspace :: Workspace
@@ -42,6 +45,8 @@ secondWorkspace =
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
     , defaultRoleUuid = Just secondWorkspaceUserRole.uuid
+    , logo = Nothing
+    , primaryColor = Just "#1565C0"
     }
 
 differentWorkspace :: Workspace
@@ -54,6 +59,8 @@ differentWorkspace =
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , defaultRoleUuid = Just differentWorkspaceUserRole.uuid
+    , logo = Nothing
+    , primaryColor = Nothing
     }
 
 workspaceCreate :: WorkspaceChangeDTO
@@ -61,6 +68,7 @@ workspaceCreate =
   WorkspaceChangeDTO
     { name = "New Workspace"
     , description = Just "A new workspace"
+    , primaryColor = Just "#2E7D32"
     }
 
 workspaceChange :: WorkspaceChangeDTO
@@ -68,6 +76,7 @@ workspaceChange =
   WorkspaceChangeDTO
     { name = "EDITED: Default Tenant"
     , description = Just "EDITED: description"
+    , primaryColor = Just "#D81B60"
     }
 
 workspaceMemberChange :: WorkspaceMemberChangeDTO

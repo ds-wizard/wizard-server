@@ -8,7 +8,7 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
 
 data DocumentTemplateDraftChangeDTO = DocumentTemplateDraftChangeDTO
   { name :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , phase :: DocumentTemplatePhase
   , description :: String

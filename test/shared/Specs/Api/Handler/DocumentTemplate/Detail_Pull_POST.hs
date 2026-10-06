@@ -56,6 +56,7 @@ create_test_201 title requestContext reqAuthHeader =
   it title $
     -- GIVEN: Prepare request
     do
+      pendingUntilRegistryTestUpgrade
       let reqHeaders = reqHeadersT reqAuthHeader
       -- AND: Prepare expectation
       let expStatus = 201
@@ -83,12 +84,13 @@ test_400 requestContext =
   it "HTTP 400 BAD REQUEST - DocumentTemplate was not found in Registry" $
     -- GIVEN: Prepare request
     do
-      let reqUrl = "/api/document-templates/global:non-existing-template:1.0.0/pull"
+      pendingUntilRegistryTestUpgrade
+      let reqUrl = "/api/document-templates/global.non-existing-template:1.0.0/pull"
       let reqHeaders = reqHeadersT reqAuthHeader
       -- AND: Prepare expectation
       let expStatus = 400
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = UserError (_ERROR_SERVICE_TB__PULL_NON_EXISTING_TML "global:non-existing-template:1.0.0")
+      let expDto = UserError (_ERROR_SERVICE_TB__PULL_NON_EXISTING_TML "global.non-existing-template:1.0.0")
       let expBody = encode expDto
       -- WHEN: Call APIA
       response <- request reqMethod reqUrl reqHeaders reqBody

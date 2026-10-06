@@ -30,12 +30,11 @@ findPackagesPage
   :: WizardRequestContextC s m
   => Maybe String
   -> Maybe String
-  -> Maybe String
   -> Maybe Bool
   -> Pageable
   -> [Sort]
   -> m (Page KnowledgeModelPackageList)
-findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort = do
+findPackagesPage mId mQuery mOutdated pageable sort = do
   workspaceCondition <- tenantOrWorkspaceCondition Nothing "knowledge_model_package.workspace_uuid"
   createFindEntitiesGroupByCoordinatePageableQuerySortFn
     entityName
@@ -43,12 +42,10 @@ findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort = do
     pageLabel
     pageable
     sort
-    "uuid, knowledge_model_package.name, knowledge_model_package.organization_id, knowledge_model_package.km_id, version, phase, description, non_editable, public, registry_knowledge_model_package.remote_version, registry_organization.name as org_name, registry_organization.logo as org_logo, knowledge_model_package.language, knowledge_model_package.created_at, knowledge_model_package.workspace_uuid"
-    "km_id"
+    "uuid, knowledge_model_package.name, knowledge_model_package.id, version, phase, description, non_editable, public, registry_knowledge_model_package.remote_version, knowledge_model_package.language, knowledge_model_package.created_at, knowledge_model_package.workspace_uuid"
     mQuery
     Nothing
-    mOrganizationId
-    mKmId
+    mId
     mOutdated
     ( case mOutdated of
         Just _ -> " AND is_outdated(registry_knowledge_model_package.remote_version, version) = ?"
@@ -60,7 +57,7 @@ findPackagesPage mOrganizationId mKmId mQuery mOutdated pageable sort = do
 findPackageSuggestionByUuid :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelPackageSuggestion
 findPackageSuggestionByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntityWithFieldsByFn "uuid, name, organization_id, km_id, version, description" False entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+  createFindEntityWithFieldsByFn "uuid, name, id, version, description" False entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
 findPackageSuggestionsPage :: WizardRequestContextC s m => Maybe String -> Maybe [Coordinate] -> Maybe [Coordinate] -> Maybe KnowledgeModelPackagePhase -> Maybe Bool -> Pageable -> [Sort] -> m (Page KnowledgeModelPackageSuggestion)
 findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase mNonEditable pageable sort =
@@ -73,15 +70,15 @@ findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase 
             Nothing -> ("", [])
             Just [] -> ("", [])
             Just selectCoordinates ->
-              let mapFn _ = " (organization_id = ? AND km_id = ?)"
-               in (" AND (" ++ L.intercalate " OR " (fmap mapFn selectCoordinates) ++ ")", concatMap (\c -> [c.organizationId, c.entityId]) selectCoordinates)
+              let mapFn _ = " id = ?"
+               in (" AND (" ++ L.intercalate " OR " (fmap mapFn selectCoordinates) ++ ")", fmap (.id) selectCoordinates)
     let (excludeCondition, excludeParams) =
           case mExcludeCoordinates of
             Nothing -> ("", [])
             Just [] -> ("", [])
             Just excludeCoordinates ->
-              let mapFn _ = " NOT(organization_id = ? AND km_id = ?)"
-               in (" AND (" ++ L.intercalate " AND " (fmap mapFn excludeCoordinates) ++ ")", concatMap (\c -> [c.organizationId, c.entityId]) excludeCoordinates)
+              let mapFn _ = " id != ?"
+               in (" AND (" ++ L.intercalate " AND " (fmap mapFn excludeCoordinates) ++ ")", fmap (.id) excludeCoordinates)
     let phaseCondition =
           case mPhase of
             Just phase -> f' "AND phase = '%s'" [show phase]
@@ -99,27 +96,25 @@ findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase 
             f'
               "SELECT uuid, \
               \       name, \
-              \       organization_id, \
-              \       km_id, \
+              \       id, \
               \       version, \
               \       description \
               \FROM knowledge_model_package outer_package \
-              \WHERE tenant_uuid = ? AND concat(organization_id, ':', km_id, ':', version, ':', workspace_uuid) IN ( \
-              \    SELECT CONCAT(organization_id, ':', km_id, ':', \
+              \WHERE tenant_uuid = ? AND concat(id, ':', version, ':', workspace_uuid) IN ( \
+              \    SELECT CONCAT(id, ':', \
               \                  (max(string_to_array(version, '.')::int[]))[1] || '.' || \
               \                  (max(string_to_array(version, '.')::int[]))[2] || '.' || \
               \                  (max(string_to_array(version, '.')::int[]))[3], ':', workspace_uuid) \
               \    FROM knowledge_model_package \
               \    WHERE tenant_uuid = ? \
-              \      AND (name ~* ? OR organization_id ~* ? OR km_id ~* ? OR version ~* ?) %s %s %s %s %s \
-              \    GROUP BY organization_id, km_id, workspace_uuid) \
+              \      AND (name ~* ? OR id ~* ? OR version ~* ?) %s %s %s %s %s \
+              \    GROUP BY id, workspace_uuid) \
               \%s \
               \OFFSET %s \
               \LIMIT %s"
               [selectCondition, excludeCondition, phaseCondition, nonEditableCondition, workspaceCondition, mapSort sort, show skip, show sizeI]
     let params =
           [U.toString tenantUuid, U.toString tenantUuid]
-            ++ [regexM mQuery]
             ++ [regexM mQuery]
             ++ [regexM mQuery]
             ++ [regexM mQuery]
@@ -147,11 +142,11 @@ countPackageSuggestions mQuery selectCondition excludeCondition selectParams exc
             "SELECT COUNT(*) \
             \FROM (SELECT COUNT(*) \
             \   FROM knowledge_model_package \
-            \   WHERE tenant_uuid = ? AND (name ~* ? OR organization_id ~* ? OR km_id ~* ? OR version ~* ?) %s %s %s %s \
-            \   GROUP BY organization_id, km_id, workspace_uuid) nested"
+            \   WHERE tenant_uuid = ? AND (name ~* ? OR id ~* ? OR version ~* ?) %s %s %s %s \
+            \   GROUP BY id, workspace_uuid) nested"
             [selectCondition, excludeCondition, phaseCondition, nonEditableCondition]
   let params =
-        [U.toString tenantUuid, regexM mQuery, regexM mQuery, regexM mQuery, regexM mQuery]
+        [U.toString tenantUuid, regexM mQuery, regexM mQuery, regexM mQuery]
           ++ selectParams
           ++ excludeParams
   logQuery sql params

@@ -11,17 +11,8 @@ import Shared.Database.DAO.Common (runDB)
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Plugin.PluginDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigAuthenticationDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigDashboardAndLoginScreenDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigFeaturesDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigLookAndFeelDAO
+import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOwlDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigPrivacyAndSupportDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigProjectDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigRegistryDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigSubmissionDAO
 import Shared.Database.DAO.Tenant.TenantLimitBundleDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.User.RoleDAO (insertRole)
@@ -54,10 +45,10 @@ import qualified Shared.Database.Migration.Development.Plugin.PluginSchemaMigrat
 import qualified Shared.Database.Migration.Development.Prefab.PrefabSchemaMigration as Prefab
 import qualified Shared.Database.Migration.Development.Project.ProjectSchemaMigration as Project
 import qualified Shared.Database.Migration.Development.Registry.RegistrySchemaMigration as Registry
+import Shared.Database.Migration.Development.Settings.Data.Settings
+import Shared.Database.Migration.Development.Settings.SettingsMigration
 import qualified Shared.Database.Migration.Development.Submission.SubmissionSchemaMigration as Submission
 import qualified Shared.Database.Migration.Development.TemporaryFile.TemporaryFileSchemaMigration as TemporaryFile
-import Shared.Database.Migration.Development.Tenant.Data.TenantConfigs
-import Shared.Database.Migration.Development.Tenant.Data.WizardTenantConfigs
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenantLimitBundles
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import qualified Shared.Database.Migration.Development.Tenant.TenantSchemaMigration as Tenant
@@ -72,8 +63,9 @@ import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLi
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import qualified Shared.Database.Migration.Development.Workspace.WorkspaceSchemaMigration as Workspace
 import Shared.Model.Cache.ServerCache
-import Shared.Model.Tenant.Config.TenantConfig
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Tenant.Config.TenantConfigMail
+import Shared.Model.Tenant.Config.TenantConfigMailDM
+import Shared.Model.Tenant.Tenant
 import Shared.Model.Workspace.Workspace
 import WizardServer.Model.Context.RequestContext
 
@@ -187,20 +179,9 @@ resetDBContent requestContext = do
   runInContext (insertWorkspace (defaultWorkspace {defaultRoleUuid = Nothing} :: Workspace)) requestContext
   runInContext (insertWorkspace (differentWorkspace {defaultRoleUuid = Nothing} :: Workspace)) requestContext
   runInContext (insertLimitBundle differentTenantLimitBundle) requestContext
-  runInContext (insertTenantConfigOrganization defaultOrganization) requestContext
-  runInContext (insertTenantConfigAuthentication defaultAuthenticationEncrypted) requestContext
-  runInContext (insertTenantConfigPrivacyAndSupport defaultPrivacyAndSupport) requestContext
-  runInContext (insertTenantConfigDashboardAndLoginScreen defaultDashboardAndLoginScreen) requestContext
-  runInContext (insertTenantConfigDashboardAndLoginScreenAnnouncement defaultDashboardAndLoginScreenAnnouncement) requestContext
-  runInContext (insertTenantConfigLookAndFeel defaultLookAndFeel) requestContext
-  runInContext (insertTenantConfigLookAndFeelCustomMenuLink defaultLookAndFeelCustomLink) requestContext
-  runInContext (insertTenantConfigRegistry defaultRegistryEncrypted) requestContext
-  runInContext (insertTenantConfigProject defaultProjectEncrypted) requestContext
-  runInContext (insertTenantConfigSubmission (defaultSubmission {services = []})) requestContext
-  runInContext (insertTenantConfigFeatures defaultFeatures) requestContext
-  runInContext (insertTenantConfigMail defaultMail) requestContext
-  runInContext (insertTenantConfigOwl defaultOwl) requestContext
-  runInContext (insertTenantConfigLookAndFeel (defaultLookAndFeel {tenantUuid = differentTenantUuid})) requestContext
+  runInContext (seedSettings defaultTenant.uuid) requestContext
+  runInContext (insertTenantConfigMail (defaultMail {tenantUuid = defaultTenant.uuid} :: TenantConfigMail)) requestContext
+  runInContext (saveSettingsLookAndFeel differentTenantUuid settingsLookAndFeel) requestContext
   runInContext (insertRole adminRole) requestContext
   runInContext (insertRole dataStewardRole) requestContext
   runInContext (insertRole researcherRole) requestContext
@@ -237,26 +218,30 @@ deleteAllEntitiesSql :: Query
 deleteAllEntitiesSql =
   fromString . intercalate "; " . fmap ("DELETE FROM " <>) $
     [ "external_link_usage"
-    , "registry_organization"
     , "registry_knowledge_model_package"
     , "registry_document_template"
     , "audit"
     , "prefab"
     , "persistent_command"
     , "submission"
-    , "config_owl"
     , "config_mail"
-    , "config_features"
-    , "config_submission"
-    , "config_project"
-    , "config_registry"
-    , "config_look_and_feel_custom_menu_link"
-    , "config_look_and_feel"
-    , "config_dashboard_and_login_screen_announcement"
-    , "config_dashboard_and_login_screen"
-    , "config_privacy_and_support"
-    , "config_authentication"
-    , "config_organization"
+    , "settings_features"
+    , "settings_submission_service_supported_format"
+    , "settings_submission_service_request_header"
+    , "settings_submission_service"
+    , "settings_submission"
+    , "settings_projects"
+    , "settings_registry"
+    , "settings_look_and_feel"
+    , "settings_dashboard_and_menu_custom_menu_link"
+    , "settings_dashboard_and_menu_announcement"
+    , "settings_dashboard_and_menu"
+    , "settings_login_screen_announcement"
+    , "settings_login_screen"
+    , "settings_support"
+    , "settings_roles"
+    , "settings_users"
+    , "settings_authentication"
     , "knowledge_model_migration"
     , "user_email_link"
     , "knowledge_model_editor"

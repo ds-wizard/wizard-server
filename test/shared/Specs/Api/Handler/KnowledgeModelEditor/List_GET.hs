@@ -55,6 +55,7 @@ list_GET requestContext =
     test_400 requestContext
     test_401 requestContext
     test_403 requestContext
+    test_403_not_member requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -143,12 +144,6 @@ test_200_workspace requestContext = do
     insertSecondWorkspace
     (BS.pack $ "/api/knowledge-model-editors?w=" ++ U.toString differentWorkspaceUuid)
     (Page "knowledgeModelEditors" (PageMetadata 20 0 0 0) [])
-  create_test_200_workspace
-    "HTTP 200 OK (not a member of w)"
-    requestContext
-    insertSecondWorkspaceWithoutCaller
-    (BS.pack $ "/api/knowledge-model-editors?w=" ++ U.toString secondWorkspaceUuid)
-    (Page "knowledgeModelEditors" (PageMetadata 20 0 0 0) [])
 
 test_200_workspace_role requestContext =
   it "HTTP 200 OK (workspace role grants the editors of its workspace only)" $
@@ -219,3 +214,6 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "knowledgeModels.useEditor"
+
+test_403_not_member requestContext =
+  createNotMemberTest requestContext (runInContextIO KnowledgeModelEditor.runMigration requestContext) reqMethod (BS.pack $ "/api/knowledge-model-editors?w=" ++ U.toString secondWorkspaceUuid) reqBody "knowledgeModels.useEditor"

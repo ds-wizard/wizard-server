@@ -15,7 +15,7 @@ import Shared.Model.Project.ProjectReply
 data KnowledgeModelEditorDetailDTO = KnowledgeModelEditorDetailDTO
   { uuid :: U.UUID
   , name :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
   , readme :: String
@@ -38,7 +38,7 @@ instance Eq KnowledgeModelEditorDetailDTO where
   a == b =
     a.uuid == b.uuid
       && a.name == b.name
-      && a.kmId == b.kmId
+      && a.id == b.id
       && a.version == b.version
       && a.description == b.description
       && a.readme == b.readme

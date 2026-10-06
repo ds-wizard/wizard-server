@@ -1,6 +1,6 @@
 module WizardServer.Api.Handler.Locale.List_DELETE where
 
-import Data.Maybe (catMaybes)
+import Data.Maybe (maybeToList)
 import Servant
 
 import Shared.Api.Handler.Common
@@ -12,8 +12,7 @@ type List_DELETE =
   Header "Authorization" String
     :> Header "Host" String
     :> "locales"
-    :> QueryParam "organizationId" String
-    :> QueryParam "localeId" String
+    :> QueryParam "id" String
     :> Verb DELETE 204 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] NoContent)
 
 list_DELETE
@@ -21,12 +20,11 @@ list_DELETE
   => Maybe String
   -> Maybe String
   -> Maybe String
-  -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] NoContent)
-list_DELETE mTokenHeader mServerUrl mOrganizationId mLocaleId =
+list_DELETE mTokenHeader mServerUrl mId =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService Transactional $
       addTraceUuidHeader =<< do
-        let queryParams = catMaybes [(,) "organization_id" <$> mOrganizationId, (,) "locale_id" <$> mLocaleId]
+        let queryParams = maybeToList ((,) "id" <$> mId)
         deleteLocalesByQueryParams queryParams
         return NoContent

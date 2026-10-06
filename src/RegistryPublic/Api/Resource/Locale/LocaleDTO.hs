@@ -4,17 +4,13 @@ import Data.Time
 import qualified Data.UUID as U
 import GHC.Generics
 
-import RegistryPublic.Model.Organization.OrganizationSimple
-
 data LocaleDTO = LocaleDTO
   { uuid :: U.UUID
   , name :: String
   , description :: String
   , code :: String
-  , organizationId :: String
-  , localeId :: String
+  , id :: String
   , version :: String
-  , organization :: Maybe OrganizationSimple
   , createdAt :: UTCTime
   }
   deriving (Show, Eq, Generic)

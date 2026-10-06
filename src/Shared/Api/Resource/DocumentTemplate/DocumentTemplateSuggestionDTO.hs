@@ -9,8 +9,7 @@ import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocaleList
 data DocumentTemplateSuggestionDTO = DocumentTemplateSuggestionDTO
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , description :: String
   , language :: String

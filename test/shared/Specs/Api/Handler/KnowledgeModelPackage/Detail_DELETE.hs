@@ -108,8 +108,8 @@ test_204_all_versions_tenant requestContext =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
       -- AND: Compare state in DB with expectation
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" Nothing) requestContext 0
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 1
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 0
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" (Just defaultWorkspaceUuid)) requestContext 1
 
 test_204_all_versions_workspace requestContext =
   it "HTTP 204 NO CONTENT (allVersions=true keeps the tenant plane)" $
@@ -129,8 +129,8 @@ test_204_all_versions_workspace requestContext =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
       -- AND: Compare state in DB with expectation
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" (Just defaultWorkspaceUuid)) requestContext 0
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" Nothing) requestContext 2
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" (Just defaultWorkspaceUuid)) requestContext 0
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 2
 
 test_204_dependents requestContext =
   it "HTTP 204 NO CONTENT (derived packages, editors and projects are deleted too)" $
@@ -148,7 +148,7 @@ test_204_dependents requestContext =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
       -- AND: Compare state in DB with expectation
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" Nothing) requestContext 0
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 0
       assertCountInDB findKnowledgeModelEditors requestContext 0
       assertCountInDB findProjects requestContext 0
 
@@ -169,7 +169,7 @@ test_400_hidden_dependents requestContext =
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
       response `shouldRespondWith` responseMatcher
       -- AND: Compare state in DB with expectation
-      assertCountInDB (findPackagesByOrganizationIdAndKmIdInWorkspace "org.nl" "core-nl" Nothing) requestContext 2
+      assertCountInDB (findPackagesByIdInWorkspace "org.nl.core-nl" Nothing) requestContext 2
       assertCountInDB findKnowledgeModelEditors requestContext 1
       assertCountInDB findProjects requestContext 1
 

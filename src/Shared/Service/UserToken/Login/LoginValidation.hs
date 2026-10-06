@@ -13,22 +13,22 @@ import Shared.Database.Mapping.UserEmailLink.UserEmailLinkType ()
 import Shared.Localization.Messages.UserToken.Public
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.Role
 import Shared.Model.User.User
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
-import Shared.Service.User.UserUtil
+import Shared.Util.Password
 
 validate :: WizardRequestContextC s m => LoginDTO -> User -> m ()
 validate reqDto user = do
   validateIsUserActive user
   validateUserPassword reqDto user
 
-validateLoginEnabled :: WizardRequestContextC s m => TenantConfigAuthentication -> User -> m ()
+validateLoginEnabled :: WizardRequestContextC s m => SettingsAuthentication -> User -> m ()
 validateLoginEnabled tcInternalAuthentication user = do
   role <- findRoleByUuid user.role.uuid
-  when (not tcInternalAuthentication.internal.nonAdminLoginEnabled && not role.isAdmin) $
+  when (not tcInternalAuthentication.nonAdminLoginEnabled && not role.isAdmin) $
     throwError . UserError $
       _ERROR_SERVICE_TOKEN__INCORRECT_EMAIL_OR_PASSWORD
 
@@ -44,12 +44,12 @@ validateUserPassword reqDto user =
     then return ()
     else throwError $ UserError _ERROR_SERVICE_TOKEN__INCORRECT_EMAIL_OR_PASSWORD
 
-validateCode :: WizardRequestContextC s m => User -> Int -> TenantConfigAuthentication -> m ()
+validateCode :: WizardRequestContextC s m => User -> Int -> SettingsAuthentication -> m ()
 validateCode user code tcAuthentication = do
   (mUserEmailLink :: Maybe (UserEmailLink U.UUID UserEmailLinkType)) <- findUserEmailLinkByIdentityAndHash' (U.toString user.uuid) (show code)
   case mUserEmailLink of
     Just userEmailLink -> do
-      let timeDelta = realToFrac . toInteger $ tcAuthentication.internal.twoFactorAuth.expiration
+      let timeDelta = realToFrac . toInteger $ tcAuthentication.twoFactorAuth.expiration
       now <- liftIO getCurrentTime
       when (addUTCTime timeDelta userEmailLink.createdAt < now) (throwError $ UserError _ERROR_SERVICE_TOKEN__CODE_IS_EXPIRED)
     Nothing -> throwError $ UserError _ERROR_SERVICE_TOKEN__INCORRECT_CODE

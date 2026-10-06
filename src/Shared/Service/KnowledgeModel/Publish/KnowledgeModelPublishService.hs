@@ -14,7 +14,6 @@ import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
@@ -22,7 +21,6 @@ import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.Tenant.Config.WizardTenantConfig
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import Shared.Service.KnowledgeModel.Editor.EditorAcl
 import Shared.Service.KnowledgeModel.Editor.EditorAudit
@@ -69,7 +67,7 @@ publishPackageFromMigration reqDto = do
     mForkOfPkg <- findPackageByUuid ms.targetPackageUuid
     let mForkOfPkgId = Just $ createCoordinate mForkOfPkg
     editorPreviousPackage <- findPackageByUuid ms.editorPreviousPackageUuid
-    let mMergeCheckpointPkgId = Just $ Coordinate {organizationId = editorPreviousPackage.organizationId, entityId = editorPreviousPackage.kmId, version = reqDto.version}
+    let mMergeCheckpointPkgId = Just $ Coordinate {id = editorPreviousPackage.id, version = reqDto.version}
     doPublishPackage
       reqDto.version
       kmEditor
@@ -96,12 +94,11 @@ doPublishPackage
   -> m KnowledgeModelPackageSimpleDTO
 doPublishPackage version kmEditor kmEvents description readme mForkOfPkgId mMergeCheckpointPkgId mLocaleUuids = do
   let squashedKmEvents = squash kmEvents
-  tcOrganization <- findTenantConfigOrganization
-  validateNewPackageVersion version kmEditor tcOrganization
+  validateNewPackageVersion version kmEditor
   uuid <- liftIO generateUuid
   now <- liftIO getCurrentTime
   workspaceUuid <- ownerWorkspaceUuid kmEditor.workspaceUuid
-  let (pkg, pkgEvents) = fromPackage kmEditor uuid workspaceUuid mForkOfPkgId mMergeCheckpointPkgId tcOrganization version description readme squashedKmEvents now
+  let (pkg, pkgEvents) = fromPackage kmEditor uuid workspaceUuid mForkOfPkgId mMergeCheckpointPkgId version description readme squashedKmEvents now
   createdPkg <- createPackage (pkg, pkgEvents)
   copyLocalesForPublishedPackage mLocaleUuids kmEditor.previousPackageUuid pkg.uuid
   let updatedKmEditor = kmEditor {previousPackageUuid = Just pkg.uuid, updatedAt = now} :: KnowledgeModelEditor

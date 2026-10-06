@@ -31,7 +31,7 @@ list_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/api/locales?organizationId=global&localeId=dutch"
+reqUrl = "/api/locales?id=global.dutch"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 

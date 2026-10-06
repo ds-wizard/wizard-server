@@ -12,8 +12,7 @@ import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
 data DocumentTemplateSuggestion = DocumentTemplateSuggestion
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , phase :: DocumentTemplatePhase
   , metamodelVersion :: SemVer2Tuple

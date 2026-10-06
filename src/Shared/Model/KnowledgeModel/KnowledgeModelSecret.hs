@@ -17,8 +17,8 @@ data KnowledgeModelSecret = KnowledgeModelSecret
 
 instance Eq KnowledgeModelSecret where
   a == b =
-    uuid a == uuid b
-      && name a == name b
-      && value a == value b
-      && tenantUuid a == tenantUuid b
-      && workspaceUuid a == workspaceUuid b
+    a.uuid == b.uuid
+      && a.name == b.name
+      && a.value == b.value
+      && a.tenantUuid == b.tenantUuid
+      && a.workspaceUuid == b.workspaceUuid

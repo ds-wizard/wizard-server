@@ -50,11 +50,8 @@ data ServerConfigGeneral = ServerConfigGeneral
   , secret :: String
   , rsaPrivateKey :: RSA.PrivateKey
   , integrationConfig :: String
-  }
-  deriving (Generic, Show)
-
-data ServerConfigUserEmailLink = ServerConfigUserEmailLink
-  { clean :: ServerConfigCronWorker
+  , privacyUrl :: Maybe String
+  , termsOfServiceUrl :: Maybe String
   }
   deriving (Generic, Show)
 

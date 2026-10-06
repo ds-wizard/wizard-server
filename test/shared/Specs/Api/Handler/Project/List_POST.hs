@@ -17,15 +17,18 @@ import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.Project.ProjectCreateDTO
 import Shared.Api.Resource.Project.ProjectCreateJM ()
 import Shared.Api.Resource.Project.ProjectDTO
+import Shared.Constant.Tenant
 import Shared.Constant.Workspace
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
+import Shared.Database.DAO.Settings.SettingsProjectsDAO
 import Shared.Database.DAO.User.UserDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
+import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Localization.Messages.Public
@@ -34,6 +37,7 @@ import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
+import Shared.Model.Settings.Settings
 import Shared.Model.User.RolePermission
 import Shared.Model.User.User
 import Shared.Model.Workspace.Workspace
@@ -54,6 +58,8 @@ list_POST requestContext =
   describe "POST /api/projects" $ do
     test_201 requestContext
     test_201_workspace requestContext
+    test_201_workspace_override requestContext
+    test_201_not_member requestContext
     test_400 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -217,6 +223,52 @@ create_test_201_workspace title requestContext anonymousSharingEnabled authHeade
       projectInDB <- getOneFromDB (findProjectByUuid resBody.uuid) requestContext
       liftIO $ projectInDB.workspaceUuid `shouldBe` secondWorkspace.uuid
       liftIO $ projectInDB.creatorUuid `shouldBe` expCreatorUuid
+
+test_201_workspace_override requestContext =
+  it "HTTP 201 CREATED (the projects override of the workspace sets the visibility)" $ do
+    -- GIVEN: Prepare request
+    let reqHeaders = reqHeadersT [reqAuthHeader]
+    let reqBody = reqBodyT project1Create
+    -- AND: Prepare expectation
+    let visibility = SettingsProjectsVisibility {enabled = False, defaultValue = VisibleViewProjectVisibility}
+    let override = settingsProjects {projectVisibility = visibility} :: SettingsProjects
+    -- AND: Run migrations
+    runInContextIO TML.runMigration requestContext
+    runInContextIO (insertPackage germanyKmPackage) requestContext
+    runInContextIO (traverse_ insertPackageEvent germanyKmPackageEvents) requestContext
+    runInContextIO deleteProjects requestContext
+    insertSecondWorkspace requestContext
+    runInContextIO (saveSettingsProjects defaultTenantUuid (Just secondWorkspaceUuid) override) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod (reqUrl <> "?w=3f2b1c0d-9e8f-4a7b-b6c5-d4e3f2a1b0c9") reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let (status, _, resBody) = destructResponse response :: (Int, ResponseHeaders, ProjectDTO)
+    assertResStatus status 201
+    liftIO $ resBody.visibility `shouldBe` VisibleViewProjectVisibility
+    -- AND: Find a result in DB
+    projectInDB <- getOneFromDB (findProjectByUuid resBody.uuid) requestContext
+    liftIO $ projectInDB.visibility `shouldBe` VisibleViewProjectVisibility
+
+test_201_not_member requestContext =
+  it "HTTP 201 CREATED (not a member of w, no owner permission)" $ do
+    -- GIVEN: Prepare request
+    let reqHeaders = reqHeadersT [reqAuthHeader]
+    let reqBody = reqBodyT project1Create
+    -- AND: Run migrations
+    runInContextIO TML.runMigration requestContext
+    runInContextIO (insertPackage germanyKmPackage) requestContext
+    runInContextIO (traverse_ insertPackageEvent germanyKmPackageEvents) requestContext
+    runInContextIO deleteProjects requestContext
+    insertSecondWorkspaceWithoutMember requestContext
+    -- WHEN: Call API
+    response <- request reqMethod (reqUrl <> "?w=" <> BS.pack (U.toString secondWorkspaceUuid)) reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let (status, _, resBody) = destructResponse response :: (Int, ResponseHeaders, ProjectDTO)
+    assertResStatus status 201
+    -- AND: Find a result in DB
+    projectInDB <- getOneFromDB (findProjectByUuid resBody.uuid) requestContext
+    liftIO $ projectInDB.permissions `shouldBe` []
+    liftIO $ projectInDB.creatorUuid `shouldBe` Just userAlbert.uuid
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

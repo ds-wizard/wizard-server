@@ -70,7 +70,7 @@ pullBundleFromRegistry coordinate =
   runInTransaction $ do
     workspaceUuid <- requireTenantOrWorkspaceScope
     checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
-    checkDocumentTemplateLimit coordinate.organizationId coordinate.entityId
+    checkDocumentTemplateLimit coordinate.id
     tb <- catchError (retrieveDocumentTemplateBundleByCoordinate coordinate) handleError
     importAndConvertBundle tb True
   where
@@ -85,7 +85,7 @@ importAndConvertBundle contentS fromRegistry =
     Right (bundle, assetContents) -> do
       workspaceUuid <- requireTenantOrWorkspaceScope
       checkLibraryPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION workspaceUuid
-      checkDocumentTemplateLimit bundle.organizationId bundle.templateId
+      checkDocumentTemplateLimit bundle.id
       let assetSize = foldl (\acc (_, content) -> acc + (fromIntegral . BS.length $ content)) 0 assetContents
       checkStorageSize assetSize
       uuid <- liftIO generateUuid

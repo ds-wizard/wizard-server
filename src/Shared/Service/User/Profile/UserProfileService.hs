@@ -12,6 +12,7 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserLocaleDTO
 import Shared.Api.Resource.User.UserPasswordDTO
 import Shared.Api.Resource.User.UserProfileChangeDTO
+import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserSubmissionPropDAO
 import Shared.Database.DAO.UserEmailLink.UserEmailLinkDAO
@@ -22,7 +23,7 @@ import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.User.RolePermission
 import Shared.Model.User.User
 import Shared.Model.User.UserSubmissionPropEM ()
@@ -30,13 +31,13 @@ import Shared.Model.User.UserSubmissionPropList
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
 import Shared.Service.Mail.Mailer
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.SettingsService
 import Shared.Service.User.Profile.UserProfileMapper
 import Shared.Service.User.Profile.UserProfileValidation
-import Shared.Service.User.UserService
 import Shared.Service.User.UserValidation
 import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
+import Shared.Util.Password
 
 getUserProfile :: WizardRequestContextC s m => m UserDTO
 getUserProfile = getCurrentUser
@@ -64,9 +65,9 @@ modifyUserProfile reqDto = do
 
 changeUserProfilePassword :: WizardRequestContextC s m => U.UUID -> UserPasswordDTO -> m ()
 changeUserProfilePassword userUuid reqDto = do
-  tcAuthentication <- getCurrentTenantConfigAuthentication
+  tcAuthentication <- getCurrentSettings findSettingsAuthentication
   user <- findUserByUuid userUuid
-  when (not tcAuthentication.internal.nonAdminLoginEnabled && notElem _USERS_MANAGE_ROLE_PERMISSION user.role.permissions) $
+  when (not tcAuthentication.nonAdminLoginEnabled && notElem _USERS_MANAGE_ROLE_PERMISSION user.role.permissions) $
     throwError . UserError $
       _ERROR_SERVICE_TOKEN__INCORRECT_EMAIL_OR_PASSWORD
   passwordHash <- generatePasswordHash reqDto.password

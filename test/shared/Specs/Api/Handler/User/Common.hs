@@ -16,7 +16,7 @@ import Shared.Model.Tenant.Tenant
 import Shared.Model.User.User
 import Shared.Model.User.UserSubmissionProp
 import Shared.Model.User.UserToken
-import Shared.Service.User.UserUtil
+import Shared.Util.Password
 import WizardServer.Model.Context.RequestContext
 
 import Specs.Common

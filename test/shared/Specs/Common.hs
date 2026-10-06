@@ -10,11 +10,11 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Common
 
-runInContext action requestContext =
-  runExceptT . runStdoutLoggingT . filterLogger filterJustError $ runReaderT (runRequestContextM action) requestContext
+runInContext (RequestContextM action) requestContext =
+  runExceptT . runStdoutLoggingT . filterLogger filterJustError $ runReaderT action requestContext
 
-runInContextIO action requestContext =
-  liftIO . runExceptT $ runStdoutLoggingT . filterLogger filterJustError $ runReaderT (runRequestContextM action) requestContext
+runInContextIO (RequestContextM action) requestContext =
+  liftIO . runExceptT $ runStdoutLoggingT . filterLogger filterJustError $ runReaderT action requestContext
 
 shouldSucceed requestContext fn = do
   result <- runInContext fn requestContext

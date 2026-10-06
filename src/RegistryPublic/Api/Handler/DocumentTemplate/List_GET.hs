@@ -10,16 +10,7 @@ import Shared.Model.Common.SemVer2Tuple
 type List_GET =
   Header "Authorization" String
     :> "document-templates"
-    :> QueryParam "organizationId" String
-    :> QueryParam "templateId" String
-    :> QueryParam "metamodelVersion" SemVer2Tuple
-    :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] [DocumentTemplateSimpleDTO])
-
-type Templates__List_GET =
-  Header "Authorization" String
-    :> "templates"
-    :> QueryParam "organizationId" String
-    :> QueryParam "templateId" String
+    :> QueryParam "id" String
     :> QueryParam "metamodelVersion" SemVer2Tuple
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] [DocumentTemplateSimpleDTO])
 

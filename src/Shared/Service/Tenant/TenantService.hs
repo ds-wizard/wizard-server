@@ -10,17 +10,8 @@ import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantDetailDTO
 import Shared.Database.DAO.Locale.LocaleDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigAuthenticationDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigDashboardAndLoginScreenDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigFeaturesDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigLookAndFeelDAO
+import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOwlDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigPrivacyAndSupportDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigProjectDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigRegistryDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigSubmissionDAO
 import Shared.Database.DAO.Tenant.TenantDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.User.RoleDAO
@@ -33,14 +24,14 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Locale.Locale
 import Shared.Model.Locale.LocaleDM
-import Shared.Model.PersistentCommand.Tenant.CreateTenantCommand
-import Shared.Model.Tenant.Config.TenantConfig
-import Shared.Model.Tenant.Config.TenantConfigDM
-import Shared.Model.Tenant.Config.WizardTenantConfig
-import Shared.Model.Tenant.Config.WizardTenantConfigDM
+import Shared.Model.Settings.Settings
+import Shared.Model.Tenant.Config.TenantConfigMail
+import Shared.Model.Tenant.Config.TenantConfigMailDM
 import Shared.Model.Tenant.Tenant
 import Shared.Model.Tenant.TenantSuggestion
 import Shared.Model.User.Role
+import Shared.Service.Settings.SettingsCreationService
+import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantMapper
 import Shared.Service.Tenant.TenantUtil
@@ -110,12 +101,6 @@ createTenantByAdmin reqDto = do
     createLocale uuid now
     return $ toDTO tenant Nothing Nothing
 
-createTenantByCommand :: WizardRequestContextC s m => CreateTenantCommand -> m ()
-createTenantByCommand command = do
-  now <- liftIO getCurrentTime
-  tenant <- findTenantByUuid command.uuid
-  createWizardConfig tenant.uuid now
-
 getTenantByUuid :: WizardRequestContextC s m => U.UUID -> m TenantDetailDTO
 getTenantByUuid uuid = do
   checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
@@ -123,10 +108,8 @@ getTenantByUuid uuid = do
   usage <- getUsage uuid
   allUsers <- findUsersWithTenantFiltered uuid []
   let users = filter (elem _USERS_MANAGE_ROLE_PERMISSION . (.role.permissions)) allUsers
-  tcLookAndFeel <- findTenantConfigLookAndFeelByUuid uuid
-  let mLogoUrl = tcLookAndFeel.logoUrl
-  let mPrimaryColor = tcLookAndFeel.primaryColor
-  return $ toDetailDTO tenant mLogoUrl mPrimaryColor usage users
+  lookAndFeel <- getSettingsByTenantUuid findSettingsLookAndFeel uuid
+  return $ toDetailDTO tenant lookAndFeel.logoUrl lookAndFeel.primaryColor usage users
 
 modifyTenant :: WizardRequestContextC s m => U.UUID -> TenantChangeDTO -> m Tenant
 modifyTenant uuid reqDto = do
@@ -165,24 +148,10 @@ createAdminRole tenantUuid now = do
   return role
 
 createConfig :: WizardRequestContextC s m => U.UUID -> U.UUID -> UTCTime -> m ()
-createConfig uuid defaultRoleUuid now = do
+createConfig uuid defaultRoleUuid now =
   runInTransaction $ do
-    insertTenantConfigOrganization (defaultOrganization {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigOrganization)
-    insertTenantConfigAuthentication (defaultAuthentication {tenantUuid = uuid, defaultRoleUuid = defaultRoleUuid, createdAt = now, updatedAt = now} :: TenantConfigAuthentication)
-    insertTenantConfigPrivacyAndSupport (defaultPrivacyAndSupport {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigPrivacyAndSupport)
-    insertTenantConfigDashboardAndLoginScreen (defaultDashboardAndLoginScreen {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigDashboardAndLoginScreen)
-    insertTenantConfigLookAndFeel (defaultLookAndFeel {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigLookAndFeel)
-    insertTenantConfigMail (defaultMail {tenantUuid = uuid, createdAt = now, updatedAt = now})
-    insertTenantConfigFeatures (defaultFeatures {tenantUuid = uuid, createdAt = now, updatedAt = now})
-    createWizardConfig uuid now
-
-createWizardConfig :: WizardRequestContextC s m => U.UUID -> UTCTime -> m ()
-createWizardConfig uuid now = do
-  runInTransaction $ do
-    insertTenantConfigRegistry (defaultRegistry {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigRegistry)
-    insertTenantConfigProject (defaultProject {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigProject)
-    insertTenantConfigSubmission (defaultSubmission {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigSubmission)
-    void $ insertTenantConfigOwl (defaultOwl {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigOwl)
+    createSettings uuid defaultRoleUuid
+    void $ insertTenantConfigMail (defaultMail {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigMail)
 
 createLocale :: WizardRequestContextC s m => U.UUID -> UTCTime -> m Locale
 createLocale tntUuid now = do

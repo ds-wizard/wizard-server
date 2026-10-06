@@ -1,8 +1,12 @@
 module Shared.Util.Swagger where
 
 import Data.Aeson
+import Data.Functor.Const
 import Data.Functor.Identity
+import qualified Data.HashSet.InsOrd as InsOrdHS
+import Data.List (nub, sortOn)
 import Data.Swagger
+import qualified Data.Text as T
 
 import Shared.Util.Aeson
 
@@ -31,7 +35,7 @@ changePageFields "entities" = "_embedded"
 changePageFields field = field
 
 normalizeSwagger :: Swagger -> Swagger
-normalizeSwagger = runIdentity . allOperations (Identity . updateOperation)
+normalizeSwagger = sortTags . runIdentity . allOperations (Identity . updateOperation)
   where
     updateOperation operation =
       let params = fmap updateParam <$> operation._operationParameters
@@ -49,3 +53,9 @@ normalizeSwagger = runIdentity . allOperations (Identity . updateOperation)
       case paramSchema._paramSchemaItems of
         Just (SwaggerItemsPrimitive Nothing items) -> paramSchema {_paramSchemaItems = Just (SwaggerItemsPrimitive (Just CollectionCSV) items)}
         _ -> paramSchema
+
+sortTags :: Swagger -> Swagger
+sortTags s =
+  let names = getConst (allOperations (Const . InsOrdHS.toList . _operationTags) s)
+      tags = fmap (\name -> Tag name Nothing Nothing) . sortOn T.toLower . nub $ names
+   in s {_swaggerTags = InsOrdHS.fromList tags}

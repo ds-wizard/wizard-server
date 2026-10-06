@@ -34,10 +34,8 @@ toSimple pkg =
 toKnowledgeModelBundlePackage :: KnowledgeModelPackage -> [KnowledgeModelPackageEvent] -> Maybe Coordinate -> KnowledgeModelBundlePackage
 toKnowledgeModelBundlePackage pkg pkgEvents previousPackageCoordinate =
   KnowledgeModelBundlePackage
-    { pId = createCoordinate pkg
-    , name = pkg.name
-    , organizationId = pkg.organizationId
-    , kmId = pkg.kmId
+    { name = pkg.name
+    , id = pkg.id
     , version = pkg.version
     , phase = pkg.phase
     , metamodelVersion = pkg.metamodelVersion
@@ -58,8 +56,7 @@ fromKnowledgeModelBundlePackage dto pkgUuid previousPackageUuid tenantUuid works
   ( KnowledgeModelPackage
       { uuid = pkgUuid
       , name = dto.name
-      , organizationId = dto.organizationId
-      , kmId = dto.kmId
+      , id = dto.id
       , version = dto.version
       , phase = dto.phase
       , metamodelVersion = dto.metamodelVersion

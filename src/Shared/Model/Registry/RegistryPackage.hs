@@ -4,8 +4,7 @@ import Data.Time
 import GHC.Generics
 
 data RegistryPackage = RegistryPackage
-  { organizationId :: String
-  , kmId :: String
+  { id :: String
   , remoteVersion :: String
   , createdAt :: UTCTime
   }

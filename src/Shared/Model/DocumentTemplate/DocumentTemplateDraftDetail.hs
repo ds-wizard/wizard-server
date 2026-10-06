@@ -12,7 +12,7 @@ import Shared.Model.Project.ProjectSuggestion
 data DocumentTemplateDraftDetail = DocumentTemplateDraftDetail
   { uuid :: U.UUID
   , name :: String
-  , templateId :: String
+  , id :: String
   , version :: String
   , description :: String
   , readme :: String

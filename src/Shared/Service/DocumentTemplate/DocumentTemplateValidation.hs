@@ -1,8 +1,7 @@
 module Shared.Service.DocumentTemplate.DocumentTemplateValidation where
 
-import Control.Monad (unless, when)
+import Control.Monad (when)
 import Control.Monad.Except (throwError)
-import Data.Maybe (maybeToList)
 import qualified Data.UUID as U
 import GHC.Records
 
@@ -17,9 +16,11 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
+import Shared.Service.Coordinate.CoordinateValidation
 
 validateNewDocumentTemplate :: WizardRequestContextC s m => DocumentTemplate -> Bool -> m ()
 validateNewDocumentTemplate dt shouldValidateMetamodelVersion = do
+  validateIdentifierFormat "id" dt.id
   validateDocumentTemplateIdUniqueness (createCoordinate dt) dt.workspaceUuid
   when shouldValidateMetamodelVersion (validateMetamodelVersion dt)
 
@@ -34,11 +35,8 @@ validatePhase uuid newPhase = do
 
 validateDocumentTemplateIdUniqueness :: WizardRequestContextC s m => Coordinate -> Maybe U.UUID -> m ()
 validateDocumentTemplateIdUniqueness coordinate mWorkspaceUuid = do
-  dts <-
-    case mWorkspaceUuid of
-      Just _ -> maybeToList <$> findDocumentTemplateByCoordinate' coordinate mWorkspaceUuid
-      Nothing -> findDocumentTemplatesFiltered [("organization_id", coordinate.organizationId), ("template_id", coordinate.entityId), ("version", coordinate.version)]
-  unless (null dts) (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate))
+  dts <- findDocumentTemplatesByIdInWorkspace coordinate.id mWorkspaceUuid
+  when (any (\dt -> dt.version == coordinate.version) dts) (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_ID_UNIQUENESS (show coordinate))
 
 validateMetamodelVersion :: WizardRequestContextC s m => DocumentTemplate -> m ()
 validateMetamodelVersion dt =

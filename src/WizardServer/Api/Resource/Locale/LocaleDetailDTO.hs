@@ -5,15 +5,13 @@ import qualified Data.UUID as U
 import GHC.Generics
 
 import Shared.Api.Resource.Version.VersionDTO
-import Shared.Model.Registry.RegistryOrganization
 
 data LocaleDetailDTO = LocaleDetailDTO
   { uuid :: U.UUID
   , name :: String
   , description :: String
   , code :: String
-  , organizationId :: String
-  , localeId :: String
+  , id :: String
   , version :: String
   , defaultLocale :: Bool
   , license :: String
@@ -22,7 +20,6 @@ data LocaleDetailDTO = LocaleDetailDTO
   , enabled :: Bool
   , versions :: [VersionDTO]
   , remoteLatestVersion :: Maybe String
-  , organization :: Maybe RegistryOrganization
   , registryLink :: Maybe String
   , createdAt :: UTCTime
   , updatedAt :: UTCTime

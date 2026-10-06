@@ -38,8 +38,7 @@ instance FromRow ProjectDetailSettings where
     permissions <- loadPermissions uuid
     knowledgeModelPackageUuid <- field
     knowledgeModelPackageName <- field
-    knowledgeModelPackageOrganizationId <- field
-    knowledgeModelPackageKmId <- field
+    knowledgeModelPackageId <- field
     knowledgeModelPackageVersion <- field
     knowledgeModelPackagePhase <- field
     knowledgeModelPackageDescription <- field
@@ -52,13 +51,11 @@ instance FromRow ProjectDetailSettings where
           KnowledgeModelPackageSimpleDTO
             { uuid = knowledgeModelPackageUuid
             , name = knowledgeModelPackageName
-            , organizationId = knowledgeModelPackageOrganizationId
-            , kmId = knowledgeModelPackageKmId
+            , id = knowledgeModelPackageId
             , version = knowledgeModelPackageVersion
             , phase = knowledgeModelPackagePhase
             , remoteLatestVersion = Nothing
             , description = knowledgeModelPackageDescription
-            , organization = Nothing
             , nonEditable = knowledgeModelPackageNonEditable
             , public = knowledgeModelPackagePublic
             , language = knowledgeModelPackageLanguage
@@ -69,7 +66,6 @@ instance FromRow ProjectDetailSettings where
     let availableLocales = []
     mDocumentTemplateId <- field
     mDocumentTemplateName <- field
-    mDocumentTemplateOrganizationId <- field
     mDocumentTemplateTemplateId <- field
     mDocumentTemplateVersion <- field
     mDocumentTemplatePhase <- field
@@ -78,14 +74,13 @@ instance FromRow ProjectDetailSettings where
     mDocumentTemplateFormats <- fieldWith (optionalField fromJSONField)
     mDocumentTemplateLocales <- fieldWith (optionalField fromJSONField)
     let documentTemplate =
-          case (mDocumentTemplateId, mDocumentTemplateName, mDocumentTemplateOrganizationId, mDocumentTemplateTemplateId, mDocumentTemplateVersion, mDocumentTemplateDescription, mDocumentTemplateLanguage, mDocumentTemplateFormats, mDocumentTemplateLocales) of
-            (Just documentTemplateUuid, Just documentTemplateName, Just documentTemplateOrganizationId, Just documentTemplateTemplateId, Just documentTemplateVersion, Just documentTemplateDescription, Just documentTemplateLanguage, Just documentTemplateFormats, Just documentTemplateLocales) ->
+          case (mDocumentTemplateId, mDocumentTemplateName, mDocumentTemplateTemplateId, mDocumentTemplateVersion, mDocumentTemplateDescription, mDocumentTemplateLanguage, mDocumentTemplateFormats, mDocumentTemplateLocales) of
+            (Just documentTemplateUuid, Just documentTemplateName, Just documentTemplateTemplateId, Just documentTemplateVersion, Just documentTemplateDescription, Just documentTemplateLanguage, Just documentTemplateFormats, Just documentTemplateLocales) ->
               Just $
                 DocumentTemplateSuggestionDTO
                   { uuid = documentTemplateUuid
                   , name = documentTemplateName
-                  , organizationId = documentTemplateOrganizationId
-                  , templateId = documentTemplateTemplateId
+                  , id = documentTemplateTemplateId
                   , version = documentTemplateVersion
                   , description = documentTemplateDescription
                   , language = documentTemplateLanguage

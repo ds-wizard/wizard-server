@@ -19,7 +19,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
-import Specs.Api.Handler.Config.Common
+import Specs.Api.Handler.Settings.Common (compareDtos)
 import Specs.Api.Handler.User.PluginSettings.Common
 import Specs.Common
 

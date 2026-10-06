@@ -114,20 +114,6 @@ findUserGroupUuidsInWorkspaceByUserUuid workspaceUuid userUuid = do
   let action conn = query conn sql params
   fmap (fmap fromOnly) (runDB action)
 
-insertMissingWorkspaceMemberships :: RequestContextC s sc m => U.UUID -> U.UUID -> m Int64
-insertMissingWorkspaceMemberships workspaceUuid tenantUuid = do
-  let sql =
-        fromString
-          "INSERT INTO workspace_membership (workspace_uuid, user_uuid, tenant_uuid, created_at, role_uuid) \
-          \SELECT workspace.uuid, user_entity.uuid, user_entity.tenant_uuid, now(), workspace.default_role_uuid \
-          \FROM user_entity JOIN workspace ON workspace.uuid = ? \
-          \WHERE user_entity.tenant_uuid = ? \
-          \ON CONFLICT DO NOTHING"
-  let params = [toField workspaceUuid, toField tenantUuid]
-  logQuery sql params
-  let action conn = execute conn sql params
-  runDB action
-
 deleteUserGroupMembershipsInWorkspaceByUserUuid :: RequestContextC s sc m => U.UUID -> U.UUID -> m Int64
 deleteUserGroupMembershipsInWorkspaceByUserUuid workspaceUuid userUuid = do
   tenantUuid <- asks (.tenantUuid')

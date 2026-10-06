@@ -16,8 +16,8 @@ data UserEmailLink identity aType = UserEmailLink
 
 instance (Eq identity, Eq aType) => Eq (UserEmailLink identity aType) where
   a == b =
-    uuid a == uuid b
-      && identity a == identity b
-      && aType a == aType b
-      && hash a == hash b
-      && tenantUuid a == tenantUuid b
+    a.uuid == b.uuid
+      && a.identity == b.identity
+      && a.aType == b.aType
+      && a.hash == b.hash
+      && a.tenantUuid == b.tenantUuid

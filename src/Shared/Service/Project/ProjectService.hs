@@ -56,7 +56,7 @@ import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectContent
 import Shared.Model.Project.ProjectReply
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import qualified Shared.Service.DocumentTemplate.DocumentTemplateMapper as STM
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper as KnowledgeModelLocaleMapper
@@ -73,7 +73,7 @@ import Shared.Service.Project.ProjectMapper
 import Shared.Service.Project.ProjectUtil
 import Shared.Service.Project.ProjectValidation
 import Shared.Service.Project.Version.ProjectVersionService
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.List
@@ -122,7 +122,7 @@ createProjectWithGivenUuid reqDto projectUuid =
   runInTransaction $ do
     workspaceUuid <- requireWorkspaceScope
     checkProjectLimit
-    checkCreatePermissionToProject
+    checkCreatePermissionToProject workspaceUuid
     pkg <- findPackageByUuid reqDto.knowledgeModelPackageUuid
     checkPackageWorkspace workspaceUuid pkg.workspaceUuid
     forM_ reqDto.documentTemplateUuid (checkTemplateWorkspaceByUuid workspaceUuid)
@@ -130,9 +130,10 @@ createProjectWithGivenUuid reqDto projectUuid =
     documentTemplateState <- getDocumentTemplateProjectState reqDto.documentTemplateUuid (Just workspaceUuid)
     now <- liftIO getCurrentTime
     tenantUuid <- asks (.tenantUuid')
-    visibility <- extractVisibility reqDto
-    sharing <- extractSharing reqDto
+    visibility <- extractVisibility workspaceUuid reqDto
+    sharing <- extractSharing workspaceUuid reqDto
     mCurrentUser <- asks (.currentUser')
+    permissions <- ownerPermissionsIfMember workspaceUuid projectUuid
     knowledgeModel <- compileKnowledgeModel [] (Just pkg.uuid) reqDto.questionTagUuids
     phaseEventUuid <- liftIO generateUuid
     let (project, projectEvents) =
@@ -142,6 +143,7 @@ createProjectWithGivenUuid reqDto projectUuid =
             visibility
             sharing
             (fmap (.uuid) mCurrentUser)
+            permissions
             pkg.uuid
             phaseEventUuid
             (headSafe knowledgeModel.phaseUuids)
@@ -164,11 +166,11 @@ createProjectFromTemplate reqDto =
     newProjectUuid <- liftIO generateUuid
     currentUser <- getCurrentUser
     now <- liftIO getCurrentTime
-    tcProject <- getCurrentTenantConfigProject
+    tcProject <- getEffectiveSettingsProjects (Just originProject.workspaceUuid)
     originProjectEvents <- findProjectEventListsByProjectUuid reqDto.projectUuid
     let newVisibility = tcProject.projectVisibility.defaultValue
     let newSharing = tcProject.projectSharing.defaultValue
-    let newPermissions = [toUserProjectPerm newProjectUuid currentUser.uuid ownerPermissions tcProject.tenantUuid]
+    newPermissions <- ownerPermissionsIfMember originProject.workspaceUuid newProjectUuid
     let newProject =
           originProject
             { uuid = newProjectUuid
@@ -207,8 +209,8 @@ cloneProject cloneUuid =
     currentUser <- getCurrentUser
     now <- liftIO getCurrentTime
     originProjectEvents <- findProjectEventListsByProjectUuid originProject.uuid
-    let ownerPerm = toUserProjectPerm newProjectUuid currentUser.uuid ownerPermissions originProject.tenantUuid
-    let newPermissions = ownerPerm : removeUserPermission currentUser.uuid originProject.permissions
+    ownerPerms <- ownerPermissionsIfMember originProject.workspaceUuid newProjectUuid
+    let newPermissions = ownerPerms ++ removeUserPermission currentUser.uuid originProject.permissions
     let newDuplicatedPermissions = fmap (\permission -> permission {projectUuid = newProjectUuid} :: ProjectPerm) newPermissions
     let newProject =
           originProject
@@ -238,11 +240,12 @@ createProjectsFromCommands = runInTransaction . traverse_ create
       uuid <- liftIO generateUuid
       currentUser <- getCurrentUser
       now <- liftIO getCurrentTime
-      tcProject <- getCurrentTenantConfigProject
       users <- findUsersByEmails (fmap (fmap toLower) command.emails)
       workspaceUuid <- resolveCommandWorkspaceUuid command.workspaceUuid
+      tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
+      tenantUuid <- asks (.tenantUuid')
       let permissions = fmap (createPermission uuid) users
-      let project = fromCreateProjectCommand command uuid permissions tcProject currentUser.uuid workspaceUuid now
+      let project = fromCreateProjectCommand command uuid permissions tcProject tenantUuid currentUser.uuid workspaceUuid now
       insertProject project
       return ()
     createPermission :: U.UUID -> User -> ProjectPerm
@@ -330,8 +333,8 @@ modifyProjectShare projectUuid reqDto =
     skipIfAssigningProject project (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
     validateProjectShareChangeDTO project.workspaceUuid reqDto
     now <- liftIO getCurrentTime
-    qVisibility <- extractVisibility reqDto
-    qSharing <- extractSharing reqDto
+    qVisibility <- extractVisibility project.workspaceUuid reqDto
+    qSharing <- extractSharing project.workspaceUuid reqDto
     let updatedProject = fromShareChangeDTO project reqDto qVisibility qSharing now
     updateProjectByUuid updatedProject
     updatePermsForOnlineUsers projectUuid project.workspaceUuid updatedProject.visibility updatedProject.sharing updatedProject.permissions
@@ -428,6 +431,16 @@ cleanProjects =
           deleteProject project.uuid False
       )
       projects
+
+ownerPermissionsIfMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m [ProjectPerm]
+ownerPermissionsIfMember workspaceUuid projectUuid = do
+  mCurrentUser <- asks (.currentUser')
+  tenantUuid <- asks (.tenantUuid')
+  case mCurrentUser of
+    Just user -> do
+      isMember <- isWorkspaceMember workspaceUuid user.uuid
+      return [toUserProjectPerm projectUuid user.uuid ownerPermissions tenantUuid | isMember]
+    Nothing -> return []
 
 cloneProjectEvents :: WizardRequestContextC s m => [ProjectEventList] -> m [ProjectEventList]
 cloneProjectEvents oldEvents = do

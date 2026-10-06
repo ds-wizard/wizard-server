@@ -13,8 +13,6 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Constant.Locale
 import Shared.Database.DAO.Locale.LocaleDAO
 import Shared.Database.DAO.Registry.RegistryLocaleDAO
-import Shared.Database.DAO.Registry.RegistryOrganizationDAO
-import Shared.Database.DAO.Tenant.Config.TenantConfigOrganizationDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Common.Page
@@ -26,13 +24,13 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Locale.Locale
 import Shared.Model.Locale.LocaleSimple
 import Shared.Model.Locale.LocaleSuggestion
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Tenant
 import Shared.S3.Locale.LocaleS3
 import Shared.Service.Common
 import Shared.Service.Locale.LocaleMapper
 import Shared.Service.Locale.LocaleValidation
-import Shared.Service.Tenant.Config.ConfigService
+import Shared.Service.Settings.OrganizationSettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
 import Shared.Util.Uuid
@@ -41,12 +39,12 @@ import WizardServer.Api.Resource.Locale.LocaleDetailDTO
 import WizardServer.Database.DAO.Locale.LocaleDAO
 import WizardServer.Service.Locale.LocaleMapper
 
-getLocalesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe String -> Pageable -> [Sort] -> m (Page LocaleDTO)
-getLocalesPage mOrganizationId mLocaleId mQuery pageable sort = do
+getLocalesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Pageable -> [Sort] -> m (Page LocaleDTO)
+getLocalesPage mLocaleId mQuery pageable sort = do
   checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
   checkIfAdminIsDisabled
-  locales <- findLocalesPage mOrganizationId mLocaleId mQuery pageable sort
-  tcRegistry <- getCurrentTenantConfigRegistry
+  locales <- findLocalesPage mLocaleId mQuery pageable sort
+  tcRegistry <- getCurrentSettingsRegistry
   return . fmap (toDTO tcRegistry.enabled) $ locales
 
 getLocaleSuggestions :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page LocaleSuggestion)
@@ -61,16 +59,15 @@ createLocale reqDto =
     checkIfAdminIsDisabled
     now <- liftIO getCurrentTime
     uuid <- liftIO generateUuid
-    tcOrganization <- findTenantConfigOrganization
-    let organizationId = tcOrganization.organizationId
-    checkLocaleLimit organizationId reqDto.localeId
-    validateLocaleCreate reqDto organizationId
+    tenantUuid <- asks (.tenantUuid')
+    checkLocaleLimit reqDto.id
+    validateLocaleCreate reqDto
     let defaultLocale = False
-    let locale = fromCreateDTO reqDto uuid organizationId defaultLocale tcOrganization.tenantUuid now
+    let locale = fromCreateDTO reqDto uuid defaultLocale tenantUuid now
     insertLocale locale
     putLocale locale.uuid "wizard.json" reqDto.wizardContent
     putLocale locale.uuid "mail.po" reqDto.mailContent
-    tcRegistry <- getCurrentTenantConfigRegistry
+    tcRegistry <- getCurrentSettingsRegistry
     return . toSimple $ locale
 
 getLocaleByUuid :: WizardRequestContextC s m => U.UUID -> m LocaleDetailDTO
@@ -81,9 +78,8 @@ getLocaleByUuid uuid = do
   locale <- findLocaleByUuid uuid
   versions <- getLocaleVersions locale
   localeRs <- findRegistryLocales
-  orgRs <- findRegistryOrganizations
-  tcRegistry <- getCurrentTenantConfigRegistry
-  return $ toDetailDTO locale tcRegistry.enabled localeRs orgRs versions (buildLocaleUrl serverConfig.registry.clientUrl locale localeRs)
+  tcRegistry <- getCurrentSettingsRegistry
+  return $ toDetailDTO locale tcRegistry.enabled localeRs versions (buildLocaleUrl serverConfig.registry.clientUrl locale localeRs)
 
 getLocaleContentForCurrentUser :: WizardRequestContextC s m => Maybe String -> m BS.ByteString
 getLocaleContentForCurrentUser mClientUrl = do
@@ -97,7 +93,7 @@ getLocaleContentForCurrentUser mClientUrl = do
           Just localeUuid -> findLocaleSuggestionBy [tenantQueryUuid tenant.uuid, ("uuid", U.toString localeUuid)]
           Nothing -> findLocaleSuggestionBy [tenantQueryUuid tenant.uuid, ("default_locale", show True)]
       Nothing -> findLocaleSuggestionBy [tenantQueryUuid tenant.uuid, ("default_locale", show True)]
-  if not (locale.organizationId == defaultLocaleOrganizationId && locale.localeId == defaultLocaleLocaleId && locale.version == defaultLocaleVersion)
+  if not (locale.id == defaultLocaleId && locale.version == defaultLocaleVersion)
     then retrieveLocaleWithTenant tenant.uuid locale.uuid "wizard.json"
     else return "{}"
 
@@ -113,7 +109,7 @@ modifyLocale uuid reqDto = do
     when (updatedLocale.defaultLocale && not locale.defaultLocale) unsetDefaultLocale
     when (updatedLocale.enabled && not locale.enabled) (unsetEnabledLocale updatedLocale.code)
     updateLocaleByUuid updatedLocale
-    tcRegistry <- getCurrentTenantConfigRegistry
+    tcRegistry <- getCurrentSettingsRegistry
     return . toDTO tcRegistry.enabled $ toLocaleList updatedLocale
 
 deleteLocalesByQueryParams :: WizardRequestContextC s m => [(String, String)] -> m ()
@@ -139,7 +135,7 @@ deleteLocale uuid =
 -- --------------------------------
 getLocaleVersions :: WizardRequestContextC s m => Locale -> m [(U.UUID, String)]
 getLocaleVersions locale = do
-  allLocales <- findLocalesByOrganizationIdAndLocaleId locale.organizationId locale.localeId
+  allLocales <- findLocalesById locale.id
   return . fmap (\l -> (l.uuid, l.version)) $ allLocales
 
 checkIfAdminIsDisabled :: WizardRequestContextC s m => m ()

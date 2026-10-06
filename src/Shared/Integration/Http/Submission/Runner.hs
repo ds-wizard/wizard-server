@@ -9,11 +9,11 @@ import Shared.Integration.Http.Common.HttpClient
 import Shared.Integration.Http.Submission.RequestMapper
 import Shared.Integration.Http.Submission.ResponseMapper
 import Shared.Model.Context.WizardRequestContext
-import Shared.Model.Tenant.Config.WizardTenantConfig
+import Shared.Model.Settings.Settings
 
 uploadDocument
   :: WizardRequestContextC s m
-  => TenantConfigSubmissionServiceRequest
+  => SettingsSubmissionServiceRequest
   -> M.Map String String
   -> BS.ByteString
   -> m (Either String (Maybe String))

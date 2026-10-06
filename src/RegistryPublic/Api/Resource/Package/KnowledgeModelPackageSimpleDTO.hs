@@ -4,16 +4,12 @@ import Data.Time
 import qualified Data.UUID as U
 import GHC.Generics
 
-import RegistryPublic.Model.Organization.OrganizationSimple
-
 data KnowledgeModelPackageSimpleDTO = KnowledgeModelPackageSimpleDTO
   { uuid :: U.UUID
   , name :: String
-  , organizationId :: String
-  , kmId :: String
+  , id :: String
   , version :: String
   , description :: String
-  , organization :: OrganizationSimple
   , language :: String
   , createdAt :: UTCTime
   }

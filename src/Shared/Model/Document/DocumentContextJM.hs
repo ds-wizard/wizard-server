@@ -10,13 +10,15 @@ import Shared.Api.Resource.Project.File.ProjectFileSimpleJM ()
 import Shared.Api.Resource.Project.ProjectReplyJM ()
 import Shared.Api.Resource.Project.Version.ProjectVersionListJM ()
 import Shared.Api.Resource.Report.ReportJM ()
-import Shared.Api.Resource.Tenant.Config.WizardTenantConfigJM ()
 import Shared.Api.Resource.User.Group.UserGroupDetailJM ()
 import Shared.Api.Resource.User.UserJM ()
 import Shared.Model.Document.DocumentContext
 import Shared.Util.Aeson
 
 instance ToJSON DocumentContext where
+  toJSON = genericToJSON jsonOptions
+
+instance ToJSON DocumentContextOrganization where
   toJSON = genericToJSON jsonOptions
 
 instance ToJSON DocumentContextConfig where
