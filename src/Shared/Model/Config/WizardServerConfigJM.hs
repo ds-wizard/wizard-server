@@ -22,6 +22,7 @@ instance FromJSON ServerConfig where
     aws <- o .:? "aws" .!= defaultAws
     sentry <- o .:? "sentry" .!= defaultSentry
     userEmailLink <- o .:? "userEmailLink" .!= defaultUserEmailLink
+    auditLog <- o .:? "auditLog" .!= defaultAuditLog
     knowledgeModelEditor <- o .:? "knowledgeModelEditor" .!= defaultKnowledgeModelEditor
     cache <- o .:? "cache" .!= defaultCache
     document <- o .:? "document" .!= defaultDocument

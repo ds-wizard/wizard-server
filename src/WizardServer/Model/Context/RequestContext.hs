@@ -19,6 +19,7 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Constant.Component
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.User.Public
+import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.BuildInfoConfig
 import Shared.Model.Config.ServerConfig
@@ -50,6 +51,7 @@ data RequestContext = RequestContext
   , scope :: Scope
   , tenantMultiWorkspace :: Bool
   , workspaceRoles :: M.Map U.UUID RoleSimple
+  , auditLogSource :: AuditLogSource
   }
 
 newtype RequestContextM a = RequestContextM
@@ -66,6 +68,7 @@ instance WizardRequestContextType RequestContext where
   setCurrentUser user context = context {currentUser = user}
   setTraceUuid uuid context = context {traceUuid = uuid}
   setDbConnection connection context = context {dbConnection = connection}
+  setAuditLogSource source context = context {auditLogSource = source}
 
 instance HasField "serverConfig'" RequestContext ServerConfig where
   getField = (.serverConfig)
@@ -123,6 +126,12 @@ instance HasField "tenantMultiWorkspace'" RequestContext Bool where
 
 instance HasField "workspaceRoles'" RequestContext (M.Map U.UUID RoleSimple) where
   getField = (.workspaceRoles)
+
+instance HasField "auditLogEnabled'" RequestContext Bool where
+  getField _ = False
+
+instance HasField "auditLogSource'" RequestContext AuditLogSource where
+  getField = (.auditLogSource)
 
 instance WizardRequestContextC RequestContext RequestContextM where
   runRequestContextWithRequestContext function requestContext = do

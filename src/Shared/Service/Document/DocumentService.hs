@@ -48,6 +48,7 @@ import Shared.Model.Project.Version.ProjectVersion
 import Shared.S3.Document.DocumentS3
 import Shared.Service.Document.Context.DocumentContextService
 import Shared.Service.Document.DocumentAcl
+import Shared.Service.Document.DocumentAuditLog
 import Shared.Service.Document.DocumentMapper
 import Shared.Service.Document.DocumentUtil
 import Shared.Service.DocumentTemplate.DocumentTemplateService
@@ -102,6 +103,7 @@ createDocument reqDto =
     let docContextHash = computeHash [] project projectVersions projectContent.phaseUuid projectContent.replies tcOrganization mCurrentUser
     let doc = fromCreateDTO reqDto uuid docContextHash filteredProjectEvents mCurrentUser project.tenantUuid project.workspaceUuid now
     insertDocument doc
+    al_createDocument doc project tml format
     pkg <- findPackageByUuid project.knowledgeModelPackageUuid
     publishToPersistentCommandQueue doc pkg [] project Nothing
     return $ toDTOWithDocTemplate doc project Nothing [] tml format
@@ -111,6 +113,7 @@ deleteDocument docUuid =
   runInTransaction $ do
     doc <- findDocumentByUuid docUuid
     checkEditPermissionToDoc doc.projectUuid
+    al_deleteDocument doc
     void $ deleteDocumentByUuid docUuid
 
 downloadDocument :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO

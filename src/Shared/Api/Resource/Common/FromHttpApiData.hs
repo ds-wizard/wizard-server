@@ -5,10 +5,14 @@ import qualified Data.UUID as U
 import Servant.API
 import Text.Read (readMaybe)
 
+import Shared.Model.AuditLog.AuditLogSource
 import Shared.Util.String
 
 instance FromHttpApiData [String] where
   parseQueryParam = Right . splitOn "," . T.unpack
+
+instance FromHttpApiData AuditLogSourceType where
+  parseQueryParam = maybe (Left "Unable to parse source") Right . parseAuditLogSourceType . T.unpack
 
 instance FromHttpApiData [U.UUID] where
   parseQueryParam = genericParseQueryParams

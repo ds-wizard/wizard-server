@@ -22,6 +22,7 @@ import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.Workspace.Public
+import Shared.Model.AuditLog.Data.WorkspaceAuditLogData
 import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
@@ -34,8 +35,10 @@ import Shared.Model.User.Role
 import Shared.Model.Workspace.Workspace
 import Shared.Model.Workspace.WorkspaceMember
 import Shared.S3.Workspace.WorkspaceS3
+import Shared.Service.AuditLog.AuditLogService (whenAuditLogEnabled)
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
+import Shared.Service.Workspace.WorkspaceAuditLog
 import Shared.Service.Workspace.WorkspaceMapper
 import Shared.Service.Workspace.WorkspaceMembershipService
 import Shared.Service.Workspace.WorkspaceScopeService
@@ -63,6 +66,7 @@ createWorkspace reqDto =
     now <- liftIO getCurrentTime
     (workspace, adminRole) <- createWorkspaceWithRoles (fromChangeDTO reqDto uuid tenantUuid now)
     addWorkspaceMembership workspace currentUser.uuid (Just adminRole.uuid) now
+    al_createWorkspace workspace
     return workspace
 
 createDefaultWorkspace :: WizardRequestContextC s m => U.UUID -> String -> UTCTime -> m Workspace
@@ -86,6 +90,7 @@ modifyWorkspace uuid reqDto =
     now <- liftIO getCurrentTime
     let updatedWorkspace = fromChange workspace reqDto now
     updateWorkspaceByUuid updatedWorkspace
+    al_updateWorkspace workspace updatedWorkspace
     return updatedWorkspace
 
 deleteWorkspace :: WizardRequestContextC s m => U.UUID -> m ()
@@ -97,6 +102,9 @@ deleteWorkspace uuid =
     when (length workspaceUuids < 2) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__LAST_WORKSPACE)
     projectUuids <- findProjectUuidsByWorkspaceUuid uuid
     editorUuids <- findKnowledgeModelEditorUuidsByWorkspaceUuid uuid
+    whenAuditLogEnabled $ do
+      (documents, documentTemplateEditors, userGroups) <- countWorkspaceDependents uuid
+      al_deleteWorkspace workspace (AuditLogWorkspaceDeleteData (length projectUuids) documents (length editorUuids) documentTemplateEditors userGroups)
     void $ deleteWorkspaceByUuid uuid
     traverse_ (removeWorkspaceLogo uuid) workspace.logo
     traverse_ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuids
@@ -116,17 +124,19 @@ addWorkspaceMember uuid userUuid reqDto =
     _ <- findUserByUuid userUuid
     checkWorkspacePlaneAvailable
     now <- liftIO getCurrentTime
-    addWorkspaceMembership workspace userUuid reqDto.roleUuid now
+    saveWorkspaceMembership workspace userUuid reqDto.roleUuid now
 
 removeWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 removeWorkspaceMember uuid userUuid =
   runInTransaction $ do
     checkPermissionInWorkspace _MEMBERS_MANAGE_ROLE_PERMISSION (Just uuid)
     when (userUuid == systemUserUuid) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SYSTEM_USER)
-    _ <- findWorkspaceByUuid uuid
+    workspace <- findWorkspaceByUuid uuid
     multiWorkspace <- asks (.tenantMultiWorkspace')
     unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SINGLE_WORKSPACE_TENANT)
+    mMembership <- findWorkspaceMembership' uuid userUuid
     removeWorkspaceMembership uuid userUuid
+    traverse_ (al_removeWorkspaceMember workspace) mMembership
 
 createWorkspaceWithRoles :: WizardRequestContextC s m => Workspace -> m (Workspace, Role)
 createWorkspaceWithRoles workspace = do

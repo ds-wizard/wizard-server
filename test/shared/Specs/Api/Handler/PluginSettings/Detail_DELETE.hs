@@ -2,8 +2,6 @@ module Specs.Api.Handler.PluginSettings.Detail_DELETE (
   detail_DELETE,
 ) where
 
-import qualified Data.Map.Strict as M
-import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -63,7 +61,7 @@ test_204 requestContext =
     expectStatus 204 response
     -- AND: Find result in DB and compare with expectation state
     assertWorkspacePluginSettingsInDB requestContext defaultWorkspaceUuid plugin1.uuid True Nothing
-    assertPluginAuditInDB requestContext "resetSettingsInWorkspace" (M.singleton "workspaceUuid" (U.toString defaultWorkspaceUuid))
+    assertNoAuditLogInDB requestContext
 
 test_204_keeps_enabled requestContext =
   it "HTTP 204 NO CONTENT (w keeps the plugin switched off)" $ do

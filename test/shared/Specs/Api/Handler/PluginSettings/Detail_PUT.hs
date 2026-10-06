@@ -3,8 +3,6 @@ module Specs.Api.Handler.PluginSettings.Detail_PUT (
 ) where
 
 import Data.Aeson (encode)
-import qualified Data.Map.Strict as M
-import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -73,7 +71,7 @@ test_200_tenant requestContext =
     expectJson 200 plugin1Values1Edited response
     -- AND: Find result in DB and compare with expectation state
     assertTenantPluginSettingsInDB requestContext defaultTenantPluginSettingsEdited
-    assertPluginAuditInDB requestContext "updateSettings" M.empty
+    assertNoAuditLogInDB requestContext
 
 test_200_tenant_create requestContext =
   it "HTTP 200 OK (tenant=true creates the organization values)" $ do
@@ -99,7 +97,7 @@ test_200_workspace requestContext =
     -- AND: Find result in DB and compare with expectation state
     assertWorkspacePluginSettingsInDB requestContext defaultWorkspaceUuid plugin1.uuid True (Just plugin1Values1Edited)
     assertTenantPluginSettingsInDB requestContext defaultTenantPluginSettings
-    assertPluginAuditInDB requestContext "updateSettingsInWorkspace" (M.singleton "workspaceUuid" (U.toString defaultWorkspaceUuid))
+    assertNoAuditLogInDB requestContext
 
 test_200_workspace_keeps_enabled requestContext =
   it "HTTP 200 OK (w replaces the override of a plugin switched off in the workspace)" $ do

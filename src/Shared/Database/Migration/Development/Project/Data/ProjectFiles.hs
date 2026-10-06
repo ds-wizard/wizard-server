@@ -1,9 +1,12 @@
 module Shared.Database.Migration.Development.Project.Data.ProjectFiles where
 
+import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.File.ProjectFileList
 import Shared.Model.Project.File.ProjectFileSimple
 import Shared.Model.Project.ProjectSimple
+import Shared.Model.User.User
 import Shared.Util.Date
 import Shared.Util.Uuid
 
@@ -30,4 +33,17 @@ projectFileSimple =
     , fileName = projectFileList.fileName
     , contentType = projectFileList.contentType
     , fileSize = projectFileList.fileSize
+    }
+
+projectFile :: ProjectFile
+projectFile =
+  ProjectFile
+    { uuid = projectFileList.uuid
+    , fileName = projectFileList.fileName
+    , contentType = projectFileList.contentType
+    , fileSize = projectFileList.fileSize
+    , projectUuid = projectFileList.project.uuid
+    , createdBy = Just userAlbert.uuid
+    , tenantUuid = defaultTenantUuid
+    , createdAt = projectFileList.createdAt
     }

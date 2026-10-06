@@ -21,7 +21,6 @@ import Shared.Model.Locale.Locale
 import Shared.Model.Locale.LocaleSimple
 import Shared.S3.Locale.LocaleS3
 import Shared.Service.Coordinate.CoordinateValidation
-import Shared.Service.Locale.Bundle.LocaleBundleAudit
 import Shared.Service.Locale.Bundle.LocaleBundleMapper
 import Shared.Service.Locale.LocaleMapper
 import Shared.Service.Locale.LocaleValidation
@@ -73,8 +72,5 @@ importBundle contentS fromRegistry =
       putLocale locale.uuid "wizard.json" wizardTranslation
       putLocale locale.uuid "mail.po" mailTranslation
       insertLocale locale
-      if fromRegistry
-        then auditLocaleBundlePullFromRegistry (createCoordinate locale)
-        else auditLocaleBundleImportFromFile (createCoordinate locale)
       return . toSimple $ locale
     Left error -> throwError error

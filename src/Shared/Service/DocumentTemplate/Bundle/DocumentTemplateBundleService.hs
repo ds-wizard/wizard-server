@@ -29,9 +29,10 @@ import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
 import Shared.S3.DocumentTemplate.DocumentTemplateS3
 import Shared.Service.Acl.LibraryAcl
-import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleAudit
+import Shared.Service.AuditLog.AuditLogService (whenAuditLogEnabled)
 import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
+import Shared.Service.DocumentTemplate.DocumentTemplateAuditLog
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
@@ -46,6 +47,7 @@ getTemporaryFileWithBundle :: WizardRequestContextC s m => U.UUID -> m Temporary
 getTemporaryFileWithBundle dtUuid =
   runInTransaction $ do
     (coordinate, bundle) <- exportBundle dtUuid
+    whenAuditLogEnabled (al_exportDocumentTemplate =<< findDocumentTemplateByUuid dtUuid)
     mCurrentUserUuid <- getCurrentUserUuid
     url <- createTemporaryFile (f' "%s.zip" [show coordinate]) "application/octet-stream" mCurrentUserUuid bundle
     return $ TemporaryFileMapper.toDTO url "application/zip"
@@ -62,7 +64,6 @@ exportBundle dtUuid =
     files <- findFilesByDocumentTemplateUuid dtUuid
     assets <- findAssetsByDocumentTemplateUuid dtUuid
     assetContents <- traverse (findAsset dt.uuid) assets
-    auditBundleExport (createCoordinate dt)
     return (createCoordinate dt, toDocumentTemplateArchive (toBundle dt formats files assets) assetContents)
 
 pullBundleFromRegistry :: WizardRequestContextC s m => Coordinate -> m DocumentTemplateSimple
@@ -97,9 +98,7 @@ importAndConvertBundle contentS fromRegistry =
       traverse_ (importFile dt) bundle.files
       traverse_ (importAsset dt) assetContents
       publishGeneratePotFileCommand dt
-      if fromRegistry
-        then auditBundlePullFromRegistry (createCoordinate dt)
-        else auditBundleImportFromFile (createCoordinate dt)
+      al_importDocumentTemplate fromRegistry dt
       return . toSimple $ dt
     Left error -> throwError error
 

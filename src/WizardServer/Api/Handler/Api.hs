@@ -30,8 +30,6 @@ import Shared.Api.Handler.TypeHint.Api
 import Shared.Api.Handler.UserGroup.Api
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Handler.Workspace.Api
-import Shared.Service.Plugin.PluginAudit
-import Shared.Service.User.Group.UserGroupAudit
 import WizardServer.Api.Handler.Bootstrap.Api
 import WizardServer.Api.Handler.Locale.Api
 import WizardServer.Api.Handler.OpenIdClient.Api
@@ -106,7 +104,7 @@ applicationServer =
     :<|> localePullServer
     :<|> openIdClientServer
     :<|> persistentCommandServer
-    :<|> pluginSettingsServer auditPluginChange
+    :<|> pluginSettingsServer
     :<|> prefabServer
     :<|> projectServer
     :<|> projectCommentThreadServer
@@ -121,6 +119,6 @@ applicationServer =
     :<|> typeHintServer
     :<|> userServer
     :<|> userEmailLinkServer
-    :<|> userGroupServer auditUserGroupChange
+    :<|> userGroupServer
     :<|> userSubmissionPropsServer
     :<|> workspaceServer

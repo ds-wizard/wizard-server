@@ -68,8 +68,9 @@ import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.Event.ProjectEventMapper
 import Shared.Service.Project.File.ProjectFileService
 import Shared.Service.Project.ProjectAcl
-import Shared.Service.Project.ProjectAudit
+import Shared.Service.Project.ProjectAuditLog
 import Shared.Service.Project.ProjectMapper
+import Shared.Service.Project.ProjectTelemetry
 import Shared.Service.Project.ProjectUtil
 import Shared.Service.Project.ProjectValidation
 import Shared.Service.Project.Version.ProjectVersionService
@@ -152,6 +153,7 @@ createProjectWithGivenUuid reqDto projectUuid =
             now
     insertProject project
     insertProjectEvents projectEvents
+    al_createProject project pkg Nothing
     permissionDtos <- traverse enhanceProjectPerm project.permissions
     return $ toSimpleDTO project pkg knowledgeModelState documentTemplateState permissionDtos
 
@@ -193,6 +195,7 @@ createProjectFromTemplate reqDto =
     insertProjectEvents (fmap (toEvent newProjectUuid newProject.tenantUuid) newProjectEventsWithReplacedFiles)
     duplicateCommentThreads reqDto.projectUuid newProjectUuid
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
+    al_createProject newProject pkg (Just originProject)
     knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
     documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
     permissionDtos <- traverse enhanceProjectPerm newProject.permissions
@@ -228,6 +231,7 @@ cloneProject cloneUuid =
     insertProjectEvents (fmap (toEvent newProjectUuid newProject.tenantUuid) newProjectEventsWithReplacedFiles)
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
     duplicateCommentThreads cloneUuid newProjectUuid
+    al_cloneProject originProject newProject
     knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
     documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
     permissionDtos <- traverse enhanceProjectPerm newProject.permissions
@@ -247,7 +251,7 @@ createProjectsFromCommands = runInTransaction . traverse_ create
       let permissions = fmap (createPermission uuid) users
       let project = fromCreateProjectCommand command uuid permissions tcProject tenantUuid currentUser.uuid workspaceUuid now
       insertProject project
-      return ()
+      al_importProject project users
     createPermission :: U.UUID -> User -> ProjectPerm
     createPermission projectUuid user = toUserProjectPerm projectUuid user.uuid ownerPermissions user.tenantUuid
 
@@ -311,14 +315,14 @@ getProjectEventsPage projectUuid pageable sort = do
   let appliedSort = if null sort then [Sort "createdAt" Ascending] else sort
   events <- findProjectEventsPage projectUuid pageable appliedSort
   checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
-  auditProjectListEvents projectUuid
+  telemetryProjectListEvents projectUuid
   return events
 
 getProjectEventForProjectUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ProjectEventDTO
 getProjectEventForProjectUuid projectUuid eventUuid = do
   project <- findProjectByUuid projectUuid
   checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
-  auditProjectDetailEvent projectUuid
+  telemetryProjectDetailEvent projectUuid
   event <- findProjectEventByUuid eventUuid
   mUser <-
     case getCreatedBy event of
@@ -337,6 +341,8 @@ modifyProjectShare projectUuid reqDto =
     qSharing <- extractSharing project.workspaceUuid reqDto
     let updatedProject = fromShareChangeDTO project reqDto qVisibility qSharing now
     updateProjectByUuid updatedProject
+    al_updateProject project updatedProject
+    al_updateProjectPermissions project updatedProject
     updatePermsForOnlineUsers projectUuid project.workspaceUuid updatedProject.visibility updatedProject.sharing updatedProject.permissions
     permissionDtos <- traverse enhanceProjectPerm updatedProject.permissions
     skipIfAssigningProject
@@ -376,6 +382,7 @@ modifyProjectSettings projectUuid reqDto =
     hasPermission <- hasPermissionInWorkspace _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION (Just project.workspaceUuid)
     let updatedProject = fromSettingsChangeDTO project reqDto hasPermission now
     updateProjectByUuid updatedProject
+    al_updateProject project updatedProject
     permissionDtos <- traverse enhanceProjectPerm updatedProject.permissions
     deleteTemporalDocumentsByProjectUuid project.uuid
     mTemplate <-
@@ -404,6 +411,7 @@ deleteProject projectUuid shouldValidatePermission =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     when shouldValidatePermission (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
+    al_deleteProject project
     deleteProjectByUuid projectUuid
     void $ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuid
 

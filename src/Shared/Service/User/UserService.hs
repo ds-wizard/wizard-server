@@ -45,7 +45,7 @@ import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
 import Shared.Service.User.RoleAcl
-import Shared.Service.User.UserAudit
+import Shared.Service.User.UserAuditLog
 import qualified Shared.Service.User.UserOpenIdIdentityMapper as UserOpenIdIdentityMapper
 import Shared.Service.User.UserValidation
 import Shared.Service.User.WizardUserMapper
@@ -82,7 +82,9 @@ createUserByAdmin reqDto =
     uUuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
     clientUrl <- getClientUrl
-    createUserByAdminWithUuid reqDto uUuid tenantUuid clientUrl False
+    user <- createUserByAdminWithUuid reqDto uUuid tenantUuid clientUrl False
+    al_createUserByAdmin user
+    return user
 
 createUserByAdminWithUuid :: WizardRequestContextC s m => UserCreateDTO -> U.UUID -> U.UUID -> String -> Bool -> m UserDTO
 createUserByAdminWithUuid reqDto uUuid tenantUuid clientUrl shouldSendRegistrationEmail =
@@ -91,9 +93,7 @@ createUserByAdminWithUuid reqDto uUuid tenantUuid clientUrl shouldSendRegistrati
     settingsRoles <- getCurrentSettings findSettingsRoles
     let role = fromMaybe settingsRoles.defaultRoleUuid reqDto.roleUuid
     uRole <- getRoleForUserInTenant tenantUuid role
-    userDto <- createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name tenantUuid clientUrl shouldSendRegistrationEmail
-    auditUserCreateByAdmin userDto
-    return userDto
+    createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name tenantUuid clientUrl shouldSendRegistrationEmail
 
 registerUser :: WizardRequestContextC s m => UserCreateDTO -> m UserDTO
 registerUser reqDto =

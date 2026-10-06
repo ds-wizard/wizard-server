@@ -35,8 +35,10 @@ import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetService
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
+import Shared.Service.DocumentTemplate.DocumentTemplateAuditLog (al_publishDocumentTemplate)
 import Shared.Service.DocumentTemplate.DocumentTemplateMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation hiding (validateChangeDto)
+import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftAuditLog
 import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftMapper
 import Shared.Service.DocumentTemplate.Draft.DocumentTemplateDraftValidation
 import Shared.Service.DocumentTemplate.File.DocumentTemplateFileService
@@ -52,6 +54,13 @@ getDraftsPage mQuery pageable sort = do
 
 createDraft :: WizardRequestContextC s m => DocumentTemplateDraftCreateDTO -> m DocumentTemplateSimple
 createDraft reqDto =
+  runInTransaction $ do
+    draft <- insertNewDraft reqDto
+    al_createDocumentTemplateDraft draft reqDto.basedOn
+    return $ toSimple draft
+
+insertNewDraft :: WizardRequestContextC s m => DocumentTemplateDraftCreateDTO -> m DocumentTemplate
+insertNewDraft reqDto =
   runInTransaction $ do
     workspaceUuid <- requireTenantOrWorkspaceScope
     checkPermissionInWorkspace _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION workspaceUuid
@@ -77,14 +86,14 @@ createDraft reqDto =
         traverse_ (duplicateFile draft.uuid) files
         let draftData = fromCreateDraftData draft
         insertDraftData draftData
-        return $ toSimple draft
+        return draft
       Nothing -> do
         let draft = fromCreateDTO' reqDto uuid tenantUuid workspaceUuid now
         validateNewDocumentTemplate draft False
         insertDocumentTemplate draft
         let draftData = fromCreateDraftData draft
         insertDraftData draftData
-        return $ toSimple draft
+        return draft
 
 getDraft :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateDraftDetail
 getDraft dtUuid = do
@@ -112,6 +121,7 @@ modifyDraft dtUuid reqDto =
     validateChangeDto reqDto draft
     let draftUpdated = fromChangeDTO reqDto draft now
     updateDocumentTemplateById draftUpdated
+    al_updateDocumentTemplateDraft draft draftUpdated
     -- Update formats
     let formatsUpdated = fmap (fromFormatDTO dtUuid draft.tenantUuid draft.createdAt now) reqDto.formats
     traverse_ insertOrUpdateDocumentTemplateFormat formatsUpdated
@@ -123,6 +133,7 @@ modifyDraft dtUuid reqDto =
       ( do
           void $ deleteDraftDataByDocumentTemplateUuid dtUuid
           publishGeneratePotFileCommand draftUpdated
+          al_publishDocumentTemplate draftUpdated
       )
     return $ toDraftDetail' draftUpdated formatsUpdated
 
@@ -148,4 +159,5 @@ deleteDraft uuid =
   runInTransaction $ do
     checkEditorPermissionToDocumentTemplate uuid
     draft <- findDraftByUuid uuid
+    al_deleteDocumentTemplateDraft draft
     void $ deleteDraftByUuid uuid

@@ -22,8 +22,10 @@ import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.Role
 import Shared.Model.Workspace.Workspace
+import Shared.Service.AuditLog.AuditLogService (whenAuditLogEnabled)
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.User.GroupMembership.UserGroupMembershipService
+import Shared.Service.Workspace.WorkspaceAuditLog
 import Shared.Service.Workspace.WorkspaceMapper
 
 addUserToSingleWorkspace :: WizardRequestContextC s m => U.UUID -> U.UUID -> UTCTime -> m ()
@@ -40,6 +42,12 @@ addWorkspaceMembership :: WizardRequestContextC s m => Workspace -> U.UUID -> Ma
 addWorkspaceMembership workspace userUuid mRoleUuid now = do
   roleUuid <- resolveMemberRoleUuid workspace mRoleUuid
   void $ insertWorkspaceMembership (toMembership workspace.uuid userUuid roleUuid workspace.tenantUuid now)
+
+saveWorkspaceMembership :: WizardRequestContextC s m => Workspace -> U.UUID -> Maybe U.UUID -> UTCTime -> m ()
+saveWorkspaceMembership workspace userUuid mRoleUuid now = do
+  mOldMembership <- findWorkspaceMembership' workspace.uuid userUuid
+  addWorkspaceMembership workspace userUuid mRoleUuid now
+  whenAuditLogEnabled $ al_saveWorkspaceMembership workspace mOldMembership =<< findWorkspaceMembership workspace.uuid userUuid
 
 resolveMemberRoleUuid :: WizardRequestContextC s m => Workspace -> Maybe U.UUID -> m U.UUID
 resolveMemberRoleUuid workspace Nothing = maybe (throwError $ NotExistsError (_ERROR_VALIDATION__ABSENCE "role")) return workspace.defaultRoleUuid

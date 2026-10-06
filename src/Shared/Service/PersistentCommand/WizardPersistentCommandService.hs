@@ -12,6 +12,7 @@ import Shared.Database.DAO.PersistentCommand.WizardPersistentCommandDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.Mapping.UserEmailLink.UserEmailLinkType ()
+import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
@@ -77,4 +78,4 @@ updateContext commandSimple context = do
     case commandSimple.createdBy of
       Just userUuid -> findUserByUuidSystem' userUuid commandSimple.tenantUuid
       Nothing -> return Nothing
-  return . setCurrentUser (fmap UM.toDTO user) . setTenantUuid commandSimple.tenantUuid $ context
+  return . setAuditLogSource (commandAuditLogSource commandSimple.uuid) . setCurrentUser (fmap UM.toDTO user) . setTenantUuid commandSimple.tenantUuid $ context

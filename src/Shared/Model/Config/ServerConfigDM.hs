@@ -87,6 +87,10 @@ defaultPersistentCommandRetryLambdaJob :: ServerConfigCronWorker
 defaultPersistentCommandRetryLambdaJob =
   ServerConfigCronWorker {enabled = True, cron = "* * * * *"}
 
+defaultAuditLog :: ServerConfigAuditLog
+defaultAuditLog =
+  ServerConfigAuditLog {eventBridgePublishingEnabled = False}
+
 defaultUserEmailLink :: ServerConfigUserEmailLink
 defaultUserEmailLink = ServerConfigUserEmailLink {clean = defaultUserEmailLinkClean}
 

@@ -26,11 +26,12 @@ import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import Shared.Service.KnowledgeModel.Editor.EditorAcl
+import Shared.Service.KnowledgeModel.Editor.EditorAuditLog
 import qualified Shared.Service.KnowledgeModel.Editor.EditorMapper as EditorMapper
 import Shared.Service.KnowledgeModel.Editor.EditorUtil
 import Shared.Service.KnowledgeModel.KnowledgeModelService
-import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationAudit
 import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationMapper
+import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationTelemetry
 import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationValidation
 import Shared.Service.KnowledgeModel.Migration.Migrator.Migrator
 import Shared.Service.KnowledgeModel.Package.Event.KnowledgeModelPackageEventService
@@ -82,7 +83,7 @@ createMigration kmEditorUuid reqDto =
     let ms = fromCreateDTO editor previousPkg editorEvents targetPkgUuid targetPkgEvents km tenantUuid now
     insertKnowledgeModelMigration ms
     migratedMs <- migrateState ms
-    auditKmMigrationCreate reqDto editor
+    al_startKnowledgeModelMigration editor ms
     previousPackage <- findPackageSuggestionByUuid ms.editorPreviousPackageUuid
     targetPackage <- findPackageSuggestionByUuid ms.targetPackageUuid
     return $ toDTO migratedMs previousPackage targetPackage editor
@@ -108,11 +109,11 @@ deleteCurrentMigration :: WizardRequestContextC s m => U.UUID -> m ()
 deleteCurrentMigration editorUuid =
   runInTransaction $ do
     checkPermission _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
-    _ <- getCurrentMigration editorUuid
+    ms <- getCurrentMigration editorUuid
     checkPermissionToEditor editorUuid
     deleteKnowledgeModelMigrationByEditorUuid editorUuid
-    auditKmMigrationCancel editorUuid
-    return ()
+    editor <- findKnowledgeModelEditorByUuid editorUuid
+    al_cancelKnowledgeModelMigration editor ms
 
 solveConflictAndMigrate :: WizardRequestContextC s m => U.UUID -> KnowledgeModelMigrationResolutionDTO -> m ()
 solveConflictAndMigrate editorUuid reqDto =
@@ -125,7 +126,7 @@ solveConflictAndMigrate editorUuid reqDto =
     validateReqDto ms.state reqDto
     let stateWithSolvedConflicts = solveConflict ms reqDto
     migrateState stateWithSolvedConflicts
-    auditKmMigrationSolve editorUuid reqDto
+    telemetryKmMigrationSolve editorUuid reqDto
     return ()
   where
     validateMigrationState ms =
@@ -150,7 +151,7 @@ solveAllConflicts editorUuid =
     checkPermissionToEditor editorUuid
     updatedState <- go migratorState
     updateKnowledgeModelMigration updatedState
-    auditKmMigrationApplyAll editorUuid
+    telemetryKmMigrationApplyAll editorUuid
     return ()
   where
     go migratorState = do

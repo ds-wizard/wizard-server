@@ -30,6 +30,7 @@ import Shared.Service.Acl.LibraryAcl
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper as KnowledgeModelLocaleMapper
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAuditLog
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageMapper
 import Shared.Service.KnowledgeModel.Package.WizardKnowledgeModelPackageUtil
 import Shared.Service.Library.LibraryDependentMapper
@@ -64,8 +65,8 @@ getPackageDetailByUuid pkgUuid excludeDeprecatedVersions = do
 getPackageDependents :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m LibraryDependents
 getPackageDependents uuid mAllVersions = do
   checkManagePermissionToPackage uuid
-  pkgUuids <- getPackageUuidsToDelete uuid mAllVersions
-  toLibraryDependents <$> findPackageDependents pkgUuids
+  pkgs <- getPackagesToDelete uuid mAllVersions
+  toLibraryDependents <$> findPackageDependents (fmap (.uuid) pkgs)
 
 createPackage :: WizardRequestContextC s m => (KnowledgeModelPackage, [KnowledgeModelPackageEvent]) -> m KnowledgeModelPackageSimpleDTO
 createPackage (pkg, pkgEvents) =
@@ -79,17 +80,21 @@ modifyPackage :: WizardRequestContextC s m => U.UUID -> KnowledgeModelPackageCha
 modifyPackage pkgUuid reqDto =
   runInTransaction $ do
     checkManagePermissionToPackage pkgUuid
+    pkg <- findPackageByUuid pkgUuid
     updatePackagePhaseAndPublicByUuid pkgUuid reqDto.phase reqDto.public
+    al_modifyKnowledgeModel pkg (pkg {phase = reqDto.phase, public = reqDto.public} :: KnowledgeModelPackage)
     return reqDto
 
 deletePackage :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m ()
 deletePackage uuid mAllVersions =
   runInTransaction $ do
     checkManagePermissionToPackage uuid
-    pkgUuids <- getPackageUuidsToDelete uuid mAllVersions
-    dependents <- toLibraryDependents <$> findPackageDependents pkgUuids
+    pkg <- findPackageByUuid uuid
+    pkgs <- getPackagesToDelete uuid mAllVersions
+    dependents <- toLibraryDependents <$> findPackageDependents (fmap (.uuid) pkgs)
     checkDeleteAllowed dependents
-    traverse_ deletePackageByUuid pkgUuids
+    al_deleteKnowledgeModel pkg mAllVersions pkgs dependents
+    traverse_ (deletePackageByUuid . (.uuid)) pkgs
     traverse_ (logOutOnlineUsersWhenProjectDramaticallyChanged . (.uuid)) dependents.projects
     traverse_ (logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged . (.uuid)) dependents.editors
 
@@ -105,9 +110,9 @@ getPackageVersions pkg excludeDeprecatedVersions = do
     filterPkg True pkg = pkg.phase == ReleasedKnowledgeModelPackagePhase
     filterPkg False _ = True
 
-getPackageUuidsToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [U.UUID]
-getPackageUuidsToDelete uuid mAllVersions = do
+getPackagesToDelete :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> m [KnowledgeModelPackage]
+getPackagesToDelete uuid mAllVersions = do
   pkg <- findPackageByUuid uuid
   case mAllVersions of
-    Just True -> fmap (.uuid) <$> findPackagesByIdInWorkspace pkg.id pkg.workspaceUuid
-    _ -> return [pkg.uuid]
+    Just True -> findPackagesByIdInWorkspace pkg.id pkg.workspaceUuid
+    _ -> return [pkg]

@@ -116,6 +116,12 @@ instance FromJSON ServerConfigCronWorker where
     return ServerConfigCronWorker {..}
   parseJSON _ = mzero
 
+instance FromJSON ServerConfigAuditLog where
+  parseJSON (Object o) = do
+    eventBridgePublishingEnabled <- o .:? "eventBridgePublishingEnabled" .!= defaultAuditLog.eventBridgePublishingEnabled
+    return ServerConfigAuditLog {..}
+  parseJSON _ = mzero
+
 instance FromJSON ServerConfigUserEmailLink where
   parseJSON (Object o) = do
     clean <- o .:? "clean" .!= defaultUserEmailLink.clean

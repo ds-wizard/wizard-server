@@ -23,11 +23,11 @@ import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import Shared.Service.KnowledgeModel.Editor.EditorAcl
-import Shared.Service.KnowledgeModel.Editor.EditorAudit
+import Shared.Service.KnowledgeModel.Editor.EditorAuditLog
 import Shared.Service.KnowledgeModel.Editor.EditorMapper
 import Shared.Service.KnowledgeModel.Editor.EditorUtil
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleService
-import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationAudit
+import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAuditLog
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageService
 import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishMapper
 import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishValidation
@@ -45,7 +45,6 @@ publishPackageFromKnowledgeModelEditor reqDto = do
     let kmEvents = fmap toKnowledgeModelEvent kmEditorEvents
     mForkOfPkgId <- getEditorForkOfPackageId kmEditor
     mMergeCheckpointPkgId <- getEditorMergeCheckpointPackageId kmEditor
-    auditKnowledgeModelEditorPublish kmEditor kmEditorEvents mForkOfPkgId
     doPublishPackage
       kmEditor.version
       kmEditor
@@ -63,20 +62,22 @@ publishPackageFromMigration reqDto = do
     kmEditor <- findKnowledgeModelEditorByUuid reqDto.editorUuid
     ms <- findKnowledgeModelMigrationByEditorUuid reqDto.editorUuid
     deleteKnowledgeModelMigrationByEditorUuid reqDto.editorUuid
-    auditKmMigrationFinish reqDto.editorUuid
     mForkOfPkg <- findPackageByUuid ms.targetPackageUuid
     let mForkOfPkgId = Just $ createCoordinate mForkOfPkg
     editorPreviousPackage <- findPackageByUuid ms.editorPreviousPackageUuid
     let mMergeCheckpointPkgId = Just $ Coordinate {id = editorPreviousPackage.id, version = reqDto.version}
-    doPublishPackage
-      reqDto.version
-      kmEditor
-      ms.resultEvents
-      reqDto.description
-      reqDto.readme
-      mForkOfPkgId
-      mMergeCheckpointPkgId
-      reqDto.localeUuids
+    createdPkg <-
+      doPublishPackage
+        reqDto.version
+        kmEditor
+        ms.resultEvents
+        reqDto.description
+        reqDto.readme
+        mForkOfPkgId
+        mMergeCheckpointPkgId
+        reqDto.localeUuids
+    al_finishKnowledgeModelMigration kmEditor ms
+    return createdPkg
 
 -- --------------------------------
 -- PRIVATE
@@ -100,6 +101,7 @@ doPublishPackage version kmEditor kmEvents description readme mForkOfPkgId mMerg
   workspaceUuid <- ownerWorkspaceUuid kmEditor.workspaceUuid
   let (pkg, pkgEvents) = fromPackage kmEditor uuid workspaceUuid mForkOfPkgId mMergeCheckpointPkgId version description readme squashedKmEvents now
   createdPkg <- createPackage (pkg, pkgEvents)
+  al_publishKnowledgeModel kmEditor pkg
   copyLocalesForPublishedPackage mLocaleUuids kmEditor.previousPackageUuid pkg.uuid
   let updatedKmEditor = kmEditor {previousPackageUuid = Just pkg.uuid, updatedAt = now} :: KnowledgeModelEditor
   updateKnowledgeModelEditorByUuid updatedKmEditor

@@ -1,0 +1,32 @@
+module Shared.Model.AuditLog.AuditLogComponent where
+
+auditLogComponents :: [(String, String)]
+auditLogComponents =
+  [ ("workspaces", "Workspaces and their members.")
+  , ("roles", "Roles of the organization and of workspaces.")
+  , ("users", "User accounts: registration, profile, password and email changes.")
+  , ("sessions", "Login sessions of users.")
+  , ("apiKeys", "API keys of users.")
+  , ("mcp", "MCP tokens of users.")
+  , ("externalIdentities", "External identities linked to users.")
+  , ("userGroups", "User groups of a workspace and their members.")
+  , ("settings", "Organization and workspace settings.")
+  , ("plugins", "Plugins of the organization and their workspace overrides.")
+  , ("automations", "Login automations.")
+  , ("openIdClients", "OpenID clients used for external login.")
+  , ("samlServiceProviders", "SAML service providers used for external login.")
+  , ("tenant", "The organization itself.")
+  , ("tenantPlans", "Plans of an organization.")
+  , ("locales", "Locales of the organization.")
+  , ("knowledgeModels", "Knowledge model packages in the library.")
+  , ("knowledgeModelEditors", "Knowledge model editors and their migrations.")
+  , ("knowledgeModelSecrets", "Knowledge model secrets; their values are never recorded.")
+  , ("documentTemplates", "Document templates in the library.")
+  , ("documentTemplateEditors", "Document template editors.")
+  , ("dataSources", "Data sources of a workspace.")
+  , ("projects", "Projects: lifecycle, sharing, versions and migrations.")
+  , ("documents", "Documents generated from projects.")
+  , ("projectFiles", "Files uploaded to projects.")
+  , ("analytics", "The synchronization of the analytics database.")
+  , ("analyticsViews", "Saved analytics views.")
+  ]

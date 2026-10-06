@@ -13,6 +13,7 @@ instance FromEnv ServerConfig where
     aws <- applyEnv serverConfig.aws
     sentry <- applyEnv serverConfig.sentry
     userEmailLink <- applyEnv serverConfig.userEmailLink
+    auditLog <- applyEnv serverConfig.auditLog
     cache <- applyEnv serverConfig.cache
     document <- applyEnv serverConfig.document
     externalLink <- applyEnv serverConfig.externalLink

@@ -6,13 +6,12 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Constant.Workspace
-import Shared.Database.DAO.Audit.AuditDAO
+import Shared.Database.DAO.AuditLog.AuditLogDAO
 import Shared.Database.DAO.Plugin.TenantPluginSettingsDAO
 import Shared.Database.DAO.Plugin.WorkspacePluginSettingsDAO
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
 import Shared.Database.Migration.Development.Plugin.Data.TenantPluginSettings
 import Shared.Database.Migration.Development.Plugin.Data.WorkspacePluginSettings
-import Shared.Model.Audit.Audit
 import Shared.Model.Plugin.Plugin
 import Shared.Model.Plugin.TenantPluginSettings
 import Shared.Model.Plugin.WorkspacePluginSettings
@@ -67,6 +66,6 @@ assertWorkspacePluginSettingsInDB requestContext workspaceUuid pluginUuid expEna
   liftIO $ fmap (.enabled) mRow `shouldBe` Just expEnabled
   liftIO $ fmap (.values) mRow `shouldBe` Just expValues
 
-assertPluginAuditInDB requestContext expAction expBody = do
-  audits <- getOneFromDB findAudits requestContext
-  liftIO $ [(audit.action, audit.entity, audit.body) | audit <- audits, audit.component == "plugin"] `shouldBe` [(expAction, U.toString plugin1.uuid, expBody)]
+assertNoAuditLogInDB requestContext = do
+  auditLogs <- getOneFromDB findAuditLogs requestContext
+  liftIO $ auditLogs `shouldBe` []

@@ -3,8 +3,7 @@ module Shared.Database.Migration.Development.Migration (
 ) where
 
 import Shared.Constant.Component
-import qualified Shared.Database.Migration.Development.Audit.AuditMigration as Audit
-import qualified Shared.Database.Migration.Development.Audit.AuditSchemaMigration as Audit
+import qualified Shared.Database.Migration.Development.AuditLog.AuditLogSchemaMigration as AuditLog
 import qualified Shared.Database.Migration.Development.Common.CommonSchemaMigration as Common
 import qualified Shared.Database.Migration.Development.Component.ComponentMigration as Component
 import qualified Shared.Database.Migration.Development.Component.ComponentSchemaMigration as Component
@@ -41,6 +40,8 @@ import qualified Shared.Database.Migration.Development.Project.ProjectSchemaMigr
 import qualified Shared.Database.Migration.Development.Registry.RegistryMigration as Registry
 import qualified Shared.Database.Migration.Development.Registry.RegistrySchemaMigration as Registry
 import qualified Shared.Database.Migration.Development.Submission.SubmissionSchemaMigration as Submission
+import qualified Shared.Database.Migration.Development.Telemetry.TelemetryEventMigration as TelemetryEvent
+import qualified Shared.Database.Migration.Development.Telemetry.TelemetryEventSchemaMigration as TelemetryEvent
 import qualified Shared.Database.Migration.Development.TemporaryFile.TemporaryFileSchemaMigration as TemporaryFile
 import qualified Shared.Database.Migration.Development.Tenant.TenantMigration as Tenant
 import qualified Shared.Database.Migration.Development.Tenant.TenantSchemaMigration as Tenant
@@ -76,7 +77,8 @@ runMigration = do
   ExternalLink.dropTables
   Component.dropTables
   Registry.dropTables
-  Audit.dropTables
+  AuditLog.dropTables
+  TelemetryEvent.dropTables
   Prefab.dropTables
   PersistentCommand.dropTables
   Submission.dropTables
@@ -136,7 +138,8 @@ runMigration = do
   Submission.createTables
   PersistentCommand.createTables
   Prefab.createTables
-  Audit.createTables
+  TelemetryEvent.createTables
+  AuditLog.createTables
   Registry.createTables
   Component.createTables
   ExternalLink.createTables
@@ -174,7 +177,7 @@ runMigration = do
   KnowledgeModelMigration.runMigration
   PersistentCommand.runMigration
   Prefab.runMigration
-  Audit.runMigration
+  TelemetryEvent.runMigration
   Registry.runMigration
   Locale.runMigration
   Component.runMigration

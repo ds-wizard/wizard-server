@@ -31,8 +31,10 @@ import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorSuggestion
 import Shared.Model.KnowledgeModel.Event.KnowledgeModel.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Service.AuditLog.AuditLogService (whenAuditLogEnabled)
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
 import Shared.Service.KnowledgeModel.Editor.EditorAcl
+import Shared.Service.KnowledgeModel.Editor.EditorAuditLog
 import Shared.Service.KnowledgeModel.Editor.EditorMapper
 import Shared.Service.KnowledgeModel.Editor.EditorUtil
 import Shared.Service.KnowledgeModel.Editor.EditorValidation
@@ -57,7 +59,9 @@ createEditor reqDto =
     bUuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     currentUser <- getCurrentUser
-    createEditorWithParams bUuid now currentUser reqDto
+    editorList <- createEditorWithParams bUuid now currentUser reqDto
+    whenAuditLogEnabled (al_createKnowledgeModelEditor =<< findKnowledgeModelEditorByUuid editorList.uuid)
+    return editorList
 
 createEditorWithParams :: WizardRequestContextC s m => U.UUID -> UTCTime -> UserDTO -> KnowledgeModelEditorCreateDTO -> m KnowledgeModelEditorList
 createEditorWithParams uuid now currentUser reqDto =
@@ -132,6 +136,7 @@ modifyEditor kmEditorUuid reqDto =
             editorFromDB
             now
     updateKnowledgeModelEditorByUuid editor
+    al_updateKnowledgeModelEditor editorFromDB editor
     mForkOfPackageId <- getEditorForkOfPackageId editor
     editorEvents <- findKnowledgeModelEventsByEditorUuid kmEditorUuid
     editorReplies <- findKnowledgeModelRepliesByEditorUuid kmEditorUuid
@@ -151,5 +156,6 @@ deleteEditor :: WizardRequestContextC s m => U.UUID -> m ()
 deleteEditor kmEditorUuid =
   runInTransaction $ do
     checkPermissionToEditor kmEditorUuid
+    whenAuditLogEnabled (al_deleteKnowledgeModelEditor =<< findKnowledgeModelEditorByUuid kmEditorUuid)
     deleteKnowledgeModelEditorByUuid kmEditorUuid
     void $ logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged kmEditorUuid

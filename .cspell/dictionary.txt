@@ -120,6 +120,7 @@ mdata
 Mehrere
 mempty
 metamodel
+mfilter
 microlens
 minioadmin
 mockserver
@@ -133,6 +134,7 @@ nikola
 noent
 noerror
 normalisation
+novak
 nowarning
 nplurals
 OAEP

@@ -12,18 +12,28 @@ import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.Settings.Public
 import Shared.Localization.Messages.Workspace.Public
+import Shared.Model.AuditLog.Data.SettingsAuditLogData
 import Shared.Model.Context.AclContext
 import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
+import Shared.Service.Settings.SettingsAuditLog
 import Shared.Service.Workspace.WorkspaceScopeService
 
+data OrganizationSettings m a = OrganizationSettings
+  { findFn :: U.UUID -> m (Maybe a)
+  , saveFn :: U.UUID -> a -> m ()
+  , auditFn :: a -> a -> m ()
+  }
+
 data OverridableSettings m a = OverridableSettings
-  { table :: String
+  { section :: String
+  , table :: String
   , childTables :: [String]
   , findFn :: U.UUID -> Maybe U.UUID -> m (Maybe a)
   , saveFn :: U.UUID -> Maybe U.UUID -> a -> m ()
   , validateFn :: a -> m ()
+  , changesFn :: a -> a -> AuditLogSettingsChanges
   }
 
 requireOrganizationSettingsScope :: WizardRequestContextC s m => m ()
@@ -66,13 +76,15 @@ getOrganizationSettings findFn = do
   value <- getCurrentSettings findFn
   return $ SettingsDTO value Nothing Nothing
 
-modifyOrganizationSettings :: WizardRequestContextC s m => (U.UUID -> a -> m ()) -> SettingsDTO a -> m (SettingsDTO a)
-modifyOrganizationSettings saveFn reqDto =
+modifyOrganizationSettings :: WizardRequestContextC s m => OrganizationSettings m a -> SettingsDTO a -> m (SettingsDTO a)
+modifyOrganizationSettings section reqDto =
   runInTransaction $ do
     requireOrganizationSettingsScope
     checkSettingsPermission Nothing
     tenantUuid <- asks (.tenantUuid')
-    saveFn tenantUuid reqDto.value
+    old <- getSettingsByTenantUuid section.findFn tenantUuid
+    section.saveFn tenantUuid reqDto.value
+    section.auditFn old reqDto.value
     return $ SettingsDTO reqDto.value Nothing Nothing
 
 getEffectiveSettings :: WizardRequestContextC s m => OverridableSettings m a -> Maybe U.UUID -> m a
@@ -96,13 +108,18 @@ modifyOverridableSettings section reqDto =
     tenantUuid <- asks (.tenantUuid')
     case mWorkspaceUuid of
       Nothing -> do
+        old <- section.findFn tenantUuid Nothing >>= requireSettings
         section.saveFn tenantUuid Nothing reqDto.value
+        al_updateSettings Nothing section.section (section.changesFn old reqDto.value)
         multiWorkspace <- asks (.tenantMultiWorkspace')
         when multiWorkspace $ forM_ reqDto.overrideAllowed (modifyOverrideAllowed section tenantUuid)
       Just workspaceUuid -> do
         overrideAllowed <- findSettingsOverrideAllowed section.table tenantUuid >>= requireSettings
         unless overrideAllowed (throwError $ UserError _ERROR_SERVICE_SETTINGS__OVERRIDE_NOT_ALLOWED)
+        mOverride <- section.findFn tenantUuid (Just workspaceUuid)
+        old <- maybe (getEffectiveSettings section Nothing) return mOverride
         section.saveFn tenantUuid (Just workspaceUuid) reqDto.value
+        al_setSettingsOverride workspaceUuid section.section (isJust mOverride) (section.changesFn old reqDto.value)
     toOverridableSettingsDTO section mWorkspaceUuid
 
 deleteOverridableSettings :: WizardRequestContextC s m => OverridableSettings m a -> m ()
@@ -114,11 +131,15 @@ deleteOverridableSettings section =
       Just workspaceUuid -> do
         checkSettingsPermission mWorkspaceUuid
         tenantUuid <- asks (.tenantUuid')
+        mOverride <- section.findFn tenantUuid (Just workspaceUuid)
         forM_ (section.childTables ++ [section.table]) (\tableName -> deleteSettingsRowsByKey (scopedKey tableName tenantUuid (Just workspaceUuid)))
+        when (isJust mOverride) (al_resetSettingsOverride workspaceUuid section.section)
 
 modifyOverrideAllowed :: WizardRequestContextC s m => OverridableSettings m a -> U.UUID -> Bool -> m ()
 modifyOverrideAllowed section tenantUuid overrideAllowed = do
+  oldOverrideAllowed <- findSettingsOverrideAllowed section.table tenantUuid >>= requireSettings
   updateSettingsOverrideAllowed section.table tenantUuid overrideAllowed
+  al_changeSettingsOverrideAllowed section.section oldOverrideAllowed overrideAllowed
   unless overrideAllowed (deleteSettingsWorkspaceRows (section.childTables ++ [section.table]) tenantUuid)
 
 toOverridableSettingsDTO :: WizardRequestContextC s m => OverridableSettings m a -> Maybe U.UUID -> m (SettingsDTO a)

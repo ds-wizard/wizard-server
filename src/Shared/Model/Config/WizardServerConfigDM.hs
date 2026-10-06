@@ -14,6 +14,7 @@ defaultConfig =
     , aws = defaultAws
     , sentry = defaultSentry
     , userEmailLink = defaultUserEmailLink
+    , auditLog = defaultAuditLog
     , cache = defaultCache
     , document = defaultDocument
     , externalLink = defaultExternalLink
