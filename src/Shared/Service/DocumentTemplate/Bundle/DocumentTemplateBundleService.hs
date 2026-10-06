@@ -76,7 +76,7 @@ pullBundleFromRegistry coordinate =
 
 importAndConvertBundle :: WizardRequestContextC s m => BSL.ByteString -> Bool -> m DocumentTemplateSimple
 importAndConvertBundle contentS fromRegistry =
-  case fromDocumentTemplateArchive contentS of
+  runInTransaction $ case fromDocumentTemplateArchive contentS of
     Right (bundle, assetContents) -> do
       checkPermission _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION
       checkDocumentTemplateLimit bundle.organizationId bundle.templateId
@@ -87,15 +87,10 @@ importAndConvertBundle contentS fromRegistry =
       let dt = fromBundle bundle uuid tenantUuid
       validateNewDocumentTemplate dt True
       deleteOldDocumentTemplateIfPresent bundle
-      traverse_ (\(a, content) -> putAsset dt.uuid a.uuid a.contentType content) assetContents
       insertDocumentTemplate dt
       traverse_ (insertDocumentTemplateFormat . fromFormatDTO dt.uuid tenantUuid dt.createdAt dt.updatedAt) bundle.formats
-      traverse_ (insertFile . fromFileDTO dt.uuid tenantUuid dt.createdAt) bundle.files
-      traverse_
-        ( \(assetDto, content) ->
-            insertAsset $ fromAssetDTO dt.uuid (fromIntegral . BS.length $ content) tenantUuid dt.createdAt assetDto
-        )
-        assetContents
+      traverse_ (importFile dt) bundle.files
+      traverse_ (importAsset dt) assetContents
       publishGeneratePotFileCommand dt
       if fromRegistry
         then auditBundlePullFromRegistry (createCoordinate dt)
@@ -122,3 +117,14 @@ findAsset :: WizardRequestContextC s m => U.UUID -> DocumentTemplateAsset -> m (
 findAsset dtUuid asset = do
   content <- retrieveAsset dtUuid asset.uuid
   return (asset, content)
+
+importFile :: WizardRequestContextC s m => DocumentTemplate -> DocumentTemplateFileDTO -> m ()
+importFile dt file = do
+  uuid <- liftIO generateUuid
+  void . insertFile $ fromFileDTO dt.uuid dt.tenantUuid dt.createdAt (file {uuid = uuid} :: DocumentTemplateFileDTO)
+
+importAsset :: WizardRequestContextC s m => DocumentTemplate -> (DocumentTemplateAssetDTO, BS.ByteString) -> m ()
+importAsset dt (asset, content) = do
+  uuid <- liftIO generateUuid
+  putAsset dt.uuid uuid asset.contentType content
+  void . insertAsset $ fromAssetDTO dt.uuid (fromIntegral . BS.length $ content) dt.tenantUuid dt.createdAt (asset {uuid = uuid} :: DocumentTemplateAssetDTO)

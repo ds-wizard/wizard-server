@@ -14,6 +14,7 @@ import Specs.Api.Handler.DocumentTemplate.Detail_Locales_Template_GET
 import Specs.Api.Handler.DocumentTemplate.Detail_PUT
 import Specs.Api.Handler.DocumentTemplate.Detail_Pull_POST
 import Specs.Api.Handler.DocumentTemplate.List_All_GET
+import Specs.Api.Handler.DocumentTemplate.List_Bundle_POST
 import Specs.Api.Handler.DocumentTemplate.List_DELETE
 import Specs.Api.Handler.DocumentTemplate.List_GET
 import Specs.Api.Handler.DocumentTemplate.List_Suggestions_GET
@@ -23,6 +24,7 @@ documentTemplateAPI serverContext requestContext =
     describe "DOCUMENT TEMPLATE API Spec" $ do
       list_GET requestContext
       list_all_GET requestContext
+      list_bundle_POST requestContext
       list_suggestions_GET requestContext
       list_DELETE requestContext
       detail_GET requestContext
