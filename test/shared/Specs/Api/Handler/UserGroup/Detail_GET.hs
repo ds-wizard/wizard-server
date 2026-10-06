@@ -3,6 +3,8 @@ module Specs.Api.Handler.UserGroup.Detail_GET (
 ) where
 
 import Data.Aeson (encode)
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -12,6 +14,7 @@ import Test.Hspec.Wai.Matcher
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.User.Group.UserGroupDetailJM ()
 import Shared.Constant.Workspace
+import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.UserGroups
@@ -21,9 +24,11 @@ import Shared.Localization.Messages.Public
 import Shared.Model.Error.Error
 import Shared.Model.User.Role
 import Shared.Model.User.User
+import Shared.Model.User.UserGroup
 import Shared.Model.User.UserGroupMembership
 import Shared.Service.User.Group.UserGroupMapper
 import Shared.Service.User.WizardUserMapper
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -42,6 +47,7 @@ detail_GET requestContext =
     test_401 requestContext
     test_403 requestContext
     test_403_single_workspace requestContext
+    test_403_unreachable requestContext
     test_404 requestContext
 
 -- ----------------------------------------------------
@@ -130,6 +136,24 @@ test_403_single_workspace requestContext =
     let responseMatcher =
           ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
     response `shouldRespondWith` responseMatcher
+
+test_403_unreachable requestContext =
+  it "HTTP 403 FORBIDDEN (public group in a workspace the user does not reach)" $ do
+    -- GIVEN: Prepare expectation
+    let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "View UserGroup")
+    -- AND: Run migrations
+    runInContextIO U.runMigration requestContext
+    insertSecondWorkspace requestContext
+    runInContextIO (insertUserGroup secondWorkspaceGroup) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod (BS.pack $ "/api/user-groups/" ++ U.toString secondWorkspaceGroup.uuid) [reqIsaacAuthTokenHeader] reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = resCtHeader : resCorsHeaders, matchStatus = 403, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+
+secondWorkspaceGroup :: UserGroup
+secondWorkspaceGroup = plantGroup {uuid = u' "9c1f3a7e-5b2d-4e8f-a6c0-3d7b9e1f2a45", workspaceUuid = secondWorkspaceUuid} :: UserGroup
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

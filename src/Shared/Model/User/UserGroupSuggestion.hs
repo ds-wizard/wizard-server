@@ -1,4 +1,4 @@
-module WizardServer.Model.User.UserGroupSuggestion where
+module Shared.Model.User.UserGroupSuggestion where
 
 import qualified Data.UUID as U
 import GHC.Generics

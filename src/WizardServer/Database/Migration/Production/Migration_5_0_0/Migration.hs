@@ -67,6 +67,7 @@ migrateShared dbPool = do
   copyConfigIntoSettings dbPool
   dropConfigTables dbPool
   createWorkspacePluginSettings dbPool
+  dropUserGroupMembershipCommands dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -311,7 +312,7 @@ renamePermissions dbPool =
 renamePermissionsSql :: String -> String
 renamePermissionsSql column =
   f'
-    "ARRAY(SELECT DISTINCT np FROM unnest(%s || ARRAY['projects.create']) AS p, unnest(CASE p %s ELSE ARRAY[p] END) AS np)::varchar[]"
+    "ARRAY(SELECT DISTINCT np FROM unnest(%s || ARRAY['projects.create', 'userGroups.create']) AS p, unnest(CASE p %s ELSE ARRAY[p] END) AS np)::varchar[]"
     [column, unwords (fmap toCase permissionMapping)]
   where
     toCase (old, new) = f' "WHEN '%s' THEN ARRAY[%s]" [old, L.intercalate ", " (fmap (\n -> f' "'%s'" [n]) new)]
@@ -373,6 +374,7 @@ workspaceAdminPermissions =
   , "members.manage"
   , "roles.manage"
   , "userGroups.manage"
+  , "userGroups.create"
   , "settings.manage"
   ]
 
@@ -686,6 +688,10 @@ createWorkspacePluginSettings dbPool =
     \    CONSTRAINT workspace_plugin_settings_plugin_uuid_fk FOREIGN KEY (plugin_uuid, tenant_uuid) REFERENCES plugin (uuid, tenant_uuid) ON DELETE CASCADE, \
     \    CONSTRAINT workspace_plugin_settings_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
     \);"
+
+dropUserGroupMembershipCommands :: Pool Connection -> LoggingT IO ()
+dropUserGroupMembershipCommands dbPool =
+  runSql dbPool "DELETE FROM persistent_command WHERE component = 'user_group_membership';"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

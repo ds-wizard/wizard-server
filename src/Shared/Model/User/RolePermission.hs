@@ -26,6 +26,9 @@ _MEMBERS_MANAGE_ROLE_PERMISSION = "members.manage"
 _USER_GROUPS_MANAGE_ROLE_PERMISSION :: String
 _USER_GROUPS_MANAGE_ROLE_PERMISSION = "userGroups.manage"
 
+_USER_GROUPS_CREATE_ROLE_PERMISSION :: String
+_USER_GROUPS_CREATE_ROLE_PERMISSION = "userGroups.create"
+
 _WORKSPACES_MANAGE_ROLE_PERMISSION :: String
 _WORKSPACES_MANAGE_ROLE_PERMISSION = "workspaces.manage"
 
@@ -77,11 +80,12 @@ workspaceRolePermissions =
   , _MEMBERS_MANAGE_ROLE_PERMISSION
   , _ROLES_MANAGE_ROLE_PERMISSION
   , _USER_GROUPS_MANAGE_ROLE_PERMISSION
+  , _USER_GROUPS_CREATE_ROLE_PERMISSION
   , _SETTINGS_MANAGE_ROLE_PERMISSION
   ]
 
 workspaceReachRolePermissions :: [String]
-workspaceReachRolePermissions = workspaceRolePermissions L.\\ [_PROJECTS_CREATE_ROLE_PERMISSION]
+workspaceReachRolePermissions = workspaceRolePermissions L.\\ [_PROJECTS_CREATE_ROLE_PERMISSION, _USER_GROUPS_CREATE_ROLE_PERMISSION]
 
 organizationOnlyRolePermissions :: [String]
 organizationOnlyRolePermissions =

@@ -27,9 +27,11 @@ import Shared.Api.Handler.Settings.Api
 import Shared.Api.Handler.Submission.Api
 import Shared.Api.Handler.Token.Api
 import Shared.Api.Handler.TypeHint.Api
+import Shared.Api.Handler.UserGroup.Api
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Handler.Workspace.Api
 import Shared.Service.Plugin.PluginAudit
+import Shared.Service.User.Group.UserGroupAudit
 import WizardServer.Api.Handler.Bootstrap.Api
 import WizardServer.Api.Handler.Locale.Api
 import WizardServer.Api.Handler.OpenIdClient.Api
@@ -38,7 +40,6 @@ import WizardServer.Api.Handler.Settings.Api
 import WizardServer.Api.Handler.Tenant.Api
 import WizardServer.Api.Handler.User.Api
 import WizardServer.Api.Handler.UserEmailLink.Api
-import WizardServer.Api.Handler.UserGroup.Api
 
 type ApplicationAPI =
   InfoAPI
@@ -77,7 +78,6 @@ type ApplicationAPI =
     :<|> UserAPI
     :<|> UserEmailLinkAPI
     :<|> UserGroupAPI
-    :<|> UserGroupSuggestionsAPI
     :<|> UserSubmissionPropsAPI
     :<|> WorkspaceAPI
 
@@ -121,7 +121,6 @@ applicationServer =
     :<|> typeHintServer
     :<|> userServer
     :<|> userEmailLinkServer
-    :<|> userGroupServer
-    :<|> userGroupSuggestionsServer
+    :<|> userGroupServer auditUserGroupChange
     :<|> userSubmissionPropsServer
     :<|> workspaceServer

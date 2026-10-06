@@ -30,6 +30,7 @@ dataStewardRole =
     , name = "Data Steward"
     , permissions =
         [ _PROJECTS_CREATE_ROLE_PERMISSION
+        , _USER_GROUPS_CREATE_ROLE_PERMISSION
         , _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION
         , _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION
         , _KNOWLEDGE_MODELS_MANAGE_ROLE_PERMISSION
@@ -48,7 +49,7 @@ researcherRole =
   Role
     { uuid = u' "4e79c242-4100-4447-becd-45eca47fa60b"
     , name = "Researcher"
-    , permissions = [_PROJECTS_CREATE_ROLE_PERMISSION]
+    , permissions = [_PROJECTS_CREATE_ROLE_PERMISSION, _USER_GROUPS_CREATE_ROLE_PERMISSION]
     , isAdmin = False
     , tenantUuid = defaultTenant.uuid
     , workspaceUuid = Nothing
