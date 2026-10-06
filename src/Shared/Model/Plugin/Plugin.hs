@@ -11,5 +11,6 @@ data Plugin = Plugin
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  , workspaceOverrideAllowed :: Bool
   }
   deriving (Generic, Eq, Show)

@@ -8,7 +8,6 @@ import Specs.Api.Handler.Tenant.Detail_GET
 import Specs.Api.Handler.Tenant.Detail_PUT
 import Specs.Api.Handler.Tenant.List_GET
 import Specs.Api.Handler.Tenant.List_POST
-import Specs.Api.Handler.Tenant.PluginSettings.ApiSpec
 
 tenantAPI serverContext requestContext =
   with (startWebApp serverContext requestContext) $
@@ -17,4 +16,3 @@ tenantAPI serverContext requestContext =
       list_POST requestContext
       detail_GET requestContext
       detail_PUT requestContext
-      tenantPluginSettingsAPI requestContext

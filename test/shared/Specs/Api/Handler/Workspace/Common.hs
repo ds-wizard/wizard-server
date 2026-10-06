@@ -46,14 +46,9 @@ insertSecondWorkspace requestContext = do
   void $ runInContextIO (insertWorkspaceMembership (secondWorkspaceMembership userAlbert)) requestContext
 
 insertSecondWorkspaceWithoutCaller requestContext = do
-  enableMultiWorkspace requestContext
+  insertSecondWorkspaceWithoutMember requestContext
   demoteToResearcher requestContext userAlbert
-  runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userAlbert.uuid defaultWorkspaceAdminRole.uuid) requestContext
-  runInContextIO (insertWorkspace (secondWorkspace {defaultRoleUuid = Nothing} :: Workspace)) requestContext
-  runInContextIO (insertRole secondWorkspaceAdminRole) requestContext
-  runInContextIO (insertRole secondWorkspaceUserRole) requestContext
-  runInContextIO (updateWorkspaceByUuid secondWorkspace) requestContext
-  void $ runInContextIO (insertWorkspaceMembership (secondWorkspaceMembership userSystem)) requestContext
+  void $ runInContextIO (updateWorkspaceMembershipRole defaultWorkspaceUuid userAlbert.uuid defaultWorkspaceAdminRole.uuid) requestContext
 
 insertSecondWorkspaceWithoutMember requestContext = do
   enableMultiWorkspace requestContext

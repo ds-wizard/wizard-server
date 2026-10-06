@@ -3,10 +3,14 @@ module Shared.Service.Bootstrap.BootstrapService where
 import Control.Monad (unless)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
+import qualified Data.UUID as U
 
+import Shared.Api.Resource.Bootstrap.BootstrapCommonDTO
 import Shared.Api.Resource.Bootstrap.WorkspaceBootstrapDTO
 import Shared.Api.Resource.User.UserDTO
+import Shared.Database.DAO.Plugin.PluginDAO
+import Shared.Database.DAO.Plugin.TenantPluginSettingsDAO
 import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Localization.Messages.Public
@@ -15,6 +19,7 @@ import Shared.Model.Error.Error
 import Shared.Model.Tenant.Tenant
 import Shared.Service.Bootstrap.BootstrapMapper
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
+import Shared.Service.Plugin.PluginEffectiveService
 import Shared.Service.Settings.SettingsService
 import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Workspace.WorkspaceScopeService
@@ -28,7 +33,15 @@ getWorkspaceBootstrap = do
   projects <- getEffectiveSettingsProjects (Just workspaceUuid)
   support <- getEffectiveSettingsSupport (Just workspaceUuid)
   submission <- getEffectiveSettingsSubmission (Just workspaceUuid)
-  return $ toWorkspaceBootstrapDTO workspace lookAndFeel dashboardAndMenu projects support submission
+  effectivePlugins <- getEffectivePlugins workspaceUuid
+  return $ toWorkspaceBootstrapDTO workspace lookAndFeel dashboardAndMenu projects support submission effectivePlugins
+
+getBootstrapPlugins :: WizardRequestContextC s m => U.UUID -> m BootstrapPlugins
+getBootstrapPlugins tenantUuid = do
+  signedIn <- asks (isJust . (.currentUser'))
+  plugins <- findPlugins tenantUuid
+  pluginSettings <- findTenantPluginSettingValues tenantUuid
+  return $ toBootstrapPlugins signedIn plugins pluginSettings
 
 checkBootstrapTenantState :: WizardRequestContextC s m => Maybe String -> Tenant -> m (Maybe String)
 checkBootstrapTenantState mServerUrl tenant =

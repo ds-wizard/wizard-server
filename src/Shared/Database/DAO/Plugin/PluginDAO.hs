@@ -10,6 +10,7 @@ import GHC.Int
 import Shared.Database.DAO.WizardCommon
 import Shared.Database.Mapping.Plugin.Plugin ()
 import Shared.Database.Mapping.Plugin.PluginList ()
+import Shared.Model.Common.Sort
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Plugin.Plugin
 import Shared.Model.Plugin.PluginList
@@ -17,8 +18,15 @@ import Shared.Model.Plugin.PluginList
 entityName = "plugin"
 
 findPlugins :: WizardRequestContextC s m => U.UUID -> m [PluginList]
-findPlugins tenantUuid = do
-  createFindEntitiesWithFieldsByFn "uuid, url, enabled" entityName [tenantQueryUuid tenantUuid]
+findPlugins tenantUuid = createFindEntitiesWithFieldsBySortedFn "uuid, url, enabled" entityName [tenantQueryUuid tenantUuid] [Sort "url" Ascending]
+
+findPluginsByTenantUuid :: WizardRequestContextC s m => U.UUID -> m [Plugin]
+findPluginsByTenantUuid tenantUuid = createFindEntitiesBySortedFn entityName [tenantQueryUuid tenantUuid] [Sort "url" Ascending]
+
+findPluginByUuid :: WizardRequestContextC s m => U.UUID -> m Plugin
+findPluginByUuid uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
 insertPlugin :: WizardRequestContextC s m => Plugin -> m Int64
 insertPlugin = createInsertFn entityName
@@ -28,6 +36,15 @@ updatePluginEnabled uuid enabled = do
   tenantUuid <- asks (.tenantUuid')
   let sql = fromString "UPDATE plugin SET enabled = ?, updated_at = now() WHERE tenant_uuid = ? AND uuid = ?"
   let params = [toField enabled, toField tenantUuid, toField uuid]
+  logQuery sql params
+  let action conn = execute conn sql params
+  runDB action
+
+updatePluginWorkspaceOverrideAllowed :: WizardRequestContextC s m => U.UUID -> Bool -> m Int64
+updatePluginWorkspaceOverrideAllowed uuid workspaceOverrideAllowed = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString "UPDATE plugin SET workspace_override_allowed = ?, updated_at = now() WHERE tenant_uuid = ? AND uuid = ?"
+  let params = [toField workspaceOverrideAllowed, toField tenantUuid, toField uuid]
   logQuery sql params
   let action conn = execute conn sql params
   runDB action

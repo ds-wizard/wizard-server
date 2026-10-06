@@ -4,6 +4,7 @@ import Data.Aeson
 
 import Shared.Api.Resource.Bootstrap.BootstrapJM ()
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientSimpleJM ()
+import Shared.Api.Resource.Plugin.PluginListJM ()
 import Shared.Api.Resource.Settings.SettingsJM ()
 import Shared.Util.Aeson
 import WizardServer.Api.Resource.Bootstrap.BootstrapDTO

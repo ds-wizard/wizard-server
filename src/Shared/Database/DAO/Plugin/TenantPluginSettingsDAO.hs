@@ -1,4 +1,4 @@
-module WizardServer.Database.DAO.Tenant.PluginSettings.TenantPluginSettingsDAO where
+module Shared.Database.DAO.Plugin.TenantPluginSettingsDAO where
 
 import Control.Monad.Reader (asks)
 import qualified Data.Aeson as A
@@ -11,15 +11,14 @@ import Database.PostgreSQL.Simple.ToRow
 import GHC.Int
 
 import Shared.Database.DAO.WizardCommon
+import Shared.Database.Mapping.Plugin.TenantPluginSettings ()
 import Shared.Model.Context.WizardRequestContext
-import WizardServer.Database.Mapping.Tenant.PluginSettings.TenantPluginSettings ()
-import WizardServer.Model.Tenant.PluginSettings.TenantPluginSettings
+import Shared.Model.Plugin.TenantPluginSettings
 
 entityName = "tenant_plugin_settings"
 
 findTenantPluginSettingValues :: WizardRequestContextC s m => U.UUID -> m (M.Map U.UUID A.Value)
 findTenantPluginSettingValues tenantUuid = do
-  tenantUuid <- asks (.tenantUuid')
   let sql =
         fromString
           "SELECT plugin_uuid, values \

@@ -5,7 +5,6 @@ import Data.Aeson
 import Shared.Api.Resource.Bootstrap.BootstrapCommonDTO
 import Shared.Api.Resource.Bootstrap.WorkspaceBootstrapDTO
 import Shared.Api.Resource.Config.SimpleFeatureJM ()
-import Shared.Api.Resource.Plugin.PluginListJM ()
 import Shared.Api.Resource.Settings.SettingsJM ()
 import Shared.Util.Aeson
 

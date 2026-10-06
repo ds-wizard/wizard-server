@@ -173,6 +173,7 @@ resetDBContent requestContext = do
   runInContext (runDB (`execute_` deleteAllEntitiesSql)) requestContext
   runInContext (insertTenant defaultTenant) requestContext
   runInContext (insertPlugin plugin1) requestContext
+  runInContext (insertPlugin plugin2) requestContext
   runInContext (insertPlugin differentPlugin1) requestContext
   runInContext (insertLimitBundle defaultTenantLimitBundle) requestContext
   runInContext (insertTenant differentTenant) requestContext
@@ -264,6 +265,7 @@ deleteAllEntitiesSql =
     , "user_token"
     , "user_group_membership"
     , "workspace_membership"
+    , "workspace_plugin_settings"
     , "user_openid_identity"
     , "user_tour"
     , "user_entity"

@@ -6,7 +6,6 @@ import qualified Data.UUID as U
 import GHC.Generics
 
 import Shared.Model.Config.SimpleFeature
-import Shared.Model.Plugin.PluginList
 import Shared.Model.Settings.Settings
 
 data WorkspaceBootstrapDTO = WorkspaceBootstrapDTO
@@ -16,7 +15,7 @@ data WorkspaceBootstrapDTO = WorkspaceBootstrapDTO
   , projects :: SettingsProjects
   , support :: SettingsSupport
   , submission :: SimpleFeature
-  , plugins :: [PluginList]
+  , disabledPlugins :: [U.UUID]
   , pluginSettings :: M.Map U.UUID A.Value
   }
   deriving (Generic, Eq, Show)

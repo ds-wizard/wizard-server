@@ -49,7 +49,7 @@ type UserAPI =
            :<|> Detail_DELETE
            :<|> Detail_Current_Identity_DELETE
            :<|> NewsAPI
-           :<|> PluginSettingsAPI
+           :<|> UserPluginSettingsAPI
            :<|> TourAPI
        )
 
@@ -89,5 +89,5 @@ userServer =
     :<|> detail_DELETE
     :<|> detail_current_identity_DELETE
     :<|> newsServer
-    :<|> pluginSettingsServer
+    :<|> userPluginSettingsServer
     :<|> tourServer
