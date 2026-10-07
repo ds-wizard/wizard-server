@@ -26,6 +26,8 @@ import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeM
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelSecretSchemaMigration as KnowledgeModelSecret
 import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as Locale
 import qualified Shared.Database.Migration.Development.Locale.LocaleSchemaMigration as Locale
+import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleMigration as MailTemplateLocale
+import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleSchemaMigration as MailTemplateLocale
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientMigration as OpenIdClient
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientSchemaMigration as OpenIdClient
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientSessionSchemaMigration as OpenIdClientSession
@@ -66,6 +68,7 @@ runMigration = do
   DocumentTemplate.dropTriggers
   Project.dropTriggers
   Locale.dropTriggers
+  MailTemplateLocale.dropTriggers
   KnowledgeModelLocale.dropTriggers
   -- 2. Drop DB functions
   Project.dropFunctions
@@ -101,6 +104,7 @@ runMigration = do
   OpenIdClientSession.dropTables
   OpenIdClient.dropTables
   DocumentTemplate.dropTables
+  MailTemplateLocale.dropTables
   Locale.dropTables
   Plugin.dropTables
   Tenant.dropTables
@@ -115,6 +119,7 @@ runMigration = do
   Workspace.createTables
   Plugin.createTables
   Locale.createTables
+  MailTemplateLocale.createTables
   DocumentTemplate.createTables
   Tenant.createConfigTables
   OpenIdClientSession.createTables
@@ -153,6 +158,7 @@ runMigration = do
   User.createUserLocaleForeignKeyConstraint
   -- 9. Create DB triggers
   Locale.createTriggers
+  MailTemplateLocale.createTriggers
   KnowledgeModelLocale.createTriggers
   Project.createTriggers
   Document.createTriggers
@@ -160,6 +166,7 @@ runMigration = do
   -- 10. Load S3 fixtures
   DocumentTemplate.runS3Migration
   Locale.runS3Migration
+  MailTemplateLocale.runS3Migration
   -- 11. Load fixtures
   Tenant.runMigration
   Workspace.runMigration
@@ -180,6 +187,7 @@ runMigration = do
   TelemetryEvent.runMigration
   Registry.runMigration
   Locale.runMigration
+  MailTemplateLocale.runMigration
   Component.runMigration
   ExternalLink.runMigration
   logInfo _CMP_MIGRATION "ended"

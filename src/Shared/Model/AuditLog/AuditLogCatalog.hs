@@ -7,6 +7,7 @@ import Shared.Model.AuditLog.AuditLogEventDefinition.Internal
 import Shared.Model.AuditLog.AuditLogScope
 import Shared.Model.AuditLog.Data.AuditLogRef
 import Shared.Model.AuditLog.Data.LibraryAuditLogData
+import Shared.Model.AuditLog.Data.LocaleAuditLogData
 import Shared.Model.AuditLog.Data.ProjectAuditLogData
 import Shared.Model.AuditLog.Data.SettingsAuditLogData
 import Shared.Model.AuditLog.Data.UserAuditLogData
@@ -43,6 +44,16 @@ sharedAuditLogCatalog =
   , SomeAuditLogEventDefinition pluginsConfigure
   , SomeAuditLogEventDefinition pluginsOverrideAllowedChange
   , SomeAuditLogEventDefinition pluginsOverrideReset
+  , SomeAuditLogEventDefinition localesCreate
+  , SomeAuditLogEventDefinition localesReplace
+  , SomeAuditLogEventDefinition localesUpdate
+  , SomeAuditLogEventDefinition localesDelete
+  , SomeAuditLogEventDefinition localesExport
+  , SomeAuditLogEventDefinition mailTemplateLocalesCreate
+  , SomeAuditLogEventDefinition mailTemplateLocalesReplace
+  , SomeAuditLogEventDefinition mailTemplateLocalesUpdate
+  , SomeAuditLogEventDefinition mailTemplateLocalesDelete
+  , SomeAuditLogEventDefinition mailTemplateLocalesExport
   , SomeAuditLogEventDefinition knowledgeModelsImportFromFile
   , SomeAuditLogEventDefinition knowledgeModelsPullFromRegistry
   , SomeAuditLogEventDefinition knowledgeModelsExport
@@ -257,6 +268,92 @@ projectsVisibility visibility = SettingsProjectsVisibility {enabled = True, defa
 
 exampleOverrideAllowedChanges :: AuditLogOverrideAllowedChanges
 exampleOverrideAllowedChanges = AuditLogOverrideAllowedChanges {workspaceOverrideAllowed = change False True}
+
+-- ---------------------------------------------------------------------------------------------------------------------
+localesCreate :: AuditLogEventDefinition () AuditLogLocaleData
+localesCreate = localeEvent "create" "A UI locale was uploaded for a language the organization did not have yet." True "The created locale." exampleLocaleData
+
+localesReplace :: AuditLogEventDefinition () AuditLogLocaleReplaceData
+localesReplace =
+  localeEvent
+    "replace"
+    "The PO file of a UI locale was replaced by an upload; officialSwitchedOff says whether the locale stopped being official."
+    True
+    "The replaced locale."
+    AuditLogLocaleReplaceData {code = "de", name = "Deutsch", oldPotVersion = Just "fw-client:4.31.0", newPotVersion = Just "fw-client:5.0.0", officialSwitchedOff = True}
+
+localesUpdate :: AuditLogEventDefinition AuditLogLocaleChanges NoData
+localesUpdate =
+  withChangesExample AuditLogLocaleChanges {enabled = change False True, defaultLocale = Nothing} $
+    localeEvent "update" "A UI locale was enabled, disabled or made the default. The changed fields are in changes." True "The changed locale." NoData
+
+localesDelete :: AuditLogEventDefinition () AuditLogLocaleData
+localesDelete = localeEvent "delete" "A UI locale was deleted." True "The deleted locale." exampleLocaleData
+
+localesExport :: AuditLogEventDefinition () AuditLogLocaleData
+localesExport = localeEvent "export" "The PO file of a UI locale was downloaded." False "The exported locale." exampleLocaleData
+
+localeEvent :: String -> String -> Bool -> String -> d -> AuditLogEventDefinition c d
+localeEvent action description eventBridge =
+  auditLogEvent "locales" action description OrganizationAuditLogScope eventBridge LocaleAuditLogEntityType
+
+exampleLocaleData :: AuditLogLocaleData
+exampleLocaleData = AuditLogLocaleData {code = "de", name = "Deutsch", potVersion = Just "fw-client:5.0.0", official = True}
+
+-- ---------------------------------------------------------------------------------------------------------------------
+mailTemplateLocalesCreate :: AuditLogEventDefinition () AuditLogLocaleData
+mailTemplateLocalesCreate =
+  mailTemplateLocaleEvent
+    "create"
+    "A mail template locale was uploaded for a language the organization did not have yet."
+    True
+    "The created mail template locale."
+    exampleMailTemplateLocaleData
+
+mailTemplateLocalesReplace :: AuditLogEventDefinition () AuditLogLocaleReplaceData
+mailTemplateLocalesReplace =
+  mailTemplateLocaleEvent
+    "replace"
+    "The PO file of a mail template locale was replaced by an upload; officialSwitchedOff says whether the locale stopped being official."
+    True
+    "The replaced mail template locale."
+    AuditLogLocaleReplaceData
+      { code = "de"
+      , name = "Deutsch"
+      , oldPotVersion = Just "fw-mail-templates:4.31.0"
+      , newPotVersion = Just "fw-mail-templates:5.0.0"
+      , officialSwitchedOff = True
+      }
+
+mailTemplateLocalesUpdate :: AuditLogEventDefinition AuditLogLocaleChanges NoData
+mailTemplateLocalesUpdate =
+  withChangesExample AuditLogLocaleChanges {enabled = change False True, defaultLocale = Nothing} $
+    mailTemplateLocaleEvent
+      "update"
+      "A mail template locale was enabled, disabled or made the default. The changed fields are in changes."
+      True
+      "The changed mail template locale."
+      NoData
+
+mailTemplateLocalesDelete :: AuditLogEventDefinition () AuditLogLocaleData
+mailTemplateLocalesDelete =
+  mailTemplateLocaleEvent "delete" "A mail template locale was deleted." True "The deleted mail template locale." exampleMailTemplateLocaleData
+
+mailTemplateLocalesExport :: AuditLogEventDefinition () AuditLogLocaleData
+mailTemplateLocalesExport =
+  mailTemplateLocaleEvent
+    "export"
+    "The PO file of a mail template locale was downloaded."
+    False
+    "The exported mail template locale."
+    exampleMailTemplateLocaleData
+
+mailTemplateLocaleEvent :: String -> String -> Bool -> String -> d -> AuditLogEventDefinition c d
+mailTemplateLocaleEvent action description eventBridge =
+  auditLogEvent "mailTemplateLocales" action description OrganizationAuditLogScope eventBridge MailTemplateLocaleAuditLogEntityType
+
+exampleMailTemplateLocaleData :: AuditLogLocaleData
+exampleMailTemplateLocaleData = AuditLogLocaleData {code = "de", name = "Deutsch", potVersion = Just "fw-mail-templates:5.0.0", official = True}
 
 -- ---------------------------------------------------------------------------------------------------------------------
 knowledgeModelsImportFromFile :: AuditLogEventDefinition () AuditLogLibraryData

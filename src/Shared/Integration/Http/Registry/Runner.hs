@@ -2,13 +2,16 @@ module Shared.Integration.Http.Registry.Runner where
 
 import Control.Monad.Except (catchError)
 import Control.Monad.Reader (asks)
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy as BSL
 import Network.HTTP.Types.Status (statusCode)
 import Servant
+import Servant.Client (ClientM)
 
 import RegistryPublic.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
 import RegistryPublic.Api.Resource.Locale.LocaleDTO
 import RegistryPublic.Api.Resource.Package.KnowledgeModelPackageSimpleDTO
+import Shared.Api.Handler.Common
 import Shared.Integration.Http.Common.HttpClient
 import Shared.Integration.Http.Common.ServantClient
 import Shared.Integration.Http.Registry.RequestMapper
@@ -80,31 +83,16 @@ retrieveDocumentTemplateBundleByCoordinate coordinate = do
     else throwError . UserError . _ERROR_SERVICE_COMMON__FEATURE_IS_DISABLED $ "Registry"
 
 retrieveLocales :: WizardRequestContextC s m => m [LocaleDTO]
-retrieveLocales = do
-  buildInfoConfig <- asks (.buildInfoConfig')
-  tcRegistry <- getCurrentSettingsRegistry
-  if tcRegistry.enabled
-    then
-      catchError
-        ( do
-            let request = toRetrieveLocaleRequest buildInfoConfig.releaseVersion tcRegistry
-            res <- runRegistryClient request
-            return . getResponse $ res
-        )
-        (\_ -> return [])
-    else return []
+retrieveLocales = retrieveLocaleList toRetrieveLocalesRequest
 
-retrieveLocaleBundleByCoordinate :: WizardRequestContextC s m => Coordinate -> m BSL.ByteString
-retrieveLocaleBundleByCoordinate coordinate = do
-  serverConfig <- asks (.serverConfig')
-  tcRegistry <- getCurrentSettingsRegistry
-  if tcRegistry.enabled
-    then
-      runRegistryRequest $
-        runRequest
-          (toRetrieveLocaleBundleByCoordinateRequest serverConfig.registry tcRegistry coordinate)
-          toRetrieveLocaleBundleByCoordinateResponse
-    else throwError . UserError . _ERROR_SERVICE_COMMON__FEATURE_IS_DISABLED $ "Registry"
+retrieveMailTemplateLocales :: WizardRequestContextC s m => m [LocaleDTO]
+retrieveMailTemplateLocales = retrieveLocaleList toRetrieveMailTemplateLocalesRequest
+
+retrieveRegistryLocalePo :: WizardRequestContextC s m => String -> String -> m BS.ByteString
+retrieveRegistryLocalePo = retrieveLocalePoContent toRetrieveLocalePoRequest
+
+retrieveRegistryMailTemplateLocalePo :: WizardRequestContextC s m => String -> String -> m BS.ByteString
+retrieveRegistryMailTemplateLocalePo = retrieveLocalePoContent toRetrieveMailTemplateLocalePoRequest
 
 uploadKnowledgeModelBundle :: WizardRequestContextC s m => KnowledgeModelBundle -> m KnowledgeModelBundle
 uploadKnowledgeModelBundle reqDto = do
@@ -122,18 +110,37 @@ uploadDocumentTemplateBundle bundle = do
       (toUploadDocumentTemplateBundleRequest serverConfig.registry tcRegistry bundle)
       toUploadDocumentTemplateBundleResponse
 
-uploadLocaleBundle :: WizardRequestContextC s m => BSL.ByteString -> m BSL.ByteString
-uploadLocaleBundle bundle = do
-  serverConfig <- asks (.serverConfig')
-  tcRegistry <- getCurrentSettingsRegistry
-  runRegistryRequest $
-    runRequest
-      (toUploadLocaleBundleRequest serverConfig.registry tcRegistry bundle)
-      toUploadLocaleBundleResponse
-
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
+retrieveLocaleList
+  :: WizardRequestContextC s m
+  => (String -> SettingsRegistry -> ClientM (Headers '[Header "x-trace-uuid" String] [LocaleDTO]))
+  -> m [LocaleDTO]
+retrieveLocaleList toRequest = do
+  buildInfoConfig <- asks (.buildInfoConfig')
+  tcRegistry <- getCurrentSettingsRegistry
+  if tcRegistry.enabled
+    then
+      catchError
+        (getResponse <$> runRegistryClient (toRequest buildInfoConfig.releaseVersion tcRegistry))
+        (\_ -> return [])
+    else return []
+
+retrieveLocalePoContent
+  :: WizardRequestContextC s m
+  => (SettingsRegistry -> String -> String -> ClientM (Headers '[Header "x-trace-uuid" String] FileStream))
+  -> String
+  -> String
+  -> m BS.ByteString
+retrieveLocalePoContent toRequest code version = do
+  tcRegistry <- getCurrentSettingsRegistry
+  if tcRegistry.enabled
+    then do
+      FileStream content <- runRegistryRequest . fmap getResponse . runRegistryClient $ toRequest tcRegistry code version
+      return content
+    else throwError . UserError . _ERROR_SERVICE_COMMON__FEATURE_IS_DISABLED $ "Registry"
+
 runRegistryRequest :: WizardRequestContextC s m => m a -> m a
 runRegistryRequest = flip catchError handleError
   where

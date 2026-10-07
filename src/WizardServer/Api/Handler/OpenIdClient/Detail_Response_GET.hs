@@ -14,6 +14,7 @@ type Detail_Response_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> Header "User-Agent" String
+    :> Header "Accept-Language" String
     :> "open-id-clients"
     :> Capture "uuid" U.UUID
     :> "response"
@@ -30,6 +31,7 @@ detail_response_GET
   => Maybe String
   -> Maybe String
   -> Maybe String
+  -> Maybe String
   -> U.UUID
   -> Maybe String
   -> Maybe String
@@ -38,7 +40,7 @@ detail_response_GET
   -> Maybe String
   -> Maybe String
   -> sm (Headers '[Header "x-trace-uuid" String] UserTokenDTO)
-detail_response_GET mTokenHeader mServerUrl mUserAgent providerUuid mClientUrl mError mCode mState mIdToken mSessionState =
+detail_response_GET mTokenHeader mServerUrl mUserAgent mAcceptLanguage providerUuid mClientUrl mError mCode mState mIdToken mSessionState =
   getMaybeAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService Transactional $
-      addTraceUuidHeader =<< loginUserOrLinkIdentity (isJust mTokenHeader) providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState
+      addTraceUuidHeader =<< loginUserOrLinkIdentity (isJust mTokenHeader) providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState mAcceptLanguage

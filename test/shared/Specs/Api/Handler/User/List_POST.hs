@@ -21,10 +21,13 @@ import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.UserEmailLink.UserEmailLinkDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
+import Shared.Database.Migration.Development.Locale.Data.Locales
+import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as LOC_Migration
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLinkMigration as ACK
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Error.Error
+import Shared.Model.Locale.Locale
 import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Model.User.User
 import Shared.Model.UserEmailLink.UserEmailLink
@@ -44,6 +47,7 @@ list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
   describe "POST /api/users" $ do
     test_201 requestContext
+    test_201_accept_language requestContext
     test_400 requestContext
 
 -- ----------------------------------------------------
@@ -94,6 +98,33 @@ create_test_201 title requestContext reqDto expDto authHeaders persistentCommand
       assertCountInDB (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) requestContext persistentCommandCount
       eMembership <- runInContextIO (findWorkspaceMembership' defaultWorkspaceUuid resDto.uuid) requestContext
       liftIO $ fmap isJust eMembership `shouldBe` Right (not multiWorkspace)
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_201_accept_language requestContext =
+  it "HTTP 201 CREATED (anonymous, locale from Accept-Language)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = [reqCtHeader, ("Accept-Language", "de-AT,de;q=0.9,en;q=0.5")]
+      let reqBody = reqBodyT userJohnCreate
+      -- AND: Prepare expectation
+      let expStatus = 201
+      let expHeaders = resCorsHeadersPlain
+      let expDto = userJohnCreateDS
+      -- AND: Run migrations
+      runInContextIO ACK.runMigration requestContext
+      runInContextIO LOC_Migration.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, UserDTO)
+      assertResStatus status expStatus
+      assertResHeaders headers expHeaders
+      compareUserCreateDtos resDto expDto False
+      -- AND: Find result in DB and compare with expectation state
+      user <- getOneFromDB (findUserByUuid resDto.uuid) requestContext
+      liftIO $ user.locale `shouldBe` Just localeDe.uuid
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

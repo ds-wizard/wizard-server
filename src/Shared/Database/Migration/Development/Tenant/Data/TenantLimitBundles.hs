@@ -13,6 +13,5 @@ tenantLimitBundleChange =
     , documentTemplateDrafts = -1000
     , projects = -1000
     , documents = -1000
-    , locales = -1000
     , storage = (-1000) * 5 * 1000 * 1000
     }

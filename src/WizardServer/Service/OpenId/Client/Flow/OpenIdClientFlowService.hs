@@ -81,8 +81,9 @@ loginUserOrLinkIdentity
   -> Maybe String
   -> Maybe String
   -> Maybe String
+  -> Maybe String
   -> m UserTokenDTO
-loginUserOrLinkIdentity isAuthenticated providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState =
+loginUserOrLinkIdentity isAuthenticated providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState mAcceptLanguage =
   if isAuthenticated
     then do
       mCurrentUserUuid <- getCurrentUserUuid
@@ -90,8 +91,8 @@ loginUserOrLinkIdentity isAuthenticated providerUuid mClientUrl mError mCode mSt
         Just currentUserUuid -> do
           linkOpenIdIdentity currentUserUuid providerUuid mClientUrl mError mCode mState mIdToken
           return IdentityLinkedDTO
-        Nothing -> loginUser providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState
-    else loginUser providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState
+        Nothing -> loginUser providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState mAcceptLanguage
+    else loginUser providerUuid mClientUrl mError mCode mState mIdToken mUserAgent mSessionState mAcceptLanguage
 
 loginUser
   :: WizardRequestContextC s m
@@ -103,8 +104,9 @@ loginUser
   -> Maybe String
   -> Maybe String
   -> Maybe String
+  -> Maybe String
   -> m UserTokenDTO
-loginUser providerUuid mClientUrl _mError mCode mState mIdToken mUserAgent mSessionState =
+loginUser providerUuid mClientUrl _mError mCode mState mIdToken mUserAgent mSessionState mAcceptLanguage =
   runInTransaction $ do
     (openIdClient, oidc) <- buildOidcClient providerUuid mClientUrl
     (externalId, mEmailRaw, mFirstName, mLastName, mPicture, mUserUuid) <- resolveExternalIdentity oidc mCode mState mIdToken
@@ -132,7 +134,7 @@ loginUser providerUuid mClientUrl _mError mCode mState mIdToken mUserAgent mSess
             case (mEmail, mFirstName, mLastName) of
               (Just email, Just firstName, Just lastName) -> do
                 consentRequired <- isConsentRequired Nothing
-                user <- createUserFromOpenIdLogin openIdClient externalId firstName lastName email mPicture mUserUuid (not consentRequired)
+                user <- createUserFromOpenIdLogin openIdClient externalId firstName lastName email mPicture mUserUuid (not consentRequired) mAcceptLanguage
                 if consentRequired
                   then do
                     userEmailLink <- createUserEmailLink user.uuid ConsentsRequiredUserEmailLinkType user.tenantUuid

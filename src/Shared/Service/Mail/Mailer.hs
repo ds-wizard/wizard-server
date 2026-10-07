@@ -49,6 +49,7 @@ sendRegistrationConfirmationMail user hash clientUrl =
             { mode = "wizard"
             , template = "registrationConfirmation"
             , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+            , sendAsOne = False
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)
@@ -80,6 +81,7 @@ sendRegistrationCreatedAnalyticsMail user =
             { mode = "wizard"
             , template = "registrationCreatedAnalytics"
             , recipients = [MC.MailRecipient {uuid = Nothing, email = serverConfig.analyticalMails.email}]
+            , sendAsOne = True
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)
@@ -109,6 +111,7 @@ sendEmailChangeMail user hash newEmail =
             { mode = "wizard"
             , template = "emailChange"
             , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = newEmail}]
+            , sendAsOne = False
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)
@@ -140,6 +143,7 @@ sendResetPasswordMail user hash =
             { mode = "wizard"
             , template = "resetPassword"
             , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+            , sendAsOne = False
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)
@@ -170,6 +174,7 @@ sendTwoFactorAuthMail user code =
             { mode = "wizard"
             , template = "twoFactorAuth"
             , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+            , sendAsOne = False
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)
@@ -210,6 +215,7 @@ sendProjectInvitationMail oldProject newProject =
                   { mode = "wizard"
                   , template = "projectInvitation"
                   , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+                  , sendAsOne = False
                   , parameters =
                       M.fromList
                         [ ("userUuid", A.uuid user.uuid)
@@ -261,6 +267,7 @@ sendProjectCommentThreadAssignedMail notifications =
                 { mode = "wizard"
                 , template = "commentThreadAssigned"
                 , recipients = [MC.MailRecipient {uuid = Just notification.assignedTo.uuid, email = notification.assignedTo.email}]
+                , sendAsOne = False
                 , parameters =
                     M.fromList
                       [ ("userFirstName", A.string notification.assignedTo.firstName)
@@ -288,6 +295,7 @@ sendApiKeyCreatedMail user userToken =
             { mode = "wizard"
             , template = "apiKeyCreated"
             , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+            , sendAsOne = False
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)
@@ -319,6 +327,7 @@ sendApiKeyExpirationMail user userToken =
             { mode = "wizard"
             , template = "apiKeyExpiration"
             , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+            , sendAsOne = False
             , parameters =
                 M.fromList
                   [ ("userUuid", A.uuid user.uuid)

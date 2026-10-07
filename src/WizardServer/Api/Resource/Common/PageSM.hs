@@ -16,7 +16,6 @@ import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorSuggestionS
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleSM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSuggestionSM ()
-import Shared.Api.Resource.Locale.LocaleSuggestionSM ()
 import Shared.Api.Resource.PersistentCommand.PersistentCommandListSM ()
 import Shared.Api.Resource.PersistentCommand.WizardPersistentCommandSM ()
 import Shared.Api.Resource.Project.Comment.ProjectCommentThreadAssignedSM ()
@@ -43,7 +42,6 @@ import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTempl
 import Shared.Database.Migration.Development.DocumentTemplate.Data.WizardDocumentTemplates
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
-import Shared.Database.Migration.Development.Locale.Data.Locales
 import Shared.Database.Migration.Development.PersistentCommand.Data.PersistentCommands
 import Shared.Database.Migration.Development.Project.Data.ProjectComments
 import Shared.Database.Migration.Development.Project.Data.ProjectEvents
@@ -59,7 +57,6 @@ import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorSuggestion
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
-import Shared.Model.Locale.LocaleSuggestion
 import Shared.Model.PersistentCommand.PersistentCommandList
 import Shared.Model.Project.Comment.ProjectCommentThreadAssigned
 import Shared.Model.Project.Event.ProjectEventList
@@ -84,10 +81,7 @@ import qualified Shared.Service.User.RoleMapper as R_Mapper
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
 import qualified Shared.Service.Workspace.WorkspaceMapper as W_Mapper
 import Shared.Util.Swagger
-import WizardServer.Api.Resource.Locale.LocaleDTO
-import WizardServer.Api.Resource.Locale.LocaleSM ()
 import WizardServer.Api.Resource.User.RoleListSM ()
-import WizardServer.Database.Migration.Development.Locale.Data.Locales
 
 instance ToSchema (Page Workspace) where
   declareNamedSchema =
@@ -121,14 +115,6 @@ instance ToSchema (Page UserGroupList) where
 instance ToSchema (Page UserGroupSuggestion) where
   declareNamedSchema =
     toSwaggerWithDtoName "Page UserGroupSuggestion" (Page "userGroups" pageMetadata [UG_Mapper.toSuggestion bioGroup])
-
-instance ToSchema (Page LocaleDTO) where
-  declareNamedSchema =
-    toSwaggerWithDtoName "Page Locale" (Page "locales" pageMetadata [localeNlDto])
-
-instance ToSchema (Page LocaleSuggestion) where
-  declareNamedSchema =
-    toSwaggerWithDtoName "Page LocaleSuggestion" (Page "locales" pageMetadata [localeNlSuggestion])
 
 instance ToSchema (Page KnowledgeModelPackageSimpleDTO) where
   declareNamedSchema =

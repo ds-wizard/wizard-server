@@ -9,7 +9,6 @@ import Shared.Api.Resource.Tenant.TenantChangeDTO
 import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantDetailDTO
-import Shared.Database.DAO.Locale.LocaleDAO
 import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
 import Shared.Database.DAO.Tenant.TenantDAO
@@ -22,8 +21,6 @@ import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
 import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
-import Shared.Model.Locale.Locale
-import Shared.Model.Locale.LocaleDM
 import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Config.TenantConfigMail
 import Shared.Model.Tenant.Config.TenantConfigMailDM
@@ -77,7 +74,6 @@ registerTenant reqDto = do
     let userCreate = U_Mapper.fromTenantCreateToUserCreateDTO reqDto adminRole.uuid
     user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid tenant.clientUrl True
     createConfig uuid adminRole.uuid now
-    createLocale uuid now
     return $ toDTO tenant Nothing Nothing
 
 createTenantByAdmin :: WizardRequestContextC s m => TenantCreateDTO -> m TenantDTO
@@ -98,7 +94,6 @@ createTenantByAdmin reqDto = do
     let userCreate = U_Mapper.fromTenantCreateToUserCreateDTO (reqDto {password = userPassword}) adminRole.uuid
     user <- createUserByAdminWithUuid userCreate userUuid tenant.uuid tenant.clientUrl False
     createConfig uuid adminRole.uuid now
-    createLocale uuid now
     return $ toDTO tenant Nothing Nothing
 
 getTenantByUuid :: WizardRequestContextC s m => U.UUID -> m TenantDetailDTO
@@ -152,18 +147,3 @@ createConfig uuid defaultRoleUuid now =
   runInTransaction $ do
     createSettings uuid defaultRoleUuid
     void $ insertTenantConfigMail (defaultMail {tenantUuid = uuid, createdAt = now, updatedAt = now} :: TenantConfigMail)
-
-createLocale :: WizardRequestContextC s m => U.UUID -> UTCTime -> m Locale
-createLocale tntUuid now = do
-  runInTransaction $ do
-    uuid <- liftIO generateUuid
-    let locale =
-          localeDefault
-            { uuid = uuid
-            , tenantUuid = tntUuid
-            , createdAt = now
-            , updatedAt = now
-            }
-            :: Locale
-    insertLocale locale
-    return locale

@@ -19,6 +19,5 @@ getUsage tenantUuid = do
   documentTemplateCount <- countDocumentTemplatesWithTenant tenantUuid
   documentTemplateDraftCount <- countDocumentTemplateDraftsWithTenant tenantUuid
   docCount <- countDocumentsWithTenant tenantUuid
-  localeCount <- countLocalesWithTenant tenantUuid
   storageCount <- sumStorageWithTenant tenantUuid
-  return $ toDTO limitBundle userCount activeUserCount knowledgeModelEditorCount kmCount prjCount documentTemplateCount documentTemplateDraftCount docCount localeCount storageCount
+  return $ toDTO limitBundle userCount activeUserCount knowledgeModelEditorCount kmCount prjCount documentTemplateCount documentTemplateDraftCount docCount storageCount

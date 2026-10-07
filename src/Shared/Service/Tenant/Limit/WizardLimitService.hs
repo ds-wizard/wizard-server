@@ -12,7 +12,6 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateAssetDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
-import Shared.Database.DAO.Locale.LocaleDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectFileDAO
@@ -107,14 +106,6 @@ checkDocumentLimit = do
   limit <- findLimitBundleForCurrentTenant
   count <- countDocuments
   checkLimit "documents" count limit.documents
-
-checkLocaleLimit :: WizardRequestContextC s m => String -> m ()
-checkLocaleLimit localeId = do
-  existingLocales <- findLocalesById localeId
-  when (null existingLocales) $ do
-    limit <- findLimitBundleForCurrentTenant
-    count <- countLocalesGroupedById
-    checkLimit "locales" count limit.locales
 
 checkStorageSize :: WizardRequestContextC s m => Int64 -> m ()
 checkStorageSize newFileSize = do

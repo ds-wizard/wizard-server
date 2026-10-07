@@ -2,14 +2,24 @@ module Specs.Api.Handler.Locale.Detail_DELETE (
   detail_DELETE,
 ) where
 
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
+import Shared.Database.DAO.Locale.LocaleDAO
+import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
+import Shared.Database.DAO.User.UserDAO
+import Shared.Database.Migration.Development.Locale.Data.Locales
 import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as LOC_Migration
-import WizardServer.Database.DAO.Locale.LocaleDAO
+import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.Locale.Locale
+import Shared.Model.PersistentCommand.PersistentCommand
+import Shared.Model.User.RolePermission
+import Shared.Model.User.User
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -17,7 +27,7 @@ import Specs.Api.Handler.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
--- GET /api/locales/{uuid}
+-- DELETE /api/locales/{uuid}
 -- ------------------------------------------------------------------------
 detail_DELETE :: RequestContext -> SpecWith ((), Application)
 detail_DELETE requestContext =
@@ -32,7 +42,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/api/locales/d9894fb9-c6a5-4294-98d6-b46d75684d53"
+reqUrl = BS.pack $ "/api/locales/" ++ U.toString localeDe.uuid
 
 reqHeaders = [reqAuthHeader]
 
@@ -42,21 +52,27 @@ reqBody = ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_204 requestContext =
-  it "HTTP 204 NO CONTENT" $ do
+  it "HTTP 204 NO CONTENT (users of the locale fall back, S3 cleanup is queued)" $
     -- GIVEN: Prepare expectation
-    let expStatus = 204
-    let expHeaders = resCorsHeaders
-    let expBody = ""
-    -- AND: Run migrations
-    runInContextIO LOC_Migration.runMigration requestContext
-    -- WHEN: Call API
-    response <- request reqMethod reqUrl reqHeaders reqBody
-    -- THEN: Compare response with expectation
-    let responseMatcher =
-          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
-    response `shouldRespondWith` responseMatcher
-    -- AND: Find result in DB and compare with expectation state
-    assertCountInDB findLocales requestContext 2
+    do
+      let expStatus = 204
+      let expHeaders = resCorsHeaders
+      let expBody = ""
+      -- AND: Run migrations
+      runInContextIO LOC_Migration.runMigration requestContext
+      runInContextIO (updateUserByUuid userAlbertEditedLocale) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findLocales requestContext 1
+      user <- getOneFromDB (findUserByUuid userAlbert.uuid) requestContext
+      liftIO $ user.locale `shouldBe` Nothing
+      commands <- getOneFromDB (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) requestContext
+      liftIO $ fmap (\c -> (c.component, c.function)) commands `shouldBe` [("locale", "deleteFromS3")]
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -66,7 +82,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtHeader] reqBody "organizationSettings.manage"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -74,8 +90,8 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 test_404 requestContext =
   createNotFoundTest'
     reqMethod
-    "/api/locales/99193032-99e3-4676-acd8-222983ea0b88"
+    (BS.pack $ "/api/locales/" ++ U.toString differentLocale.uuid)
     reqHeaders
     reqBody
     "locale"
-    [("uuid", "99193032-99e3-4676-acd8-222983ea0b88")]
+    [("uuid", U.toString differentLocale.uuid)]

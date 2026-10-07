@@ -12,23 +12,21 @@ import Shared.Util.Logger
 
 runMigration :: WizardRequestContextC s m => m ()
 runMigration = do
-  logInfo _CMP_MIGRATION "(Limit/Locale) started"
+  logInfo _CMP_MIGRATION "(Locale/Locale) started"
   deleteLocales
-  insertLocale localeDefaultEn
-  insertLocale localeNl
   insertLocale localeDe
+  insertLocale localeCs
   insertLocale differentLocale
-  logInfo _CMP_MIGRATION "(Limit/Locale) ended"
+  logInfo _CMP_MIGRATION "(Locale/Locale) ended"
 
 runS3Migration :: WizardRequestContextC s m => m ()
 runS3Migration =
   traverse_
-    ( \(uuid, content) -> do
-        _ <- putLocale uuid "wizard.json" content
-        _ <- putLocale uuid "mail.po" content
-        return ()
+    ( \(locale, po, json) -> do
+        _ <- putLocalePo locale.uuid po
+        putLocaleJson locale.uuid json
     )
-    [ (localeNl.uuid, localeNlContent)
-    , (localeDe.uuid, localeDeContent)
-    , (differentLocale.uuid, differentLocaleContent)
+    [ (localeDe, localeDePo, localeDeJson)
+    , (localeCs, localeCsPo, localeCsJson)
+    , (differentLocale, differentLocalePo, differentLocaleJson)
     ]

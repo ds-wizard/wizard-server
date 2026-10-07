@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -31,7 +31,6 @@ migrateShared :: Pool Connection -> LoggingT IO ()
 migrateShared dbPool = do
   assertNoDuplicateIds dbPool "knowledge_model_package" "km_id"
   assertNoDuplicateIds dbPool "document_template" "template_id"
-  assertNoDuplicateIds dbPool "locale" "locale_id"
   createWorkspaceTables dbPool
   addTenantMultiWorkspace dbPool
   insertWorkspaces dbPool
@@ -47,11 +46,12 @@ migrateShared dbPool = do
   addNullableWorkspaceColumn dbPool "role"
   replaceKnowledgeModelPackageOrganizationId dbPool
   replaceDocumentTemplateOrganizationId dbPool
-  replaceLocaleOrganizationId dbPool
+  reworkLocales dbPool
+  createMailTemplateLocales dbPool
   replaceKnowledgeModelEditorKmId dbPool
   replaceRegistryOrganizationId dbPool "registry_knowledge_model_package" "km_id"
   replaceRegistryOrganizationId dbPool "registry_document_template" "template_id"
-  replaceRegistryOrganizationId dbPool "registry_locale" "locale_id"
+  reworkRegistryLocales dbPool
   dropConfigOrganizationId dbPool
   createUniqueConstraints dbPool
   createFunctions dbPool
@@ -70,6 +70,7 @@ migrateShared dbPool = do
   dropUserGroupMembershipCommands dbPool
   renameAuditToTelemetryEvent dbPool
   createAuditLog dbPool
+  dropLocaleLimit dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -189,15 +190,85 @@ replaceDocumentTemplateOrganizationId dbPool =
     \ALTER TABLE document_template RENAME COLUMN template_id TO id; \
     \CREATE INDEX document_template_id_index ON document_template (id, tenant_uuid);"
 
-replaceLocaleOrganizationId :: Pool Connection -> LoggingT IO ()
-replaceLocaleOrganizationId dbPool =
+reworkLocales :: Pool Connection -> LoggingT IO ()
+reworkLocales dbPool =
   runSql
     dbPool
-    "UPDATE locale SET locale_id = concat(organization_id, '.', locale_id); \
-    \ALTER TABLE locale DROP COLUMN organization_id; \
-    \ALTER TABLE locale RENAME COLUMN locale_id TO id; \
-    \ALTER TABLE locale ADD CONSTRAINT locale_id_unique UNIQUE (id, version, tenant_uuid); \
-    \CREATE INDEX locale_id_index ON locale (id, tenant_uuid);"
+    "DELETE FROM locale; \
+    \DROP TABLE locale CASCADE; \
+    \CREATE TABLE locale ( \
+    \    uuid           uuid        NOT NULL, \
+    \    tenant_uuid    uuid        NOT NULL, \
+    \    code           varchar     NOT NULL, \
+    \    name           varchar     NOT NULL, \
+    \    pot_version    varchar, \
+    \    enabled        bool        NOT NULL, \
+    \    default_locale bool        NOT NULL, \
+    \    official       bool        NOT NULL DEFAULT false, \
+    \    created_at     timestamptz NOT NULL, \
+    \    updated_at     timestamptz NOT NULL, \
+    \    CONSTRAINT locale_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT locale_code_unique UNIQUE (tenant_uuid, code), \
+    \    CONSTRAINT locale_default_enabled_check CHECK (NOT default_locale OR enabled) \
+    \); \
+    \CREATE UNIQUE INDEX locale_default_locale_uindex ON locale (tenant_uuid) WHERE default_locale; \
+    \ALTER TABLE user_entity ADD CONSTRAINT user_entity_locale_fk FOREIGN KEY (locale) REFERENCES locale (uuid) ON DELETE SET NULL; \
+    \CREATE TRIGGER trg_locale_after_delete_s3 \
+    \    AFTER DELETE \
+    \    ON locale \
+    \    FOR EACH ROW \
+    \EXECUTE FUNCTION create_persistent_command_from_entity_uuid('locale', 'deleteFromS3');"
+
+createMailTemplateLocales :: Pool Connection -> LoggingT IO ()
+createMailTemplateLocales dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE mail_template_locale ( \
+    \    uuid           uuid        NOT NULL, \
+    \    tenant_uuid    uuid        NOT NULL, \
+    \    code           varchar     NOT NULL, \
+    \    name           varchar     NOT NULL, \
+    \    pot_version    varchar, \
+    \    enabled        bool        NOT NULL, \
+    \    default_locale bool        NOT NULL, \
+    \    official       bool        NOT NULL DEFAULT false, \
+    \    created_at     timestamptz NOT NULL, \
+    \    updated_at     timestamptz NOT NULL, \
+    \    CONSTRAINT mail_template_locale_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT mail_template_locale_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT mail_template_locale_code_unique UNIQUE (tenant_uuid, code), \
+    \    CONSTRAINT mail_template_locale_default_enabled_check CHECK (NOT default_locale OR enabled) \
+    \); \
+    \CREATE UNIQUE INDEX mail_template_locale_default_locale_uindex ON mail_template_locale (tenant_uuid) WHERE default_locale; \
+    \CREATE TRIGGER trg_mail_template_locale_after_delete_s3 \
+    \    AFTER DELETE \
+    \    ON mail_template_locale \
+    \    FOR EACH ROW \
+    \EXECUTE FUNCTION create_persistent_command_from_entity_uuid('mail_template_locale', 'deleteFromS3');"
+
+reworkRegistryLocales :: Pool Connection -> LoggingT IO ()
+reworkRegistryLocales dbPool =
+  runSql
+    dbPool
+    "DROP TABLE registry_locale; \
+    \CREATE TABLE registry_locale ( \
+    \    code           varchar     NOT NULL, \
+    \    name           varchar     NOT NULL, \
+    \    remote_version varchar     NOT NULL, \
+    \    created_at     timestamptz NOT NULL, \
+    \    CONSTRAINT registry_locale_pk PRIMARY KEY (code) \
+    \); \
+    \CREATE TABLE registry_mail_template_locale ( \
+    \    code           varchar     NOT NULL, \
+    \    name           varchar     NOT NULL, \
+    \    remote_version varchar     NOT NULL, \
+    \    created_at     timestamptz NOT NULL, \
+    \    CONSTRAINT registry_mail_template_locale_pk PRIMARY KEY (code) \
+    \);"
+
+dropLocaleLimit :: Pool Connection -> LoggingT IO ()
+dropLocaleLimit dbPool = runSql dbPool "ALTER TABLE tenant_limit_bundle DROP COLUMN locales;"
 
 replaceKnowledgeModelEditorKmId :: Pool Connection -> LoggingT IO ()
 replaceKnowledgeModelEditorKmId dbPool =

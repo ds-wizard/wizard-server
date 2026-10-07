@@ -480,7 +480,7 @@ registry =
   DevSection
     { name = "Registry"
     , description = Nothing
-    , operations = [registry_syncWithRegistry, registry_pushKnowledgeModelBundle, registry_pushDocumentTemplateBundle, registry_pushLocaleBundle]
+    , operations = [registry_syncWithRegistry, registry_pushKnowledgeModelBundle, registry_pushDocumentTemplateBundle]
     }
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -534,23 +534,6 @@ registry_pushDocumentTemplateBundle =
         ]
     , function = \reqDto -> do
         pushDocumentTemplateBundle (head reqDto.parameters) (U.fromString (reqDto.parameters !! 1))
-        return "Done"
-    }
-
--- ---------------------------------------------------------------------------------------------------------------------
-registry_pushLocaleBundle :: WizardRequestContextC s m => DevOperation m
-registry_pushLocaleBundle =
-  DevOperation
-    { name = "Push Locale Bundle"
-    , description = Nothing
-    , parameters =
-        [ DevOperationParameter
-            { name = "id"
-            , aType = StringDevOperationParameterType
-            }
-        ]
-    , function = \reqDto -> do
-        pushLocaleBundle (head reqDto.parameters)
         return "Done"
     }
 

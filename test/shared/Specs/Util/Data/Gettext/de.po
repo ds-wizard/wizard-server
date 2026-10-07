@@ -1,0 +1,60 @@
+# German translation of the client.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fw-client:5.0.0\n"
+"Language: de\n"
+"X-Display-Name: Deutsch\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/Common/Components/Page.elm:12
+msgid "Save"
+msgstr "Speichern"
+
+#. Verb on a button
+#: src/Common/Components/Page.elm:20
+msgctxt "button"
+msgid "Open"
+msgstr "Öffnen"
+
+msgctxt "state"
+msgid "Open"
+msgstr "Offen"
+
+msgid "%s project"
+msgid_plural "%s projects"
+msgstr[0] "%s Projekt"
+msgstr[1] "%s Projekte"
+
+msgid "%s file"
+msgid_plural "%s files"
+msgstr[0] "%s Datei"
+msgstr[1] ""
+
+msgid "Not translated yet"
+msgstr ""
+
+#, fuzzy, elm-format
+msgid "Almost done"
+msgstr "Fast fertig"
+
+msgid ""
+"A long text that spans "
+"several lines."
+msgstr ""
+"Ein langer Text, der sich über "
+"mehrere Zeilen erstreckt."
+
+msgid "Say \"hello\"\tthen\\leave\nnow"
+msgstr "Sag \"hallo\"\tdann\\geh\njetzt"
+
+msgctxt "menu"
+msgid "Close"
+msgstr ""
+
+#~ msgid "Obsolete"
+#~ msgstr "Veraltet"

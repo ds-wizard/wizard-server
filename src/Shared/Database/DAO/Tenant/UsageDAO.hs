@@ -34,9 +34,6 @@ countDocumentTemplateDraftsWithTenant =
 countDocumentsWithTenant :: RequestContextC s sc m => U.UUID -> m Int
 countDocumentsWithTenant tenantUuid = createCountByFn "document" tenantCondition [U.toString tenantUuid]
 
-countLocalesWithTenant :: RequestContextC s sc m => U.UUID -> m Int
-countLocalesWithTenant = countGroupedWithTenant "locale" "" "id"
-
 sumStorageWithTenant :: RequestContextC s sc m => U.UUID -> m Int64
 sumStorageWithTenant tenantUuid = do
   docSize <- createSumByFn "document" "file_size" tenantCondition [U.toString tenantUuid]

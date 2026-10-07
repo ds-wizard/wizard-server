@@ -18,6 +18,7 @@ auditLogComponents =
   , ("tenant", "The organization itself.")
   , ("tenantPlans", "Plans of an organization.")
   , ("locales", "Locales of the organization.")
+  , ("mailTemplateLocales", "Mail template locales of the organization.")
   , ("knowledgeModels", "Knowledge model packages in the library.")
   , ("knowledgeModelEditors", "Knowledge model editors and their migrations.")
   , ("knowledgeModelSecrets", "Knowledge model secrets; their values are never recorded.")

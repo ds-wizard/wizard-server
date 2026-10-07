@@ -20,6 +20,8 @@ apiSpec =
       shouldServe ["/users", "/users/current/submission-props", "/user-groups/suggestions", "/tokens/system"]
     it "serves one bootstrap and the settings flat" $
       shouldServe ["/bootstrap", "/bootstrap/workspace", "/settings/support", "/settings/registry"]
+    it "serves the registry locale pull" $
+      shouldServe ["/locales/registry", "/locales/registry/{code}/pull", "/mail-template-locales/registry", "/mail-template-locales/registry/{code}/pull"]
     it "serves the plugin settings flat on both planes" $
       shouldServe ["/plugin-settings", "/plugin-settings/{pluginUuid}", "/users/current/plugin-settings/{pluginUuid}"]
     it "mounts neither the old config endpoints nor the fair-wizard ones" $

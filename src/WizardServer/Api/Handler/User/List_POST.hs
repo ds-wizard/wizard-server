@@ -14,12 +14,13 @@ import WizardServer.Api.Resource.User.UserCreateJM ()
 type List_POST =
   Header "Authorization" String
     :> Header "Host" String
+    :> Header "Accept-Language" String
     :> ReqBody '[SafeJSON] UserCreateDTO
     :> "users"
     :> Verb 'POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] UserDTO)
 
-list_POST :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> UserCreateDTO -> sm (Headers '[Header "x-trace-uuid" String] UserDTO)
-list_POST mTokenHeader mServerUrl reqDto =
+list_POST :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> Maybe String -> UserCreateDTO -> sm (Headers '[Header "x-trace-uuid" String] UserDTO)
+list_POST mTokenHeader mServerUrl mAcceptLanguage reqDto =
   getMaybeAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService Transactional $
-      addTraceUuidHeader =<< registerOrCreateUserByAdmin reqDto
+      addTraceUuidHeader =<< registerOrCreateUserByAdmin reqDto mAcceptLanguage

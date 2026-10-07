@@ -179,5 +179,11 @@ userAlbertApiTokenEditedDto =
 userAlbertEditedLocale :: User
 userAlbertEditedLocale =
   userAlbert
-    { locale = Just localeNl.uuid
+    { locale = Just localeDe.uuid
+    }
+
+userAlbertEditedLocaleCs :: User
+userAlbertEditedLocaleCs =
+  userAlbert
+    { locale = Just localeCs.uuid
     }

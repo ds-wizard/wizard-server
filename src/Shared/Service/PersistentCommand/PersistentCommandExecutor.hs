@@ -12,6 +12,7 @@ import qualified Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleCo
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleCommandExecutor as KnowledgeModelLocaleCommandExecutor
 import qualified Shared.Service.KnowledgeModel.Metamodel.MigrationCommandExecutor as MetamodelMigratorCommandExecutor
 import qualified Shared.Service.Locale.LocaleCommandExecutor as LocaleCommandExecutor
+import qualified Shared.Service.MailTemplateLocale.MailTemplateLocaleCommandExecutor as MailTemplateLocaleCommandExecutor
 import qualified Shared.Service.Prefab.PrefabCommandExecutor as PrefabCommandExecutor
 import qualified Shared.Service.Project.Cache.ProjectCacheCommandExecutor as ProjectCacheCommandExecutor
 import qualified Shared.Service.Project.File.ProjectFileCommandExecutor as ProjectFileCommandExecutor
@@ -24,6 +25,7 @@ components =
   , DocumentTemplateLocaleCommandExecutor.cComponent
   , KnowledgeModelLocaleCommandExecutor.cComponent
   , LocaleCommandExecutor.cComponent
+  , MailTemplateLocaleCommandExecutor.cComponent
   , MetamodelMigratorCommandExecutor.cComponent
   , PrefabCommandExecutor.cComponent
   , ProjectCacheCommandExecutor.cComponent
@@ -38,6 +40,7 @@ execute command
   | command.component == DocumentTemplateLocaleCommandExecutor.cComponent = DocumentTemplateLocaleCommandExecutor.execute command
   | command.component == KnowledgeModelLocaleCommandExecutor.cComponent = KnowledgeModelLocaleCommandExecutor.execute command
   | command.component == LocaleCommandExecutor.cComponent = LocaleCommandExecutor.execute command
+  | command.component == MailTemplateLocaleCommandExecutor.cComponent = MailTemplateLocaleCommandExecutor.execute command
   | command.component == MetamodelMigratorCommandExecutor.cComponent = MetamodelMigratorCommandExecutor.execute command
   | command.component == PrefabCommandExecutor.cComponent = PrefabCommandExecutor.execute command
   | command.component == ProjectCacheCommandExecutor.cComponent = ProjectCacheCommandExecutor.execute command

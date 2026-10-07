@@ -30,6 +30,7 @@ import Shared.Model.User.UserRegistrationPending
 import Shared.Model.User.UserRegistrationPendingServiceType
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
+import Shared.Service.Locale.LocaleService (determineLocale)
 import Shared.Service.Mail.Mailer
 import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
@@ -47,7 +48,7 @@ import Shared.Util.Password
 import Shared.Util.Uuid
 
 completeExternalRegistration :: WizardRequestContextC s m => UserFromExternalDTO -> Maybe String -> Maybe String -> m UserTokenDTO
-completeExternalRegistration reqDto _mAcceptLanguages mUserAgent =
+completeExternalRegistration reqDto mAcceptLanguage mUserAgent =
   runInTransaction $ do
     (pending :: UserRegistrationPending UserRegistrationPendingServiceType) <-
       findUserRegistrationPendingByHash reqDto.hash
@@ -63,7 +64,7 @@ completeExternalRegistration reqDto _mAcceptLanguages mUserAgent =
     let emailVerified = case pending.email of
           Just _ -> True
           Nothing -> False
-    user <- createUserForPending pending reqDto emailVerified now
+    user <- createUserForPending pending reqDto emailVerified mAcceptLanguage now
     identityUuid <- liftIO generateUuid
     let identity = UserOpenIdIdentityMapper.fromPending identityUuid pending (user :: User).uuid now
     void $ insertUserOpenIdIdentity identity
@@ -89,9 +90,10 @@ createUserForPending
   => UserRegistrationPending UserRegistrationPendingServiceType
   -> UserFromExternalDTO
   -> Bool
+  -> Maybe String
   -> UTCTime
   -> m User
-createUserForPending pending reqDto emailVerified now = do
+createUserForPending pending reqDto emailVerified mAcceptLanguage now = do
   checkUserLimit
   checkActiveUserLimit
   tenantUuid <- asks (.tenantUuid')
@@ -101,6 +103,7 @@ createUserForPending pending reqDto emailVerified now = do
   settingsRoles <- getCurrentSettings findSettingsRoles
   let role = settingsRoles.defaultRoleUuid
   uRole <- getRoleForUser role
+  mLocale <- determineLocale mAcceptLanguage
   let user =
         fromUserExternalDTO
           uUuid
@@ -113,6 +116,7 @@ createUserForPending pending reqDto emailVerified now = do
           uRole.name
           emailVerified
           pending.imageUrl
+          mLocale
           tenantUuid
           now
   insertUser user

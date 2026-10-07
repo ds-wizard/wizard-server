@@ -57,9 +57,9 @@ userServiceIntegrationSpec requestContext =
           -- AND: Update config in DB
           runInContext (saveSettingsAuthentication defaultTenantUuid (settingsAuthentication {registrationEnabled = False} :: SettingsAuthentication)) requestContext
           -- WHEN:
-          result <- runInContext (registerUser userJohnCreate) requestContext
+          result <- runInContext (registerUser userJohnCreate Nothing) requestContext
           -- THEN:
           result `shouldBe` expectation
 
 createOpenIdUser :: RequestContextM User
-createOpenIdUser = createUserFromOpenIdLogin defaultOpenIdClient "openid-external-id" "Open" "Id" "open.id@example.com" Nothing Nothing True
+createOpenIdUser = createUserFromOpenIdLogin defaultOpenIdClient "openid-external-id" "Open" "Id" "open.id@example.com" Nothing Nothing True Nothing

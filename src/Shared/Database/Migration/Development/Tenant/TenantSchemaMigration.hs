@@ -344,7 +344,6 @@ createTenantLimitBundleTable = do
         \    created_at               timestamptz NOT NULL, \
         \    updated_at               timestamptz NOT NULL, \
         \    document_template_drafts integer     NOT NULL, \
-        \    locales                  integer     NOT NULL, \
         \    CONSTRAINT tenant_limit_bundle_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT tenant_limit_bundle_uuid_fk FOREIGN KEY (uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"

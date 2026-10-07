@@ -2,11 +2,11 @@ module Shared.Api.Resource.Locale.LocaleSuggestionJM where
 
 import Data.Aeson
 
-import Shared.Model.Locale.LocaleSuggestion
+import Shared.Api.Resource.Locale.LocaleSuggestionDTO
 import Shared.Util.Aeson
 
-instance FromJSON LocaleSuggestion where
+instance FromJSON LocaleSuggestionDTO where
   parseJSON = genericParseJSON jsonOptions
 
-instance ToJSON LocaleSuggestion where
+instance ToJSON LocaleSuggestionDTO where
   toJSON = genericToJSON jsonOptions

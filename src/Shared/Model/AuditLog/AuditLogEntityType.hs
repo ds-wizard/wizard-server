@@ -17,6 +17,7 @@ data AuditLogEntityType
   | DocumentTemplateAuditLogEntityType
   | DocumentTemplateEditorAuditLogEntityType
   | LocaleAuditLogEntityType
+  | MailTemplateLocaleAuditLogEntityType
   | DataSourceAuditLogEntityType
   | PluginAuditLogEntityType
   | AutomationAuditLogEntityType
@@ -42,6 +43,7 @@ auditLogEntityTypeName KnowledgeModelSecretAuditLogEntityType = "knowledgeModelS
 auditLogEntityTypeName DocumentTemplateAuditLogEntityType = "documentTemplate"
 auditLogEntityTypeName DocumentTemplateEditorAuditLogEntityType = "documentTemplateEditor"
 auditLogEntityTypeName LocaleAuditLogEntityType = "locale"
+auditLogEntityTypeName MailTemplateLocaleAuditLogEntityType = "mailTemplateLocale"
 auditLogEntityTypeName DataSourceAuditLogEntityType = "dataSource"
 auditLogEntityTypeName PluginAuditLogEntityType = "plugin"
 auditLogEntityTypeName AutomationAuditLogEntityType = "automation"
@@ -66,6 +68,7 @@ auditLogEntityTypeDescription KnowledgeModelSecretAuditLogEntityType = "A knowle
 auditLogEntityTypeDescription DocumentTemplateAuditLogEntityType = "A document template; entity.uuid is the template uuid."
 auditLogEntityTypeDescription DocumentTemplateEditorAuditLogEntityType = "A document template editor; entity.uuid is the draft template uuid."
 auditLogEntityTypeDescription LocaleAuditLogEntityType = "A locale; entity.uuid is the locale uuid."
+auditLogEntityTypeDescription MailTemplateLocaleAuditLogEntityType = "A mail template locale; entity.uuid is the mail template locale uuid."
 auditLogEntityTypeDescription DataSourceAuditLogEntityType = "A data source; entity.uuid is the data source uuid."
 auditLogEntityTypeDescription PluginAuditLogEntityType = "A plugin; entity.uuid is the plugin uuid."
 auditLogEntityTypeDescription AutomationAuditLogEntityType = "An automation; entity.uuid is the automation uuid."

@@ -15,7 +15,6 @@ data TenantLimitBundle = TenantLimitBundle
   , documentTemplateDrafts :: Int
   , projects :: Int
   , documents :: Int
-  , locales :: Int
   , storage :: Int64
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
