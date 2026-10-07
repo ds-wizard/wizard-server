@@ -82,10 +82,13 @@ checkPackageLimit pkgId = do
     checkLimit "knowledge models" count limit.knowledgeModels
 
 checkProjectLimit :: WizardRequestContextC s m => m ()
-checkProjectLimit = do
+checkProjectLimit = checkProjectsLimit 1
+
+checkProjectsLimit :: WizardRequestContextC s m => Int -> m ()
+checkProjectsLimit newCount = do
   limit <- findLimitBundleForCurrentTenant
   count <- countProjects
-  checkLimit "projects" count limit.projects
+  checkLimit "projects" (count + newCount - 1) limit.projects
 
 checkDocumentTemplateLimit :: WizardRequestContextC s m => String -> m ()
 checkDocumentTemplateLimit dtId = do

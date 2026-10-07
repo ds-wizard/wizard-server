@@ -13,6 +13,7 @@ import Shared.Database.DAO.Common
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateAssetDAO (deleteAssets, deleteAssetsByDocumentTemplateUuid)
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFileDAO (deleteFiles, deleteFilesByDocumentTemplateUuid)
 import Shared.Database.Mapping.DocumentTemplate.DocumentTemplate ()
+import Shared.Database.Mapping.DocumentTemplate.DocumentTemplatePhase ()
 import Shared.Model.Context.RequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.DocumentTemplate.DocumentTemplate
@@ -103,7 +104,18 @@ createFindDocumentTemplateByCoordinateAction coordinate mWorkspaceUuid = do
 
 findLatestDocumentTemplateById :: RequestContextC s sc m => String -> Maybe U.UUID -> m DocumentTemplate
 findLatestDocumentTemplateById dtId mWorkspaceUuid = do
+  action <- createFindLatestDocumentTemplateByIdAction dtId Nothing mWorkspaceUuid
+  runOneEntityDB entityName action [("id", dtId)]
+
+findLatestDocumentTemplateById' :: RequestContextC s sc m => String -> Maybe DocumentTemplatePhase -> Maybe U.UUID -> m (Maybe DocumentTemplate)
+findLatestDocumentTemplateById' dtId mPhase mWorkspaceUuid = do
+  action <- createFindLatestDocumentTemplateByIdAction dtId mPhase mWorkspaceUuid
+  runOneEntityDB' entityName action [("id", dtId)]
+
+createFindLatestDocumentTemplateByIdAction :: RequestContextC s sc m => String -> Maybe DocumentTemplatePhase -> Maybe U.UUID -> m (Connection -> IO [DocumentTemplate])
+createFindLatestDocumentTemplateByIdAction dtId mPhase mWorkspaceUuid = do
   tenantUuid <- asks (.tenantUuid')
+  let phaseCondition = maybe "" (const "AND phase = ?") mPhase
   let sql =
         fromString $
           f'
@@ -112,16 +124,16 @@ findLatestDocumentTemplateById dtId mWorkspaceUuid = do
             \WHERE tenant_uuid = ? \
             \  AND id = ? \
             \  AND %s \
+            \  %s \
             \ORDER BY split_part(version, '.', 1)::int DESC, \
             \        split_part(version, '.', 2)::int DESC, \
             \        split_part(version, '.', 3)::int DESC, \
             \        workspace_uuid IS NOT NULL DESC \
             \LIMIT 1"
-            [entityName, workspaceVisibleCondition]
-  let params = [toField tenantUuid, toField dtId, toField mWorkspaceUuid]
+            [entityName, workspaceVisibleCondition, phaseCondition]
+  let params = [toField tenantUuid, toField dtId, toField mWorkspaceUuid] ++ foldMap (pure . toField) mPhase
   logQuery sql params
-  let action conn = query conn sql params
-  runOneEntityDB entityName action [("id", dtId)]
+  return (\conn -> query conn sql params)
 
 countDocumentTemplatesGroupedById :: RequestContextC s sc m => m Int
 countDocumentTemplatesGroupedById = do

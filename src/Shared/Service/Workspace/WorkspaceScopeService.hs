@@ -1,6 +1,6 @@
 module Shared.Service.Workspace.WorkspaceScopeService where
 
-import Control.Monad (unless, when)
+import Control.Monad (unless)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks)
 import qualified Data.Map.Strict as M
@@ -9,7 +9,6 @@ import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
-import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
 import Shared.Localization.Messages.Public
@@ -18,10 +17,8 @@ import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
-import Shared.Model.Tenant.Tenant
 import Shared.Model.User.RolePermission
 import Shared.Model.User.RoleSimple
-import Shared.Model.Workspace.Workspace
 
 resolveScope :: WizardRequestContextC s m => Maybe U.UUID -> Maybe Bool -> m Scope
 resolveScope (Just _) (Just True) = throwError $ UserError _ERROR_SERVICE_WORKSPACE__SCOPE_CONFLICT
@@ -66,14 +63,6 @@ checkWorkspacePlaneAvailable :: WizardRequestContextC s m => m ()
 checkWorkspacePlaneAvailable = do
   multiWorkspace <- asks (.tenantMultiWorkspace')
   unless multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_PLANE_UNAVAILABLE)
-
-resolveCommandWorkspaceUuid :: WizardRequestContextC s m => Maybe U.UUID -> m U.UUID
-resolveCommandWorkspaceUuid (Just workspaceUuid) = (.uuid) <$> findWorkspaceByUuid workspaceUuid
-resolveCommandWorkspaceUuid Nothing = do
-  tenantUuid <- asks (.tenantUuid')
-  tenant <- findTenantByUuid tenantUuid
-  when tenant.multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_REQUIRED)
-  getOnlyWorkspaceUuid
 
 getOnlyWorkspaceUuid :: WizardRequestContextC s m => m U.UUID
 getOnlyWorkspaceUuid = do

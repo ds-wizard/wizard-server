@@ -26,7 +26,6 @@ import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
 import Shared.Model.DocumentTemplate.DocumentTemplateState
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.PersistentCommand.Project.CreateProjectCommand
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Comment.ProjectCommentList
 import Shared.Model.Project.Detail.ProjectDetail
@@ -42,7 +41,6 @@ import Shared.Model.Project.ProjectState
 import Shared.Model.Project.ProjectSuggestion
 import Shared.Model.Project.Version.ProjectVersionList
 import Shared.Model.Report.Report
-import Shared.Model.Settings.Settings
 import Shared.Model.User.User
 import Shared.Model.User.UserGroup
 import Shared.Service.Acl.AclMapper
@@ -344,29 +342,4 @@ fromProjectPermChangeDTO projectUuid tenantUuid dto =
     , memberUuid = dto.memberUuid
     , perms = dto.perms
     , tenantUuid = tenantUuid
-    }
-
-fromCreateProjectCommand :: CreateProjectCommand -> U.UUID -> [ProjectPerm] -> SettingsProjects -> U.UUID -> U.UUID -> U.UUID -> UTCTime -> Project
-fromCreateProjectCommand command uuid permissions tcProject tenantUuid createdBy workspaceUuid now = do
-  Project
-    { uuid = uuid
-    , name = command.name
-    , description = Nothing
-    , visibility = tcProject.projectVisibility.defaultValue
-    , sharing = tcProject.projectSharing.defaultValue
-    , knowledgeModelPackageUuid = command.knowledgeModelPackageUuid
-    , selectedQuestionTagUuids = []
-    , language = Nothing
-    , projectTags = []
-    , documentTemplateUuid = command.documentTemplateUuid
-    , formatUuid = Nothing
-    , documentTemplateLanguage = Nothing
-    , creatorUuid = Just createdBy
-    , permissions = permissions
-    , isTemplate = False
-    , squashed = True
-    , tenantUuid = tenantUuid
-    , createdAt = now
-    , updatedAt = now
-    , workspaceUuid = workspaceUuid
     }

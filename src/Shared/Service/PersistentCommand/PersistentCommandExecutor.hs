@@ -16,7 +16,6 @@ import qualified Shared.Service.MailTemplateLocale.MailTemplateLocaleCommandExec
 import qualified Shared.Service.Prefab.PrefabCommandExecutor as PrefabCommandExecutor
 import qualified Shared.Service.Project.Cache.ProjectCacheCommandExecutor as ProjectCacheCommandExecutor
 import qualified Shared.Service.Project.File.ProjectFileCommandExecutor as ProjectFileCommandExecutor
-import qualified Shared.Service.Project.ProjectCommandExecutor as ProjectCommandExecutor
 
 components :: [String]
 components =
@@ -29,7 +28,6 @@ components =
   , MetamodelMigratorCommandExecutor.cComponent
   , PrefabCommandExecutor.cComponent
   , ProjectCacheCommandExecutor.cComponent
-  , ProjectCommandExecutor.cComponent
   , ProjectFileCommandExecutor.cComponent
   ]
 
@@ -44,6 +42,5 @@ execute command
   | command.component == MetamodelMigratorCommandExecutor.cComponent = MetamodelMigratorCommandExecutor.execute command
   | command.component == PrefabCommandExecutor.cComponent = PrefabCommandExecutor.execute command
   | command.component == ProjectCacheCommandExecutor.cComponent = ProjectCacheCommandExecutor.execute command
-  | command.component == ProjectCommandExecutor.cComponent = ProjectCommandExecutor.execute command
   | command.component == ProjectFileCommandExecutor.cComponent = ProjectFileCommandExecutor.execute command
   | otherwise = throwError . GeneralServerError $ "Unknown command component: " <> command.component

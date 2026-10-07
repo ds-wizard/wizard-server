@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -71,6 +71,7 @@ migrateShared dbPool = do
   renameAuditToTelemetryEvent dbPool
   createAuditLog dbPool
   dropLocaleLimit dbPool
+  dropProjectCommands dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -765,6 +766,10 @@ createWorkspacePluginSettings dbPool =
 dropUserGroupMembershipCommands :: Pool Connection -> LoggingT IO ()
 dropUserGroupMembershipCommands dbPool =
   runSql dbPool "DELETE FROM persistent_command WHERE component = 'user_group_membership';"
+
+dropProjectCommands :: Pool Connection -> LoggingT IO ()
+dropProjectCommands dbPool =
+  runSql dbPool "DELETE FROM persistent_command WHERE component = 'project';"
 
 renameAuditToTelemetryEvent :: Pool Connection -> LoggingT IO ()
 renameAuditToTelemetryEvent dbPool =
