@@ -47,6 +47,9 @@ import Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.WebsocketSpec
 import Specs.Api.Handler.KnowledgeModelPackage.ApiSpec
 import Specs.Api.Handler.KnowledgeModelSecret.ApiSpec
 import Specs.Api.Handler.Locale.ApiSpec
+import Specs.Api.Handler.Locale.Registry.ApiSpec
+import Specs.Api.Handler.MailTemplateLocale.ApiSpec
+import Specs.Api.Handler.MailTemplateLocale.Registry.ApiSpec
 import Specs.Api.Handler.OpenIdClient.ApiSpec
 import Specs.Api.Handler.PluginSettings.ApiSpec
 import Specs.Api.Handler.Prefab.ApiSpec
@@ -76,6 +79,7 @@ import Specs.Integration.Http.Common.ResponseMapperSpec
 import Specs.Integration.Http.Common.SsrfProtectionSpec
 import Specs.Model.Common.PageSpec
 import Specs.Model.KnowledgeModel.KnowledgeModelAccessorsSpec
+import Specs.Model.PersistentCommand.Mail.MailCommandSpec
 import Specs.Service.Acl.AclServiceSpec
 import Specs.Service.AuditLog.AuditLogServiceSpec
 import Specs.Service.Coordinate.CoordinateValidationSpec
@@ -92,6 +96,9 @@ import qualified Specs.Service.KnowledgeModel.Migration.Migrator.SanitizerSpec a
 import Specs.Service.KnowledgeModel.Package.PackageUtilSpec
 import Specs.Service.KnowledgeModel.Package.PackageValidationSpec
 import Specs.Service.KnowledgeModel.Squash.SquasherSpec
+import Specs.Service.Locale.LocaleServiceSpec
+import Specs.Service.Locale.Registry.RegistryLocaleMapperSpec
+import Specs.Service.Mail.MailerSpec
 import Specs.Service.PersistentCommand.PersistentCommandServiceSpec
 import Specs.Service.Project.Cache.ProjectCacheServiceSpec
 import Specs.Service.Project.Collaboration.ProjectCollaborationAclSpec
@@ -104,6 +111,7 @@ import qualified Specs.Service.Project.Migration.Migrator.SanitizerSpec as PRJ_S
 import Specs.Service.Project.ProjectAclSpec
 import Specs.Service.Project.ProjectServiceSpec
 import Specs.Service.Project.ProjectValidationSpec
+import Specs.Service.Registry.Synchronization.RegistrySynchronizationServiceSpec
 import Specs.Service.Report.ReportGeneratorSpec
 import Specs.Service.Tenant.TenantValidationSpec
 import Specs.Service.TypeHint.TypeHintServiceSpec
@@ -113,6 +121,7 @@ import Specs.Service.Workspace.WorkspaceScopeServiceSpec
 import Specs.Util.GettextSpec
 import Specs.Util.JinjaSpec
 import Specs.Util.ListSpec
+import Specs.Util.LocaleCodeSpec
 import Specs.Util.MapSpec
 import Specs.Util.MathSpec
 import Specs.Util.StringSpec
@@ -204,6 +213,7 @@ main =
             describe "MODEL" $ do
               pageSpec
               knowledgeModelAccessorsSpec
+              mailCommandSpec
             describe "SERVICE" $ do
               aclServiceSpec
               describe "Coordinate" coordinateValidationSpec
@@ -229,6 +239,7 @@ main =
                   projectCompilerServiceSpec
                   projectEventServiceSpec
                 projectValidationSpec
+              describe "Locale" registryLocaleMapperSpec
               describe "Report" reportGeneratorSpec
               describe "Tenant" tenantValidationSpec
             describe "UTIL" $ do
@@ -239,6 +250,7 @@ main =
               tokenSpec
               jinjaSpec
               gettextSpec
+              localeCodeSpec
           before (resetDB requestContext) $ describe "INTEGRATION TESTING" $ do
             describe "API" $ do
               apiKeyAPI serverContext requestContext
@@ -257,6 +269,9 @@ main =
               knowledgeModelPackageAPI serverContext requestContext
               knowledgeModelSecretAPI serverContext requestContext
               localeAPI serverContext requestContext
+              localeRegistryAPI serverContext requestContext
+              mailTemplateLocaleAPI serverContext requestContext
+              mailTemplateLocaleRegistryAPI serverContext requestContext
               openIdClientAPI serverContext requestContext
               pluginSettingsAPI serverContext requestContext
               prefabAPI serverContext requestContext
@@ -291,7 +306,10 @@ main =
                   knowledgeModelEditorServiceSpec requestContext
                 describe "Package" $ packageValidationSpec requestContext
               auditLogServiceSpec requestContext
+              localeServiceIntegrationSpec requestContext
+              mailerIntegrationSpec requestContext
               persistentCommandServiceSpec requestContext
+              registrySynchronizationServiceSpec requestContext
               typeHintServiceSpec requestContext
               describe "Project" $ do
                 describe "Migration" $

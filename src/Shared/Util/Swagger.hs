@@ -10,23 +10,22 @@ import qualified Data.Text as T
 
 import Shared.Util.Aeson
 
-toSwagger exampleDTO proxy =
-  let schema = genericDeclareNamedSchema (fromAesonOptions jsonOptions) proxy
-   in fmap (\s -> s {_namedSchemaSchema = s._namedSchemaSchema {_schemaExample = Just . toJSON $ exampleDTO}}) schema
+toSwagger exampleDTO = withExample exampleDTO . genericDeclareNamedSchema (fromAesonOptions jsonOptions)
 
-toSwaggerWithType typeFieldName exampleDTO proxy =
-  let schema = genericDeclareNamedSchema (fromAesonOptions (jsonOptionsWithTypeField typeFieldName)) proxy
-   in fmap (\s -> s {_namedSchemaSchema = s._namedSchemaSchema {_schemaExample = Just . toJSON $ exampleDTO}}) schema
+toSwaggerWithType typeFieldName exampleDTO =
+  withExample exampleDTO . genericDeclareNamedSchema (fromAesonOptions (jsonOptionsWithTypeField typeFieldName))
 
-toSwaggerWithFlatType typeFieldName exampleDTO proxy =
-  let schema = genericDeclareNamedSchemaUnrestricted (fromAesonOptions (jsonOptionsWithTypeField typeFieldName)) proxy
-   in fmap (\s -> s {_namedSchemaSchema = s._namedSchemaSchema {_schemaExample = Just . toJSON $ exampleDTO}}) schema
+toSwaggerWithFlatType typeFieldName exampleDTO =
+  withExample exampleDTO . genericDeclareNamedSchemaUnrestricted (fromAesonOptions (jsonOptionsWithTypeField typeFieldName))
 
 withSchemaName dtoName = fmap (\s -> s {_namedSchemaName = Just dtoName})
 
+withExample :: (Functor f, ToJSON a) => a -> f NamedSchema -> f NamedSchema
+withExample example = fmap (\s -> s {_namedSchemaSchema = s._namedSchemaSchema {_schemaExample = Just . toJSON $ example}})
+
 toSwaggerWithDtoName dtoName exampleDTO proxy =
   let schema = genericDeclareNamedSchema ((fromAesonOptions jsonOptions) {fieldLabelModifier = changePageFields}) proxy
-   in withSchemaName dtoName . fmap (\s -> s {_namedSchemaSchema = s._namedSchemaSchema {_schemaExample = Just . toJSON $ exampleDTO}}) $ schema
+   in withSchemaName dtoName . withExample exampleDTO $ schema
 
 changePageFields :: String -> String
 changePageFields "name" = "name"

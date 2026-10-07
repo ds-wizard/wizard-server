@@ -40,6 +40,7 @@ import Shared.Model.User.UserSuggestion
 import Shared.Model.UserEmailLink.UserEmailLink
 import Shared.Model.UserEmailLink.UserEmailLinkType
 import Shared.Service.Common
+import Shared.Service.Locale.LocaleService (determineLocale)
 import Shared.Service.Mail.Mailer
 import Shared.Service.Settings.SettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
@@ -66,13 +67,13 @@ getUsersPage mQuery mRole pageable sort = do
 getUserSuggestionsPage :: WizardRequestContextC s m => Maybe String -> Maybe [String] -> Maybe [String] -> Pageable -> [Sort] -> m (Page UserSuggestion)
 getUserSuggestionsPage = findUserSuggestionsPage
 
-registerOrCreateUserByAdmin :: WizardRequestContextC s m => UserCreateDTO -> m UserDTO
-registerOrCreateUserByAdmin reqDto =
+registerOrCreateUserByAdmin :: WizardRequestContextC s m => UserCreateDTO -> Maybe String -> m UserDTO
+registerOrCreateUserByAdmin reqDto mAcceptLanguage =
   runInTransaction $ do
     isAdmin <- isCurrentUserAdmin
     if isAdmin
       then createUserByAdmin reqDto
-      else registerUser reqDto
+      else registerUser reqDto mAcceptLanguage
 
 createUserByAdmin :: WizardRequestContextC s m => UserCreateDTO -> m UserDTO
 createUserByAdmin reqDto =
@@ -93,10 +94,10 @@ createUserByAdminWithUuid reqDto uUuid tenantUuid clientUrl shouldSendRegistrati
     settingsRoles <- getCurrentSettings findSettingsRoles
     let role = fromMaybe settingsRoles.defaultRoleUuid reqDto.roleUuid
     uRole <- getRoleForUserInTenant tenantUuid role
-    createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name tenantUuid clientUrl shouldSendRegistrationEmail
+    createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name Nothing tenantUuid clientUrl shouldSendRegistrationEmail
 
-registerUser :: WizardRequestContextC s m => UserCreateDTO -> m UserDTO
-registerUser reqDto =
+registerUser :: WizardRequestContextC s m => UserCreateDTO -> Maybe String -> m UserDTO
+registerUser reqDto mAcceptLanguage =
   runInTransaction $ do
     checkIfAdminIsDisabled
     checkIfRegistrationIsEnabled
@@ -107,22 +108,23 @@ registerUser reqDto =
     uRole <- getRoleForUser role
     clientUrl <- getClientUrl
     tenantUuid <- asks (.tenantUuid')
+    mLocale <- determineLocale mAcceptLanguage
     mExistingUser <- findUserByEmailAndTenantUuid' (toLower reqDto.email) tenantUuid
     case mExistingUser of
       Just _ -> do
         now <- liftIO getCurrentTime
-        let fakeUser = fromUserCreateDTO reqDto uUuid uPasswordHash role uRole.permissions uRole.name tenantUuid now True
+        let fakeUser = fromUserCreateDTO reqDto uUuid uPasswordHash role uRole.permissions uRole.name mLocale tenantUuid now True
         return $ toDTO fakeUser
-      Nothing -> createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name tenantUuid clientUrl True
+      Nothing -> createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name mLocale tenantUuid clientUrl True
 
-createUser :: WizardRequestContextC s m => UserCreateDTO -> U.UUID -> String -> U.UUID -> [String] -> String -> U.UUID -> String -> Bool -> m UserDTO
-createUser reqDto uUuid uPasswordHash role uPermissions uRoleName tenantUuid clientUrl shouldSendRegistrationEmail =
+createUser :: WizardRequestContextC s m => UserCreateDTO -> U.UUID -> String -> U.UUID -> [String] -> String -> Maybe U.UUID -> U.UUID -> String -> Bool -> m UserDTO
+createUser reqDto uUuid uPasswordHash role uPermissions uRoleName mLocale tenantUuid clientUrl shouldSendRegistrationEmail =
   runInTransaction $ do
     checkUserLimitForTenant tenantUuid
     checkActiveUserLimitForTenant tenantUuid
     validateUserEmailUniqueness reqDto.email tenantUuid
     now <- liftIO getCurrentTime
-    let user = fromUserCreateDTO reqDto uUuid uPasswordHash role uPermissions uRoleName tenantUuid now shouldSendRegistrationEmail
+    let user = fromUserCreateDTO reqDto uUuid uPasswordHash role uPermissions uRoleName mLocale tenantUuid now shouldSendRegistrationEmail
     insertUser user
     addUserToSingleWorkspace tenantUuid uUuid now
     userEmailLink <- createUserEmailLink uUuid RegistrationUserEmailLinkType tenantUuid
@@ -145,8 +147,9 @@ createUserFromOpenIdLogin
   -> Maybe String
   -> Maybe U.UUID
   -> Bool
+  -> Maybe String
   -> m User
-createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImageUrl mUserUuid active =
+createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImageUrl mUserUuid active mAcceptLanguage =
   runInTransaction $ do
     checkUserLimit
     checkActiveUserLimit
@@ -161,6 +164,7 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
     settingsRoles <- getCurrentSettings findSettingsRoles
     let role = settingsRoles.defaultRoleUuid
     uRole <- getRoleForUser role
+    mLocale <- determineLocale mAcceptLanguage
     let user =
           fromUserExternalDTO
             uUuid
@@ -173,6 +177,7 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
             uRole.name
             active
             mImageUrl
+            mLocale
             tenantUuid
             now
     insertUser user

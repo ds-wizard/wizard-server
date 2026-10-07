@@ -91,7 +91,7 @@ deleteLocaleCommand =
     (u' "0b6bbcbc-7b8b-4b64-a0a4-1a2e2fd1e2c6")
     "locale"
     "deleteFromS3"
-    (BSL.unpack . encode $ TriggerEntityUuidCommand {uuid = localeNl.uuid})
+    (BSL.unpack . encode $ TriggerEntityUuidCommand {uuid = localeDe.uuid})
     10
     defaultTenantUuid
     (Just systemUserUuid)

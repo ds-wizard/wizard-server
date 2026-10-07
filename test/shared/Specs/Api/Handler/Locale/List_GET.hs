@@ -2,19 +2,18 @@ module Specs.Api.Handler.Locale.List_GET (
   list_GET,
 ) where
 
-import Data.Aeson (encode)
+import qualified Data.List as L
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
-import Test.Hspec.Wai.Matcher
 
+import Shared.Api.Resource.Locale.LocaleDTO
+import Shared.Api.Resource.Locale.LocaleJM ()
+import Shared.Database.Migration.Development.Locale.Data.Locales
 import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as LOC_Migration
-import qualified Shared.Database.Migration.Development.Registry.RegistryMigration as R_Migration
-import Shared.Model.Common.Page
-import Shared.Model.Common.PageMetadata
-import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
-import WizardServer.Database.Migration.Development.Locale.Data.Locales
+import Shared.Model.User.RolePermission
+import Shared.Service.Locale.LocaleMapper
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -36,9 +35,9 @@ list_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/api/locales?sort=code,asc"
+reqUrl = "/api/locales"
 
-reqHeadersT reqAuthHeader = [reqAuthHeader]
+reqHeaders = [reqAuthHeader]
 
 reqBody = ""
 
@@ -46,24 +45,21 @@ reqBody = ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_200 requestContext =
-  it "HTTP 200 OK" $
-    -- GIVEN: Prepare request
+  it "HTTP 200 OK (only the locales of the tenant)" $
+    -- GIVEN: Prepare expectation
     do
-      let reqHeaders = reqHeadersT reqAuthHeader
-      -- AND: Prepare expectation
       let expStatus = 200
-      let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = Page "locales" (PageMetadata 20 3 1 0) [localeDeDto, localeDefaultEnDto, localeNlDto]
-      let expBody = encode expDto
+      let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
+      let expDto = fmap toDTO [localeCs, localeDe]
       -- AND: Run migrations
       runInContextIO LOC_Migration.runMigration requestContext
-      runInContextIO R_Migration.runMigration requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
-      let responseMatcher =
-            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
-      response `shouldRespondWith` responseMatcher
+      let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, [LocaleDTO])
+      assertResStatus status expStatus
+      assertResHeaders headers expHeaders
+      liftIO $ L.sortOn (.code) resDto `shouldBe` expDto
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -73,4 +69,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody "organizationSettings.manage"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION

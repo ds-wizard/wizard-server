@@ -12,11 +12,5 @@ toRetrieveKnowledgeModelBundleByIdResponse = Right . responseBody
 toRetrieveDocumentTemplateBundleByCoordinateResponse :: Response BSL.ByteString -> Either AppError BSL.ByteString
 toRetrieveDocumentTemplateBundleByCoordinateResponse = Right . responseBody
 
-toRetrieveLocaleBundleByCoordinateResponse :: Response BSL.ByteString -> Either AppError BSL.ByteString
-toRetrieveLocaleBundleByCoordinateResponse = Right . responseBody
-
 toUploadDocumentTemplateBundleResponse :: Response BSL.ByteString -> Either AppError BSL.ByteString
 toUploadDocumentTemplateBundleResponse = Right . responseBody
-
-toUploadLocaleBundleResponse :: Response BSL.ByteString -> Either AppError BSL.ByteString
-toUploadLocaleBundleResponse = Right . responseBody

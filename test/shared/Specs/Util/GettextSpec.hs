@@ -1,6 +1,12 @@
 module Specs.Util.GettextSpec where
 
+import Control.Exception (evaluate)
+import Data.Aeson (Value, decodeStrict)
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.List as L
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import System.Timeout (timeout)
 import Test.Hspec
 
 import Shared.Util.Gettext
@@ -113,3 +119,95 @@ gettextSpec =
         pluralForms "CS-cz" `shouldBe` pluralForms "cs"
         pluralForms "pt_BR" `shouldBe` "nplurals=2; plural=(n != 1);"
         pluralForms "xx" `shouldBe` "nplurals=2; plural=(n != 1);"
+    describe "parsePo" $ do
+      it "parses context, plurals, flags, multi-line strings and escapes" $ do
+        -- GIVEN:
+        let po =
+              L.intercalate
+                "\n"
+                [ "#, fuzzy"
+                , "msgid \"\""
+                , "msgstr \"\""
+                , "\"Language: de\\n\""
+                , ""
+                , "#. extracted"
+                , "#: src/Page.elm:1"
+                , "msgctxt \"button\""
+                , "msgid \"Open\""
+                , "msgstr \"Öffnen\""
+                , ""
+                , "#, fuzzy, elm-format"
+                , "msgid \"%s file\""
+                , "msgid_plural \"%s files\""
+                , "msgstr[0] \"%s Datei\""
+                , "msgstr[1] \"\""
+                , ""
+                , "msgid \"\""
+                , "\"Two  spaces \""
+                , "\"\\\"quoted\\\"\\tand\\\\\""
+                , "msgstr \"x\""
+                , ""
+                , "#~ msgid \"Obsolete\""
+                , "#~ msgstr \"Veraltet\""
+                ]
+        -- WHEN:
+        let result = parsePo (encode po)
+        -- THEN:
+        result
+          `shouldBe` Right
+            [ PoEntry {msgctxt = Nothing, msgid = "", msgidPlural = Nothing, msgstrs = ["Language: de\n"], flags = ["fuzzy"]}
+            , PoEntry {msgctxt = Just "button", msgid = "Open", msgidPlural = Nothing, msgstrs = ["Öffnen"], flags = []}
+            , PoEntry {msgctxt = Nothing, msgid = "%s file", msgidPlural = Just "%s files", msgstrs = ["%s Datei", ""], flags = ["fuzzy", "elm-format"]}
+            , PoEntry {msgctxt = Nothing, msgid = "Two  spaces \"quoted\"\tand\\", msgidPlural = Nothing, msgstrs = ["x"], flags = []}
+            ]
+      it "parses a large multi-line msgstr in linear time" $ do
+        -- GIVEN:
+        let continuation = "\"0123456789\"\n"
+        let po = BS.concat ["msgid \"Long\"\nmsgstr \"\"\n", BS.concat (replicate 200000 continuation)]
+        -- WHEN:
+        result <- timeout 5000000 . evaluate . either (const 0) (sum . fmap (sum . fmap length . (.msgstrs))) $ parsePo po
+        -- THEN:
+        result `shouldBe` Just 2000000
+      it "fails on a msgid without msgstr" $ do
+        parsePo "msgid \"Open\"\nmsgid \"Close\"\nmsgstr \"\"\n" `shouldBe` Left "Missing msgstr for msgid \"Open\""
+      it "fails on an unexpected keyword" $ do
+        parsePo "msgstr \"Open\"\n" `shouldBe` Left "Unexpected keyword msgstr"
+      it "fails on invalid UTF-8" $ do
+        parsePo "msgid \"\xff\"\nmsgstr \"\"\n" `shouldBe` Left "PO file is not valid UTF-8"
+    describe "poHeaderInfo" $ do
+      it "reads code, name and the POT version" $ do
+        -- GIVEN:
+        let fields = [("Language", "pt_br"), ("X-Display-Name", "Português"), ("Project-Id-Version", "fw:client:5.0.0")]
+        -- WHEN:
+        let result = poHeaderInfo fields
+        -- THEN:
+        result
+          `shouldBe` Just
+            PoHeaderInfo {code = "pt-BR", name = "Português", potVersion = Just "fw:client:5.0.0", kind = Just "fw:client", version = Just "5.0.0"}
+      it "falls back to the code and accepts a missing or unparsable POT version" $ do
+        let expected = Just PoHeaderInfo {code = "de", name = "de", potVersion = Nothing, kind = Nothing, version = Nothing}
+        poHeaderInfo [("Language", "de")] `shouldBe` expected
+        poHeaderInfo [("Language", "de"), ("Project-Id-Version", "PACKAGE VERSION")] `shouldBe` expected
+        poHeaderInfo [("Language", "de"), ("Project-Id-Version", "fw-client:")] `shouldBe` expected
+      it "returns Nothing without Language" $ do
+        poHeaderInfo [("X-Display-Name", "Deutsch")] `shouldBe` Nothing
+        poHeaderInfo [("Language", "")] `shouldBe` Nothing
+      it "reads the header fields of parsed entries" $ do
+        let entries = parsePo "msgid \"\"\nmsgstr \"\"\n\"Language: de\\n\"\n\"X-Display-Name: Deutsch\\n\"\n"
+        fmap (poHeaderInfo . poHeaderFields) entries
+          `shouldBe` Right (Just PoHeaderInfo {code = "de", name = "Deutsch", potVersion = Nothing, kind = Nothing, version = Nothing})
+    describe "toJed" $ do
+      it "produces the po2json jed output" $ do
+        -- GIVEN:
+        po <- BS.readFile (fixtureDir ++ "de.po")
+        expected <- decodeStrict <$> BS.readFile (fixtureDir ++ "de.json")
+        -- WHEN:
+        let result = toJed <$> parsePo po
+        -- THEN:
+        fmap Just result `shouldBe` Right (expected :: Maybe Value)
+
+fixtureDir :: String
+fixtureDir = "test/shared/Specs/Util/Data/Gettext/"
+
+encode :: String -> BS.ByteString
+encode = TE.encodeUtf8 . T.pack

@@ -17,6 +17,8 @@ import Shared.Api.Handler.KnowledgeModel.Api
 import Shared.Api.Handler.KnowledgeModelEditor.Api
 import Shared.Api.Handler.KnowledgeModelPackage.Api
 import Shared.Api.Handler.KnowledgeModelSecret.Api
+import Shared.Api.Handler.Locale.Api
+import Shared.Api.Handler.MailTemplateLocale.Api
 import Shared.Api.Handler.PersistentCommand.Api
 import Shared.Api.Handler.PluginSettings.Api
 import Shared.Api.Handler.Prefab.Api
@@ -31,7 +33,8 @@ import Shared.Api.Handler.UserGroup.Api
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Handler.Workspace.Api
 import WizardServer.Api.Handler.Bootstrap.Api
-import WizardServer.Api.Handler.Locale.Api
+import WizardServer.Api.Handler.Locale.Registry.Api
+import WizardServer.Api.Handler.MailTemplateLocale.Registry.Api
 import WizardServer.Api.Handler.OpenIdClient.Api
 import WizardServer.Api.Handler.Role.Api
 import WizardServer.Api.Handler.Settings.Api
@@ -57,7 +60,9 @@ type ApplicationAPI =
     :<|> KnowledgeModelPackageAPI
     :<|> KnowledgeModelSecretAPI
     :<|> LocaleAPI
-    :<|> LocalePullAPI
+    :<|> LocaleRegistryAPI
+    :<|> MailTemplateLocaleAPI
+    :<|> MailTemplateLocaleRegistryAPI
     :<|> OpenIdClientAPI
     :<|> PersistentCommandAPI
     :<|> PluginSettingsAPI
@@ -101,7 +106,9 @@ applicationServer =
     :<|> knowledgeModelPackageServer
     :<|> knowledgeModelSecretServer
     :<|> localeServer
-    :<|> localePullServer
+    :<|> localeRegistryServer
+    :<|> mailTemplateLocaleServer
+    :<|> mailTemplateLocaleRegistryServer
     :<|> openIdClientServer
     :<|> persistentCommandServer
     :<|> pluginSettingsServer

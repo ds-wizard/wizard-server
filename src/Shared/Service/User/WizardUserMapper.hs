@@ -129,8 +129,8 @@ toAnonymousOnlineUserInfo avatarNumber colorNumber =
     , colorNumber = colorNumber
     }
 
-fromUserCreateDTO :: UserCreateDTO -> U.UUID -> String -> U.UUID -> [String] -> String -> U.UUID -> UTCTime -> Bool -> User
-fromUserCreateDTO dto userUuid passwordHash roleUuid permissions roleName tenantUuid now shouldSendRegistrationEmail =
+fromUserCreateDTO :: UserCreateDTO -> U.UUID -> String -> U.UUID -> [String] -> String -> Maybe U.UUID -> U.UUID -> UTCTime -> Bool -> User
+fromUserCreateDTO dto userUuid passwordHash roleUuid permissions roleName mLocale tenantUuid now shouldSendRegistrationEmail =
   let active = not shouldSendRegistrationEmail
    in User
         { uuid = userUuid
@@ -142,7 +142,7 @@ fromUserCreateDTO dto userUuid passwordHash roleUuid permissions roleName tenant
         , role = RoleSimple {uuid = roleUuid, name = roleName, permissions = permissions}
         , active = active
         , imageUrl = Nothing
-        , locale = Nothing
+        , locale = mLocale
         , machine = False
         , lastSeenNewsId = Nothing
         , tenantUuid = tenantUuid
@@ -164,10 +164,11 @@ fromUserExternalDTO
   -> String
   -> Bool
   -> Maybe String
+  -> Maybe U.UUID
   -> U.UUID
   -> UTCTime
   -> User
-fromUserExternalDTO userUuid firstName lastName email passwordHash roleUuid permissions roleName active mImageUrl tenantUuid now =
+fromUserExternalDTO userUuid firstName lastName email passwordHash roleUuid permissions roleName active mImageUrl mLocale tenantUuid now =
   User
     { uuid = userUuid
     , firstName = firstName
@@ -178,7 +179,7 @@ fromUserExternalDTO userUuid firstName lastName email passwordHash roleUuid perm
     , role = RoleSimple {uuid = roleUuid, name = roleName, permissions = permissions}
     , active = active
     , imageUrl = mImageUrl
-    , locale = Nothing
+    , locale = mLocale
     , machine = False
     , lastSeenNewsId = Nothing
     , tenantUuid = tenantUuid

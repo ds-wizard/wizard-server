@@ -9,12 +9,11 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
+import Shared.Api.Resource.Locale.LocaleSuggestionJM ()
+import Shared.Database.DAO.User.UserDAO
 import Shared.Database.Migration.Development.Locale.Data.Locales
 import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as LOC_Migration
-import qualified Shared.Database.Migration.Development.Registry.RegistryMigration as R_Migration
-import Shared.Model.Common.Page
-import Shared.Model.Common.PageMetadata
-import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
+import Shared.Model.User.RolePermission
 import Shared.Service.Locale.LocaleMapper
 import WizardServer.Model.Context.RequestContext
 
@@ -36,9 +35,9 @@ list_suggestions_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/api/locales/suggestions?sort=code,asc"
+reqUrl = "/api/locales/suggestions"
 
-reqHeadersT reqAuthHeader = [reqAuthHeader]
+reqHeaders = [reqAuthHeader]
 
 reqBody = ""
 
@@ -46,18 +45,15 @@ reqBody = ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_200 requestContext =
-  it "HTTP 200 OK" $
-    -- GIVEN: Prepare request
+  it "HTTP 200 OK (only enabled locales, no permission needed)" $
+    -- GIVEN: Prepare expectation
     do
-      let reqHeaders = reqHeadersT reqAuthHeader
-      -- AND: Prepare expectation
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = Page "locales" (PageMetadata 20 2 1 0) [toLocaleSuggestion localeDefaultEn, toLocaleSuggestion localeNl]
-      let expBody = encode expDto
+      let expBody = encode [toSuggestionDTO localeDe]
       -- AND: Run migrations
       runInContextIO LOC_Migration.runMigration requestContext
-      runInContextIO R_Migration.runMigration requestContext
+      runInContextIO (updateUserByUuid (userWithoutPerm requestContext.serverConfig _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION)) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

@@ -10,6 +10,8 @@ module Shared.Database.Migration.Development.User.Data.Users (
   userAlbertSuggestion,
   userLocaleEmpty,
   userLocale,
+  userLocaleDisabled,
+  userLocaleDifferentTenant,
 ) where
 
 import Shared.Api.Resource.User.UserLocaleDTO
@@ -54,4 +56,10 @@ userLocaleEmpty :: UserLocaleDTO
 userLocaleEmpty = UserLocaleDTO {uuid = Nothing}
 
 userLocale :: UserLocaleDTO
-userLocale = UserLocaleDTO {uuid = Just localeNl.uuid}
+userLocale = UserLocaleDTO {uuid = Just localeDe.uuid}
+
+userLocaleDisabled :: UserLocaleDTO
+userLocaleDisabled = UserLocaleDTO {uuid = Just localeCs.uuid}
+
+userLocaleDifferentTenant :: UserLocaleDTO
+userLocaleDifferentTenant = UserLocaleDTO {uuid = Just differentLocale.uuid}

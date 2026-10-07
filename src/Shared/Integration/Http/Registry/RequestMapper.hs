@@ -10,10 +10,14 @@ import Prelude hiding (lookup)
 import qualified RegistryPublic.Api.Handler.DocumentTemplate.List_GET as TML_List_GET
 import qualified RegistryPublic.Api.Handler.KnowledgeModelPackage.List_Bundle_POST as PKG_List_Bundle_POST
 import qualified RegistryPublic.Api.Handler.KnowledgeModelPackage.List_GET as PKG_List_GET
+import qualified RegistryPublic.Api.Handler.Locale.Detail_Po_GET as LOC_Detail_Po_GET
 import qualified RegistryPublic.Api.Handler.Locale.List_GET as LOC_List_GET
+import qualified RegistryPublic.Api.Handler.MailTemplateLocale.Detail_Po_GET as MTL_Detail_Po_GET
+import qualified RegistryPublic.Api.Handler.MailTemplateLocale.List_GET as MTL_List_GET
 import RegistryPublic.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
 import RegistryPublic.Api.Resource.Locale.LocaleDTO
 import RegistryPublic.Api.Resource.Package.KnowledgeModelPackageSimpleDTO
+import Shared.Api.Handler.Common
 import Shared.Api.Resource.Common.SemVer2TupleJM ()
 import Shared.Api.Resource.KnowledgeModel.Bundle.KnowledgeModelBundleJM ()
 import Shared.Constant.Api
@@ -25,7 +29,6 @@ import Shared.Model.Http.HttpRequest
 import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundle
 import Shared.Model.Settings.Settings
 import Shared.Model.Statistics.InstanceStatistics
-import Shared.Util.String (f', splitOn)
 
 toRetrievePackagesRequest
   :: SettingsRegistry -> InstanceStatistics -> ClientM (Headers '[Header "x-trace-uuid" String] [KnowledgeModelPackageSimpleDTO])
@@ -61,16 +64,17 @@ toRetrieveDocumentTemplatesRequest tenantConfig =
     tmlId = Nothing
     metamodelVersion = Just documentTemplateMetamodelVersion
 
-toRetrieveLocaleRequest :: String -> SettingsRegistry -> ClientM (Headers '[Header "x-trace-uuid" String] [LocaleDTO])
-toRetrieveLocaleRequest version tenantConfig =
-  client LOC_List_GET.list_GET_Api mTokenHeader lclId recommendedAppVersion
-  where
-    mTokenHeader = Just $ "Bearer " ++ tenantConfig.apiKey
-    lclId = Nothing
-    recommendedAppVersion =
-      case splitOn "." version of
-        [major, minor, _] -> Just . f' "%s.%s.%s" $ [major, minor, "0"]
-        _ -> Just "1.0.0"
+toRetrieveLocalesRequest :: String -> SettingsRegistry -> ClientM (Headers '[Header "x-trace-uuid" String] [LocaleDTO])
+toRetrieveLocalesRequest appVersion tenantConfig = client LOC_List_GET.list_GET_Api (toTokenHeader tenantConfig) (Just appVersion)
+
+toRetrieveMailTemplateLocalesRequest :: String -> SettingsRegistry -> ClientM (Headers '[Header "x-trace-uuid" String] [LocaleDTO])
+toRetrieveMailTemplateLocalesRequest appVersion tenantConfig = client MTL_List_GET.list_GET_Api (toTokenHeader tenantConfig) (Just appVersion)
+
+toRetrieveLocalePoRequest :: SettingsRegistry -> String -> String -> ClientM (Headers '[Header "x-trace-uuid" String] FileStream)
+toRetrieveLocalePoRequest tenantConfig = client LOC_Detail_Po_GET.detail_po_GET_Api (toTokenHeader tenantConfig)
+
+toRetrieveMailTemplateLocalePoRequest :: SettingsRegistry -> String -> String -> ClientM (Headers '[Header "x-trace-uuid" String] FileStream)
+toRetrieveMailTemplateLocalePoRequest tenantConfig = client MTL_Detail_Po_GET.detail_po_GET_Api (toTokenHeader tenantConfig)
 
 toRetrieveKnowledgeModelBundleByIdRequest :: ServerConfigRegistry -> SettingsRegistry -> String -> HttpRequest
 toRetrieveKnowledgeModelBundleByIdRequest serverConfig tenantConfig pkgId =
@@ -92,16 +96,6 @@ toRetrieveDocumentTemplateBundleByCoordinateRequest serverConfig tenantConfig co
     , multipart = Nothing
     }
 
-toRetrieveLocaleBundleByCoordinateRequest :: ServerConfigRegistry -> SettingsRegistry -> Coordinate -> HttpRequest
-toRetrieveLocaleBundleByCoordinateRequest serverConfig tenantConfig coordinate =
-  HttpRequest
-    { requestMethod = "GET"
-    , requestUrl = serverConfig.url ++ apiPrefix ++ "/locales/" ++ show coordinate ++ "/bundle"
-    , requestHeaders = M.fromList [(authorizationHeaderName, "Bearer " ++ tenantConfig.apiKey)]
-    , requestBody = BS.empty
-    , multipart = Nothing
-    }
-
 toUploadKnowledgeModelBundleRequest :: SettingsRegistry -> KnowledgeModelBundle -> ClientM (Headers '[Header "x-trace-uuid" String] KnowledgeModelBundle)
 toUploadKnowledgeModelBundleRequest tenantConfig =
   client PKG_List_Bundle_POST.list_bundle_POST_Api mTokenHeader
@@ -118,12 +112,5 @@ toUploadDocumentTemplateBundleRequest serverConfig tenantConfig bundle =
     , multipart = Just $ HttpRequestMultipart {key = "file", fileName = Just "file.zip", contentType = Just "application/zip"}
     }
 
-toUploadLocaleBundleRequest :: ServerConfigRegistry -> SettingsRegistry -> BSL.ByteString -> HttpRequest
-toUploadLocaleBundleRequest serverConfig tenantConfig bundle =
-  HttpRequest
-    { requestMethod = "POST"
-    , requestUrl = serverConfig.url ++ apiPrefix ++ "/locales/bundle"
-    , requestHeaders = M.fromList [(authorizationHeaderName, "Bearer " ++ tenantConfig.apiKey)]
-    , requestBody = BSL.toStrict bundle
-    , multipart = Just $ HttpRequestMultipart {key = "file", fileName = Just "file.zip", contentType = Just "application/zip"}
-    }
+toTokenHeader :: SettingsRegistry -> Maybe String
+toTokenHeader tenantConfig = Just $ "Bearer " ++ tenantConfig.apiKey

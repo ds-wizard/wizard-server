@@ -1,4 +1,5 @@
 {
+  "ignorePaths": ["**/test/shared/Specs/Util/Data/**"],
   "dictionaries": ["haskell", "lorem-ipsum", "custom-dictionary"],
     "dictionaryDefinitions": [
         {

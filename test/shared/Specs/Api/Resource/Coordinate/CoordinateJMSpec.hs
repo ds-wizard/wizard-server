@@ -8,8 +8,6 @@ import Shared.Api.Resource.DocumentTemplateBundle.DocumentTemplateBundleDTO
 import Shared.Api.Resource.DocumentTemplateBundle.DocumentTemplateBundleJM ()
 import Shared.Api.Resource.KnowledgeModel.Bundle.KnowledgeModelBundleJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePatternJM ()
-import Shared.Api.Resource.LocaleBundle.LocaleBundleDTO
-import Shared.Api.Resource.LocaleBundle.LocaleBundleJM ()
 import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundle
 import Shared.Model.KnowledgeModel.Bundle.KnowledgeModelBundlePackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
@@ -31,9 +29,6 @@ coordinateJMSpec =
       let result = fromJSON oldTemplateBundle :: Result DocumentTemplateBundleDTO
       fmap (.id) result `shouldBe` Success "global.project-report"
       fmap (fmap (.id) . (.allowedPackages)) result `shouldBe` Success [Just "global.core", Nothing]
-    it "locale bundle joins organizationId and localeId into id" $ do
-      let result = fromJSON oldLocaleBundle :: Result LocaleBundleDTO
-      fmap (.id) result `shouldBe` Success "global.dutch"
     it "package pattern with only orgId means any knowledge model" $ do
       let result = fromJSON [aesonQQ|{"orgId": "global", "kmId": null, "minVersion": "1.0.0", "maxVersion": null}|] :: Result KnowledgeModelPackagePattern
       fmap (.id) result `shouldBe` Success Nothing
@@ -68,11 +63,4 @@ oldTemplateBundle =
     , "metamodelVersion": "19.0", "description": "", "readme": "", "license": ""
     , "allowedPackages": [{"orgId": "global", "kmId": "core", "minVersion": null, "maxVersion": null}, {"orgId": null, "kmId": null, "minVersion": null, "maxVersion": null}]
     , "formats": [], "files": [], "assets": [], "createdAt": "2018-01-21T00:00:00Z" }
-  |]
-
-oldLocaleBundle :: Value
-oldLocaleBundle =
-  [aesonQQ|
-    { "id": "global:dutch:1.0.0", "name": "Dutch", "description": "", "code": "nl", "organizationId": "global", "localeId": "dutch", "version": "1.0.0"
-    , "license": "", "readme": "", "recommendedAppVersion": "4.0.0", "createdAt": "2018-01-21T00:00:00Z" }
   |]

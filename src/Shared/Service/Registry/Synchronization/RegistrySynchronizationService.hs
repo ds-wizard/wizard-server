@@ -6,6 +6,7 @@ import Data.Time
 
 import Shared.Database.DAO.Registry.RegistryKnowledgeModelPackageDAO
 import Shared.Database.DAO.Registry.RegistryLocaleDAO
+import Shared.Database.DAO.Registry.RegistryMailTemplateLocaleDAO
 import Shared.Database.DAO.Registry.RegistryTemplateDAO
 import Shared.Integration.Http.Registry.Runner
 import Shared.Model.Context.WizardRequestContext
@@ -23,6 +24,7 @@ synchronizeData = do
   synchronizePackages now
   synchronizeTemplates now
   synchronizeLocales now
+  synchronizeMailTemplateLocales now
 
 synchronizePackages :: WizardRequestContextC s m => UTCTime -> m ()
 synchronizePackages now = do
@@ -46,11 +48,18 @@ synchronizeTemplates now = do
 synchronizeLocales :: WizardRequestContextC s m => UTCTime -> m ()
 synchronizeLocales now = do
   logInfoI _CMP_SERVICE "Locale Synchronization started"
-  templates <- retrieveLocales
-  let registryLocales = fmap (`toRegistryLocale` now) templates
+  locales <- retrieveLocales
   deleteRegistryLocales
-  traverse_ insertRegistryLocale registryLocales
+  traverse_ (insertRegistryLocale . (`toRegistryLocale` now)) locales
   logInfoI _CMP_SERVICE "Locale Synchronization successfully finished"
+
+synchronizeMailTemplateLocales :: WizardRequestContextC s m => UTCTime -> m ()
+synchronizeMailTemplateLocales now = do
+  logInfoI _CMP_SERVICE "MailTemplateLocale Synchronization started"
+  locales <- retrieveMailTemplateLocales
+  deleteRegistryMailTemplateLocales
+  traverse_ (insertRegistryMailTemplateLocale . (`toRegistryMailTemplateLocale` now)) locales
+  logInfoI _CMP_SERVICE "MailTemplateLocale Synchronization successfully finished"
 
 -- --------------------------------
 -- PRIVATE

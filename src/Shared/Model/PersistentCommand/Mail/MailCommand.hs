@@ -12,6 +12,7 @@ data MailCommand = MailCommand
   , template :: String
   , recipients :: [MailRecipient]
   , parameters :: M.Map String Value
+  , sendAsOne :: Bool
   }
   deriving (Show, Eq, Generic)
 

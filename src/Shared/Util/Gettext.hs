@@ -1,13 +1,40 @@
 module Shared.Util.Gettext where
 
-import Data.Char (isSpace, toLower)
+import Data.Aeson
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
+import qualified Data.ByteString as BS
+import Data.Char (isSpace)
+import qualified Data.Char as CH
 import qualified Data.List as L
+import Data.Maybe (fromMaybe, mapMaybe)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 
-import Shared.Util.String (trim)
+import Shared.Util.LocaleCode (normalizeLocaleCode, primarySubtag)
+import Shared.Util.String (splitOn)
 
 data PotEntry = PotEntry
   { references :: [String]
   , msgid :: String
+  }
+  deriving (Show, Eq)
+
+data PoEntry = PoEntry
+  { msgctxt :: Maybe String
+  , msgid :: String
+  , msgidPlural :: Maybe String
+  , msgstrs :: [String]
+  , flags :: [String]
+  }
+  deriving (Show, Eq)
+
+data PoHeaderInfo = PoHeaderInfo
+  { code :: String
+  , name :: String
+  , potVersion :: Maybe String
+  , kind :: Maybe String
+  , version :: Maybe String
   }
   deriving (Show, Eq)
 
@@ -65,6 +92,50 @@ getPoHeaderField name fields =
     _ -> Nothing
 
 -- ---------------------------------------------------------------------------------------------------------------------
+-- PO CATALOGUE PARSING
+-- ---------------------------------------------------------------------------------------------------------------------
+parsePo :: BS.ByteString -> Either String [PoEntry]
+parsePo content =
+  case TE.decodeUtf8' content of
+    Right text -> parseEntries [] . groupTokens . fmap classifyLine . lines . stripBom . T.unpack $ text
+    Left _ -> Left "PO file is not valid UTF-8"
+
+poHeaderFields :: [PoEntry] -> [(String, String)]
+poHeaderFields entries =
+  case L.find isHeaderEntry entries of
+    Just PoEntry {msgstrs = headerText : _} -> parseHeaderFields headerText
+    _ -> []
+
+poHeaderInfo :: [(String, String)] -> Maybe PoHeaderInfo
+poHeaderInfo fields = do
+  code <- normalizeLocaleCode <$> getPoHeaderField "Language" fields
+  let rawPotVersion = getPoHeaderField "Project-Id-Version" fields
+      projectIdVersion = rawPotVersion >>= splitPotVersion
+  return
+    PoHeaderInfo
+      { code = code
+      , name = fromMaybe code (getPoHeaderField "X-Display-Name" fields)
+      , potVersion = projectIdVersion *> rawPotVersion
+      , kind = fmap fst projectIdVersion
+      , version = fmap snd projectIdVersion
+      }
+
+poPotVersion :: [(String, String)] -> Maybe String
+poPotVersion fields = do
+  value <- getPoHeaderField "Project-Id-Version" fields
+  value <$ splitPotVersion value
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- JED
+-- ---------------------------------------------------------------------------------------------------------------------
+toJed :: [PoEntry] -> Value
+toJed entries =
+  object
+    [ "domain" .= jedDomain
+    , "locale_data" .= object [K.fromString jedDomain .= Object (KM.insert "" (jedHeader entries) (jedMessages entries))]
+    ]
+
+-- ---------------------------------------------------------------------------------------------------------------------
 -- PLURAL-FORMS
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Gettext Plural-Forms header value for a language code (e.g. "en", "cs", "pt-BR").
@@ -97,16 +168,19 @@ pluralForms code =
     twoPlurals = "nplurals=2; plural=(n != 1);"
     slavicThreePlurals = "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);"
 
-primarySubtag :: String -> String
-primarySubtag = fmap toLower . takeWhile (\c -> c /= '-' && c /= '_')
-
 -- ---------------------------------------------------------------------------------------------------------------------
 -- PRIVATE
 -- ---------------------------------------------------------------------------------------------------------------------
 data PoLine
   = PoKeywordLine String String
   | PoContinuationLine String
+  | PoFlagLine [String]
   | PoIgnoredLine
+  deriving (Show, Eq)
+
+data PoToken
+  = PoStatement String String
+  | PoFlags [String]
   deriving (Show, Eq)
 
 stripBom :: String -> String
@@ -115,8 +189,9 @@ stripBom content = content
 
 classifyLine :: String -> PoLine
 classifyLine rawLine =
-  case trim rawLine of
+  case strip rawLine of
     [] -> PoIgnoredLine
+    '#' : ',' : flagText -> PoFlagLine . filter (not . null) . fmap strip . splitOn "," $ flagText
     line@(firstChar : _)
       | firstChar == '#' -> PoIgnoredLine
       | firstChar == '"' -> PoContinuationLine (unquote line)
@@ -134,12 +209,92 @@ classifyLine rawLine =
     takeQuoted [] = []
 
 groupStatements :: [PoLine] -> [(String, String)]
-groupStatements = reverse . L.foldl' step []
+groupStatements = mapMaybe toStatement . groupTokens
   where
-    step statements (PoKeywordLine keyword value) = (keyword, value) : statements
-    step ((keyword, previousValue) : statements) (PoContinuationLine value) = (keyword, previousValue ++ value) : statements
-    step [] (PoContinuationLine _) = []
-    step statements PoIgnoredLine = statements
+    toStatement (PoStatement keyword value) = Just (keyword, value)
+    toStatement (PoFlags _) = Nothing
+
+groupTokens :: [PoLine] -> [PoToken]
+groupTokens (PoKeywordLine keyword value : rest) = collectStatement keyword [value] rest
+groupTokens (PoFlagLine flags : rest) = PoFlags flags : groupTokens rest
+groupTokens (_ : rest) = groupTokens rest
+groupTokens [] = []
+
+collectStatement :: String -> [String] -> [PoLine] -> [PoToken]
+collectStatement keyword chunks (PoContinuationLine value : rest) = collectStatement keyword (value : chunks) rest
+collectStatement keyword chunks (PoIgnoredLine : rest) = collectStatement keyword chunks rest
+collectStatement keyword chunks rest =
+  let value = concat (reverse chunks)
+   in length value `seq` (PoStatement keyword value : groupTokens rest)
+
+parseEntries :: [String] -> [PoToken] -> Either String [PoEntry]
+parseEntries _ [] = Right []
+parseEntries flags (PoFlags newFlags : rest) = parseEntries (flags ++ newFlags) rest
+parseEntries flags (PoStatement "msgctxt" context : PoStatement "msgid" msgid : rest) = parseEntry flags (Just context) msgid rest
+parseEntries flags (PoStatement "msgid" msgid : rest) = parseEntry flags Nothing msgid rest
+parseEntries _ (PoStatement keyword _ : _) = Left ("Unexpected keyword " ++ keyword)
+
+parseEntry :: [String] -> Maybe String -> String -> [PoToken] -> Either String [PoEntry]
+parseEntry flags msgctxt msgid tokens =
+  case span isMsgstr afterPlural of
+    ([], _) -> Left ("Missing msgstr for msgid \"" ++ msgid ++ "\"")
+    (msgstrTokens, rest) -> (entry (fmap tokenValue msgstrTokens) :) <$> parseEntries [] rest
+  where
+    (msgidPlural, afterPlural) =
+      case tokens of
+        PoStatement "msgid_plural" plural : rest -> (Just plural, rest)
+        _ -> (Nothing, tokens)
+    isMsgstr (PoStatement keyword _) = "msgstr" `L.isPrefixOf` keyword
+    isMsgstr _ = False
+    tokenValue (PoStatement _ value) = value
+    tokenValue _ = ""
+    entry msgstrs = PoEntry {msgctxt = msgctxt, msgid = msgid, msgidPlural = msgidPlural, msgstrs = msgstrs, flags = flags}
+
+isHeaderEntry :: PoEntry -> Bool
+isHeaderEntry entry = null entry.msgid && null (fromMaybe "" entry.msgctxt)
+
+splitPotVersion :: String -> Maybe (String, String)
+splitPotVersion value =
+  case L.elemIndices ':' value of
+    [] -> Nothing
+    indices ->
+      case splitAt (last indices) value of
+        (kind, _ : version)
+          | not (null kind) && not (null version) -> Just (kind, version)
+        _ -> Nothing
+
+jedDomain :: String
+jedDomain = "messages"
+
+jedHeader :: [PoEntry] -> Value
+jedHeader entries =
+  object $
+    ["domain" .= jedDomain]
+      ++ maybe [] (\value -> ["plural_forms" .= value]) (lookup "plural-forms" fields)
+      ++ maybe [] (\value -> ["lang" .= value]) (lookup "language" fields)
+  where
+    fields = reverse . fmap (\(k, v) -> (fmap CH.toLower k, v)) . poHeaderFields $ entries
+
+jedMessages :: [PoEntry] -> KM.KeyMap Value
+jedMessages =
+  fmap toJSON . KM.mapMaybe jedTranslation . KM.fromList . fmap (\entry -> (K.fromString (jedKey entry), entry)) . filter (not . isHeaderEntry)
+
+jedKey :: PoEntry -> String
+jedKey entry =
+  case entry.msgctxt of
+    Just context | not (null context) -> context ++ "\x04" ++ entry.msgid
+    _ -> entry.msgid
+
+jedTranslation :: PoEntry -> Maybe [Maybe String]
+jedTranslation entry
+  | "fuzzy" `elem` entry.flags = Nothing
+  | otherwise =
+      case entry.msgstrs of
+        first : rest -> Just (Just first : fmap (\value -> if null value then entry.msgidPlural else Just value) rest)
+        [] -> Just []
+
+strip :: String -> String
+strip = L.dropWhileEnd isSpace . dropWhile isSpace
 
 findHeaderText :: [(String, String)] -> Maybe String
 findHeaderText (("msgid", "") : ("msgstr", headerText) : _) = Just headerText
@@ -151,5 +306,5 @@ parseHeaderFields = concatMap parseField . lines
   where
     parseField headerLine =
       case break (== ':') headerLine of
-        (name, ':' : value) -> [(trim name, trim value)]
+        (name, ':' : value) -> [(strip name, strip value)]
         _ -> []

@@ -4,7 +4,8 @@ import Data.Time
 import GHC.Generics
 
 data RegistryLocale = RegistryLocale
-  { id :: String
+  { code :: String
+  , name :: String
   , remoteVersion :: String
   , createdAt :: UTCTime
   }

@@ -21,7 +21,6 @@ instance FromRow TenantLimitBundle where
     createdAt <- field
     updatedAt <- field
     documentTemplateDrafts <- field
-    locales <- field
     return $ TenantLimitBundle {..}
 
 instance ToRow TenantLimitBundle where
@@ -38,5 +37,4 @@ instance ToRow TenantLimitBundle where
     , toField createdAt
     , toField updatedAt
     , toField documentTemplateDrafts
-    , toField locales
     ]

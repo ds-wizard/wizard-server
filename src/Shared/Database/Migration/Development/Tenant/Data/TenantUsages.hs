@@ -14,7 +14,6 @@ defaultUsage =
     , documentTemplateDrafts = defaultUsageDocumentTemplateDrafts
     , projects = defaultUsageProjects
     , documents = defaultUsageDocuments
-    , locales = defaultUsageLocales
     , storage = defaultUsageStorage
     }
 
@@ -47,9 +46,6 @@ defaultUsageProjects = UsageEntryDTO {current = 0, max = -1000}
 
 defaultUsageDocuments :: UsageEntryDTO
 defaultUsageDocuments = UsageEntryDTO {current = 0, max = -1000}
-
-defaultUsageLocales :: UsageEntryDTO
-defaultUsageLocales = UsageEntryDTO {current = 0, max = -1000}
 
 defaultUsageStorage :: UsageEntryDTO
 defaultUsageStorage = UsageEntryDTO {current = 0, max = (-1000) * 5 * 1000 * 1000}

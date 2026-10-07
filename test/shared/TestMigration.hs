@@ -38,6 +38,8 @@ import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeM
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelSecretSchemaMigration as KnowledgeModelSecret
 import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as LocaleMigration
 import qualified Shared.Database.Migration.Development.Locale.LocaleSchemaMigration as Locale
+import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleMigration as MailTemplateLocaleMigration
+import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleSchemaMigration as MailTemplateLocale
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientSchemaMigration as OpenIdClient
 import qualified Shared.Database.Migration.Development.PersistentCommand.PersistentCommandSchemaMigration as PersistentCommand
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
@@ -77,6 +79,7 @@ buildSchema requestContext = do
   runInContext Document.dropTriggers requestContext
   runInContext Project.dropTriggers requestContext
   runInContext Locale.dropTriggers requestContext
+  runInContext MailTemplateLocale.dropTriggers requestContext
   runInContext KnowledgeModelLocale.dropTriggers requestContext
   putStrLn "DB: dropping DB functions"
   runInContext Project.dropFunctions requestContext
@@ -111,6 +114,7 @@ buildSchema requestContext = do
   runInContext Tenant.dropConfigTables requestContext
   runInContext OpenIdClient.dropTables requestContext
   runInContext DocumentTemplate.dropTables requestContext
+  runInContext MailTemplateLocale.dropTables requestContext
   runInContext Locale.dropTables requestContext
   runInContext Plugin.dropTables requestContext
   runInContext Tenant.dropTables requestContext
@@ -126,6 +130,7 @@ buildSchema requestContext = do
   runInContext Workspace.createTables requestContext
   runInContext Plugin.createTables requestContext
   runInContext Locale.createTables requestContext
+  runInContext MailTemplateLocale.createTables requestContext
   runInContext DocumentTemplate.createTables requestContext
   runInContext Tenant.createConfigTables requestContext
   runInContext OpenIdClient.createTables requestContext
@@ -163,12 +168,14 @@ buildSchema requestContext = do
   runInContext User.createUserLocaleForeignKeyConstraint requestContext
   putStrLn "DB: Creating triggers"
   runInContext Locale.createTriggers requestContext
+  runInContext MailTemplateLocale.createTriggers requestContext
   runInContext KnowledgeModelLocale.createTriggers requestContext
   runInContext Project.createTriggers requestContext
   runInContext Document.createTriggers requestContext
   putStrLn "DB-S3: Purging and creating schema"
   runInContext DocumentTemplateMigration.runS3Migration requestContext
   runInContext LocaleMigration.runS3Migration requestContext
+  runInContext MailTemplateLocaleMigration.runS3Migration requestContext
 
 resetDB requestContext = withTransaction (fromJust requestContext.dbConnection) (resetDBContent requestContext)
 
@@ -224,6 +231,8 @@ deleteAllEntitiesSql =
     [ "external_link_usage"
     , "registry_knowledge_model_package"
     , "registry_document_template"
+    , "registry_locale"
+    , "registry_mail_template_locale"
     , "audit_log"
     , "telemetry_event"
     , "prefab"
@@ -276,6 +285,7 @@ deleteAllEntitiesSql =
     , "user_group"
     , "workspace"
     , "role"
+    , "mail_template_locale"
     , "locale"
     , "tenant_limit_bundle"
     , "plugin"

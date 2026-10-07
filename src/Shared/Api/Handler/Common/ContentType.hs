@@ -43,6 +43,19 @@ instance ToMarkup a => MimeRender HTML a where
   mimeRender _ = renderHtml . toMarkup
 
 -- ------------------------------------------------------------------------
+data GettextPo
+  deriving (Typeable)
+
+instance Accept GettextPo where
+  contentTypes _ = "text/x-gettext-translation" NE.:| ["text/x-gettext-translation; charset=utf-8", "text/x-gettext-translation;charset=utf-8"]
+
+instance MimeRender GettextPo FileStream where
+  mimeRender _ (FileStream content) = BSL.fromStrict content
+
+instance MimeUnrender GettextPo FileStream where
+  mimeUnrender _ = Right . FileStream . BSL.toStrict
+
+-- ------------------------------------------------------------------------
 data JSONPlain
   deriving (Typeable)
 

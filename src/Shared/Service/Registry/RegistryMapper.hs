@@ -6,6 +6,7 @@ import RegistryPublic.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
 import RegistryPublic.Api.Resource.Locale.LocaleDTO
 import RegistryPublic.Api.Resource.Package.KnowledgeModelPackageSimpleDTO
 import Shared.Model.Registry.RegistryLocale
+import Shared.Model.Registry.RegistryMailTemplateLocale
 import Shared.Model.Registry.RegistryPackage
 import Shared.Model.Registry.RegistryTemplate
 
@@ -28,7 +29,17 @@ toRegistryTemplate dto now =
 toRegistryLocale :: LocaleDTO -> UTCTime -> RegistryLocale
 toRegistryLocale dto now =
   RegistryLocale
-    { id = dto.id
+    { code = dto.code
+    , name = dto.name
+    , remoteVersion = dto.version
+    , createdAt = now
+    }
+
+toRegistryMailTemplateLocale :: LocaleDTO -> UTCTime -> RegistryMailTemplateLocale
+toRegistryMailTemplateLocale dto now =
+  RegistryMailTemplateLocale
+    { code = dto.code
+    , name = dto.name
     , remoteVersion = dto.version
     , createdAt = now
     }

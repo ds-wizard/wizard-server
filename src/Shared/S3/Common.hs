@@ -70,17 +70,20 @@ createGetObjectWithTenantFn tenantUuid object = do
         C.connect (gorObjectStream src) foldFn
   runMinioClient action
 
-createGetObjectFn' :: RequestContextC s sc m => String -> m (Either MinioErr BS.ByteString)
-createGetObjectFn' object = do
-  bucketName <- getBucketName
+createFindObjectFn :: RequestContextC s sc m => String -> m (Maybe BS.ByteString)
+createFindObjectFn object = do
   sanitizedObject <- sanitizeObject object
-  logInfoI _CMP_S3 (f' "Get object: '%s'" [sanitizedObject])
-  let action = do
-        src <- getObject (T.pack bucketName) (T.pack sanitizedObject) defaultGetObjectOptions
-        let srcStream = gorObjectStream src :: C.ConduitM () BS.ByteString Minio ()
-        let foldFn = CL.fold BS.append "" :: C.ConduitT BS.ByteString C.Void Minio BS.ByteString
-        C.connect (gorObjectStream src) foldFn
-  runMinioClient' action
+  createFindInstanceObjectFn sanitizedObject
+
+createFindInstanceObjectFn :: RequestContextC s sc m => String -> m (Maybe BS.ByteString)
+createFindInstanceObjectFn object = do
+  bucketName <- getBucketName
+  logInfoI _CMP_S3 (f' "Find object: '%s'" [object])
+  result <- runMinioClient' (getObjectContent bucketName object)
+  case result of
+    Right content -> return . Just $ content
+    Left (MErrService NoSuchKey) -> return Nothing
+    Left e -> throwError . GeneralServerError $ _ERROR_S3__GENERIC_ERROR (show e)
 
 createPutObjectFn :: RequestContextC s sc m => String -> Maybe String -> Maybe String -> BS.ByteString -> m String
 createPutObjectFn object mContentType mContentDisposition content = do
@@ -137,6 +140,18 @@ createRemoveObjectFn object = do
   sanitizedObject <- sanitizeObject object
   logInfoI _CMP_S3 (f' "Delete object: '%s'" [sanitizedObject])
   let action = removeObject (T.pack bucketName) (T.pack sanitizedObject)
+  runMinioClient action
+
+createRemoveObjectsWithPrefixFn :: RequestContextC s sc m => String -> m ()
+createRemoveObjectsWithPrefixFn prefix = do
+  bucketName <- getBucketName
+  sanitizedPrefix <- sanitizeObject prefix
+  logInfoI _CMP_S3 (f' "Delete objects with prefix: '%s'" [sanitizedPrefix])
+  let action = do
+        let itemStream = listObjects (T.pack bucketName) (Just . T.pack $ sanitizedPrefix) True :: C.ConduitM () ListItem Minio ()
+        let foldFn = CL.fold (\acc i -> acc ++ [i]) [] :: C.ConduitT ListItem C.Void Minio [ListItem]
+        items <- C.connect itemStream foldFn
+        traverse_ (removeObject (T.pack bucketName) . oiObject) [objectInfo | ListItemObject objectInfo <- items]
   runMinioClient action
 
 createRemoveObjectWithTenantFn :: RequestContextC s sc m => U.UUID -> String -> m ()
@@ -257,6 +272,11 @@ createMakePublicLinkWithTenantFn tenantUuid object = do
   let publicLink = f' "%s/%s/%s" [url, bucketName, sanitizedObject]
   logInfoI _CMP_S3 (f' "Public URL to share: '%s'" [publicLink])
   return publicLink
+
+getObjectContent :: String -> String -> Minio BS.ByteString
+getObjectContent bucketName object = do
+  src <- getObject (T.pack bucketName) (T.pack object) defaultGetObjectOptions
+  C.connect (gorObjectStream src) (CL.fold BS.append "")
 
 runMinioClient :: RequestContextC s sc m => Minio a -> m a
 runMinioClient action = do

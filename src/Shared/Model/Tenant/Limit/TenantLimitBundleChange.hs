@@ -15,7 +15,6 @@ data TenantLimitBundleChange = TenantLimitBundleChange
   , documentTemplateDrafts :: Int
   , projects :: Int
   , documents :: Int
-  , locales :: Int
   , storage :: Int64
   }
   deriving (Show, Eq, Generic)

@@ -6,8 +6,8 @@ import Shared.Api.Resource.Tenant.Usage.UsageEntryDTO
 import Shared.Api.Resource.Tenant.Usage.WizardUsageDTO
 import Shared.Model.Tenant.Limit.TenantLimitBundle
 
-toDTO :: TenantLimitBundle -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int64 -> WizardUsageDTO
-toDTO limitBundle userCount activeUserCount knowledgeModelEditorCount kmCount prjCount tmlCount tmlDraftCount docCount localeCount storageSize =
+toDTO :: TenantLimitBundle -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int64 -> WizardUsageDTO
+toDTO limitBundle userCount activeUserCount knowledgeModelEditorCount kmCount prjCount tmlCount tmlDraftCount docCount storageSize =
   WizardUsageDTO
     { users =
         UsageEntryDTO
@@ -48,11 +48,6 @@ toDTO limitBundle userCount activeUserCount knowledgeModelEditorCount kmCount pr
         UsageEntryDTO
           { current = fromIntegral docCount
           , max = fromIntegral limitBundle.documents
-          }
-    , locales =
-        UsageEntryDTO
-          { current = fromIntegral localeCount
-          , max = fromIntegral limitBundle.locales
           }
     , storage = UsageEntryDTO {current = storageSize, max = limitBundle.storage}
     }

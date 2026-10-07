@@ -13,7 +13,6 @@ data WizardUsageDTO = WizardUsageDTO
   , documentTemplateDrafts :: UsageEntryDTO
   , projects :: UsageEntryDTO
   , documents :: UsageEntryDTO
-  , locales :: UsageEntryDTO
   , storage :: UsageEntryDTO
   }
   deriving (Show, Eq, Generic)
