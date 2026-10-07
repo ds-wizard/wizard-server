@@ -42,10 +42,8 @@ al_createProject project pkg mProjectTemplate =
 al_cloneProject :: WizardRequestContextC s m => Project -> Project -> m ()
 al_cloneProject originProject project = logAuditLog projectsClone (projectEntity project) AuditLogProjectCloneData {sourceProject = toProjectRef originProject}
 
-al_importProject :: WizardRequestContextC s m => Project -> [User] -> m ()
-al_importProject project owners = whenAuditLogEnabled $ do
-  pkg <- findPackageByUuid project.knowledgeModelPackageUuid
-  logAuditLog projectsImport (projectEntity project) AuditLogProjectImportData {knowledgeModel = toKnowledgeModelRef pkg, owners = fmap toUserRef owners}
+al_importProject :: WizardRequestContextC s m => Project -> KnowledgeModelPackage -> [User] -> m ()
+al_importProject project pkg owners = logAuditLog projectsImport (projectEntity project) AuditLogProjectImportData {knowledgeModel = toKnowledgeModelRef pkg, owners = fmap toUserRef owners}
 
 al_updateProject :: WizardRequestContextC s m => Project -> Project -> m ()
 al_updateProject project updatedProject = whenAuditLogEnabled $ do

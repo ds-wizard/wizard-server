@@ -3,7 +3,6 @@ module Shared.Service.Project.ProjectService where
 import Control.Monad (forM_, void, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
-import Data.Char (toLower)
 import Data.Foldable (traverse_)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
@@ -44,7 +43,6 @@ import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackageSuggestion
-import Shared.Model.PersistentCommand.Project.CreateProjectCommand
 import Shared.Model.Project.Acl.ProjectAclHelpers
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Detail.ProjectDetail
@@ -127,35 +125,44 @@ createProjectWithGivenUuid reqDto projectUuid =
     pkg <- findPackageByUuid reqDto.knowledgeModelPackageUuid
     checkPackageWorkspace workspaceUuid pkg.workspaceUuid
     forM_ reqDto.documentTemplateUuid (checkTemplateWorkspaceByUuid workspaceUuid)
-    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just workspaceUuid)
-    documentTemplateState <- getDocumentTemplateProjectState reqDto.documentTemplateUuid (Just workspaceUuid)
-    now <- liftIO getCurrentTime
-    tenantUuid <- asks (.tenantUuid')
-    visibility <- extractVisibility workspaceUuid reqDto
-    sharing <- extractSharing workspaceUuid reqDto
-    mCurrentUser <- asks (.currentUser')
     permissions <- ownerPermissionsIfMember workspaceUuid projectUuid
-    knowledgeModel <- compileKnowledgeModel [] (Just pkg.uuid) reqDto.questionTagUuids
-    phaseEventUuid <- liftIO generateUuid
-    let (project, projectEvents) =
-          fromProjectCreateDTO
-            reqDto
-            projectUuid
-            visibility
-            sharing
-            (fmap (.uuid) mCurrentUser)
-            permissions
-            pkg.uuid
-            phaseEventUuid
-            (headSafe knowledgeModel.phaseUuids)
-            tenantUuid
-            workspaceUuid
-            now
-    insertProject project
-    insertProjectEvents projectEvents
+    project <- insertNewProject reqDto projectUuid workspaceUuid pkg permissions
     al_createProject project pkg Nothing
-    permissionDtos <- traverse enhanceProjectPerm project.permissions
-    return $ toSimpleDTO project pkg knowledgeModelState documentTemplateState permissionDtos
+    toCreatedProjectDTO project pkg
+
+insertNewProject :: WizardRequestContextC s m => ProjectCreateDTO -> U.UUID -> U.UUID -> KnowledgeModelPackage -> [ProjectPerm] -> m Project
+insertNewProject reqDto projectUuid workspaceUuid pkg permissions = do
+  now <- liftIO getCurrentTime
+  tenantUuid <- asks (.tenantUuid')
+  visibility <- extractVisibility workspaceUuid reqDto
+  sharing <- extractSharing workspaceUuid reqDto
+  mCurrentUser <- asks (.currentUser')
+  knowledgeModel <- compileKnowledgeModel [] (Just pkg.uuid) reqDto.questionTagUuids
+  phaseEventUuid <- liftIO generateUuid
+  let (project, projectEvents) =
+        fromProjectCreateDTO
+          reqDto
+          projectUuid
+          visibility
+          sharing
+          (fmap (.uuid) mCurrentUser)
+          permissions
+          pkg.uuid
+          phaseEventUuid
+          (headSafe knowledgeModel.phaseUuids)
+          tenantUuid
+          workspaceUuid
+          now
+  insertProject project
+  insertProjectEvents projectEvents
+  return project
+
+toCreatedProjectDTO :: WizardRequestContextC s m => Project -> KnowledgeModelPackage -> m ProjectDTO
+toCreatedProjectDTO project pkg = do
+  knowledgeModelState <- getKnowledgeModelProjectState pkg (Just project.workspaceUuid)
+  documentTemplateState <- getDocumentTemplateProjectState project.documentTemplateUuid (Just project.workspaceUuid)
+  permissionDtos <- traverse enhanceProjectPerm project.permissions
+  return $ toSimpleDTO project pkg knowledgeModelState documentTemplateState permissionDtos
 
 createProjectFromTemplate :: WizardRequestContextC s m => ProjectCreateFromTemplateDTO -> m ProjectDTO
 createProjectFromTemplate reqDto =
@@ -196,10 +203,7 @@ createProjectFromTemplate reqDto =
     duplicateCommentThreads reqDto.projectUuid newProjectUuid
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
     al_createProject newProject pkg (Just originProject)
-    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
-    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
-    permissionDtos <- traverse enhanceProjectPerm newProject.permissions
-    return $ toSimpleDTO newProject pkg knowledgeModelState documentTemplateState permissionDtos
+    toCreatedProjectDTO newProject pkg
 
 cloneProject :: WizardRequestContextC s m => U.UUID -> m ProjectDTO
 cloneProject cloneUuid =
@@ -232,28 +236,7 @@ cloneProject cloneUuid =
     cloneProjectVersions originProject.uuid newProject.uuid newProjectEventsWithOldEventUuid
     duplicateCommentThreads cloneUuid newProjectUuid
     al_cloneProject originProject newProject
-    knowledgeModelState <- getKnowledgeModelProjectState pkg (Just newProject.workspaceUuid)
-    documentTemplateState <- getDocumentTemplateProjectState newProject.documentTemplateUuid (Just newProject.workspaceUuid)
-    permissionDtos <- traverse enhanceProjectPerm newProject.permissions
-    return $ toSimpleDTO newProject pkg knowledgeModelState documentTemplateState permissionDtos
-
-createProjectsFromCommands :: WizardRequestContextC s m => [CreateProjectCommand] -> m ()
-createProjectsFromCommands = runInTransaction . traverse_ create
-  where
-    create command = do
-      uuid <- liftIO generateUuid
-      currentUser <- getCurrentUser
-      now <- liftIO getCurrentTime
-      users <- findUsersByEmails (fmap (fmap toLower) command.emails)
-      workspaceUuid <- resolveCommandWorkspaceUuid command.workspaceUuid
-      tcProject <- getEffectiveSettingsProjects (Just workspaceUuid)
-      tenantUuid <- asks (.tenantUuid')
-      let permissions = fmap (createPermission uuid) users
-      let project = fromCreateProjectCommand command uuid permissions tcProject tenantUuid currentUser.uuid workspaceUuid now
-      insertProject project
-      al_importProject project users
-    createPermission :: U.UUID -> User -> ProjectPerm
-    createPermission projectUuid user = toUserProjectPerm projectUuid user.uuid ownerPermissions user.tenantUuid
+    toCreatedProjectDTO newProject pkg
 
 getProjectDetailByUuid :: WizardRequestContextC s m => U.UUID -> m ProjectDetailDTO
 getProjectDetailByUuid projectUuid = do

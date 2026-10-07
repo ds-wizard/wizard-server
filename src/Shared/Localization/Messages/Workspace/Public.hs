@@ -18,8 +18,6 @@ _ERROR_SERVICE_WORKSPACE__LAST_WORKSPACE = LocaleRecord "error.service.workspace
 
 _ERROR_SERVICE_WORKSPACE__MULTIPLE_WORKSPACES = LocaleRecord "error.service.workspace.multiple_workspaces" "The tenant has more than one workspace" []
 
-_ERROR_SERVICE_WORKSPACE__MULTI_WORKSPACE_TENANT = LocaleRecord "error.service.workspace.multi_workspace_tenant" "The operation is not available in a multi-workspace tenant" []
-
 _ERROR_SERVICE_WORKSPACE__SYSTEM_USER = LocaleRecord "error.service.workspace.system_user" "The membership of the system user can not be changed" []
 
 _ERROR_SERVICE_WORKSPACE__NOT_MEMBER = LocaleRecord "error.service.workspace.not_member" "The user is not a member of the workspace" []

@@ -24,7 +24,6 @@ import Shared.Service.User.WizardUserMapper (toDTO)
 import Shared.Service.Workspace.WorkspaceScopeService
 import WizardServer.Model.Context.RequestContext
 
-import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
 workspaceScopeServiceSpec requestContext =
@@ -33,7 +32,6 @@ workspaceScopeServiceSpec requestContext =
     requireWorkspaceScopeSpec requestContext
     requireTenantOrWorkspaceScopeSpec requestContext
     ownerWorkspaceUuidSpec requestContext
-    resolveCommandWorkspaceUuidSpec requestContext
     isWorkspaceReachableSpec requestContext
     checkWorkspaceMatchSpec requestContext
 
@@ -102,20 +100,6 @@ ownerWorkspaceUuidSpec requestContext =
       runInContext (ownerWorkspaceUuid defaultWorkspaceUuid) requestContext >>= (`shouldBe` Right Nothing)
     it "multi-workspace tenant is the workspace plane" $
       runInContext (inScope NoScope True (ownerWorkspaceUuid defaultWorkspaceUuid)) requestContext >>= (`shouldBe` Right (Just defaultWorkspaceUuid))
-
-resolveCommandWorkspaceUuidSpec requestContext =
-  describe "resolveCommandWorkspaceUuid" $ do
-    it "single-workspace tenant assigns the only workspace" $
-      runInContext (resolveCommandWorkspaceUuid Nothing) requestContext >>= (`shouldBe` Right defaultWorkspaceUuid)
-    it "multi-workspace tenant requires a workspace" $ do
-      enableMultiWorkspace requestContext
-      runInContext (resolveCommandWorkspaceUuid Nothing) requestContext
-        >>= (`shouldBe` Left (UserError _ERROR_SERVICE_WORKSPACE__WORKSPACE_REQUIRED))
-    it "an existing workspace is kept" $
-      runInContext (resolveCommandWorkspaceUuid (Just defaultWorkspaceUuid)) requestContext >>= (`shouldBe` Right defaultWorkspaceUuid)
-    it "a workspace of another tenant is 404" $ do
-      result <- runInContext (resolveCommandWorkspaceUuid (Just differentWorkspaceUuid)) requestContext
-      isNotExistsError result `shouldBe` True
 
 isWorkspaceReachableSpec requestContext =
   describe "isWorkspaceReachable" $ do
