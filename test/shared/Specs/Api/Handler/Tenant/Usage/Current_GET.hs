@@ -1,5 +1,5 @@
-module Specs.Api.Handler.Tenant.Usage.Current_Wizard_GET (
-  current_wizard_GET,
+module Specs.Api.Handler.Tenant.Usage.Current_GET (
+  current_GET,
 ) where
 
 import Data.Aeson (encode)
@@ -11,26 +11,28 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Tenant.Usage.WizardUsageJM ()
 import Shared.Database.Migration.Development.Tenant.Data.TenantUsages
+import Shared.Model.User.RolePermission
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 
 -- ------------------------------------------------------------------------
--- GET /api/tenants/current/usages/wizard
+-- GET /api/tenants/current/usages
 -- ------------------------------------------------------------------------
-current_wizard_GET :: RequestContext -> SpecWith ((), Application)
-current_wizard_GET requestContext =
-  describe "GET /api/tenants/current/usages/wizard" $ do
+current_GET :: RequestContext -> SpecWith ((), Application)
+current_GET requestContext =
+  describe "GET /api/tenants/current/usages" $ do
     test_200 requestContext
     test_401 requestContext
+    test_403 requestContext
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/api/tenants/current/usages/wizard"
+reqUrl = "/api/tenants/current/usages"
 
 reqHeaders = [reqAuthHeader]
 
@@ -57,4 +59,9 @@ test_200 requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtHeader] reqBody
+test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION

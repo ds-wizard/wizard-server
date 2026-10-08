@@ -26,12 +26,6 @@ instance FromJSON BootstrapSignalBridgeDTO where
 instance ToJSON BootstrapSignalBridgeDTO where
   toJSON = genericToJSON jsonOptions
 
-instance FromJSON BootstrapModuleDTO where
-  parseJSON = genericParseJSON jsonOptions
-
-instance ToJSON BootstrapModuleDTO where
-  toJSON = genericToJSON jsonOptions
-
 instance FromJSON WorkspaceBootstrapDTO where
   parseJSON = genericParseJSON jsonOptions
 

@@ -12,7 +12,6 @@ import Shared.Database.DAO.Settings.SettingsLoginScreenDAO
 import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Settings.SettingsRegistryDAO
 import Shared.Database.DAO.Settings.SettingsUsersDAO
-import Shared.Database.DAO.Tenant.Module.TenantModuleDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.User.UserTourDAO
 import Shared.Model.Config.ServerConfig
@@ -45,9 +44,8 @@ getBootstrap mServerUrl mClientUrl = do
       openIdClients <- findOpenIdClientDefinitionsSimpleByTenantUuid tenant.uuid
       mUserProfile <- getBootstrapUserProfile tenant.uuid
       tours <- getBootstrapTours
-      tenantModules <- findTenantModulesByTenantUuid tenant.uuid
       bootstrapPlugins <- getBootstrapPlugins tenant.uuid
-      return $ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours tenantModules bootstrapPlugins
+      return $ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours bootstrapPlugins
 
 getBootstrapSettings :: WizardRequestContextC s m => U.UUID -> m BootstrapSettings
 getBootstrapSettings tenantUuid = do

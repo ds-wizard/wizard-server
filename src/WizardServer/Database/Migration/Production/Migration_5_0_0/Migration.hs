@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -72,6 +72,7 @@ migrateShared dbPool = do
   createAuditLog dbPool
   dropLocaleLimit dbPool
   dropProjectCommands dbPool
+  dropTenantModule dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -770,6 +771,9 @@ dropUserGroupMembershipCommands dbPool =
 dropProjectCommands :: Pool Connection -> LoggingT IO ()
 dropProjectCommands dbPool =
   runSql dbPool "DELETE FROM persistent_command WHERE component = 'project';"
+
+dropTenantModule :: Pool Connection -> LoggingT IO ()
+dropTenantModule dbPool = runSql dbPool "DROP TABLE tenant_module;"
 
 renameAuditToTelemetryEvent :: Pool Connection -> LoggingT IO ()
 renameAuditToTelemetryEvent dbPool =

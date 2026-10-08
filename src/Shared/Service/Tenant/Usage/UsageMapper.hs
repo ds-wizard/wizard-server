@@ -4,50 +4,50 @@ import GHC.Int
 
 import Shared.Api.Resource.Tenant.Usage.UsageEntryDTO
 import Shared.Api.Resource.Tenant.Usage.WizardUsageDTO
-import Shared.Model.Tenant.Limit.TenantLimitBundle
+import Shared.Model.Tenant.Limit.TenantLimitBundleChange
 
-toDTO :: TenantLimitBundle -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int64 -> WizardUsageDTO
-toDTO limitBundle userCount activeUserCount knowledgeModelEditorCount kmCount prjCount tmlCount tmlDraftCount docCount storageSize =
+toDTO :: TenantLimitBundleChange -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int64 -> WizardUsageDTO
+toDTO limits userCount activeUserCount knowledgeModelEditorCount kmCount prjCount tmlCount tmlDraftCount docCount storageSize =
   WizardUsageDTO
     { users =
         UsageEntryDTO
           { current = fromIntegral userCount
-          , max = fromIntegral limitBundle.users
+          , max = fromIntegral limits.users
           }
     , activeUsers =
         UsageEntryDTO
           { current = fromIntegral activeUserCount
-          , max = fromIntegral limitBundle.activeUsers
+          , max = fromIntegral limits.activeUsers
           }
     , knowledgeModels =
         UsageEntryDTO
           { current = fromIntegral kmCount
-          , max = fromIntegral limitBundle.knowledgeModels
+          , max = fromIntegral limits.knowledgeModels
           }
     , knowledgeModelEditors =
         UsageEntryDTO
           { current = fromIntegral knowledgeModelEditorCount
-          , max = fromIntegral limitBundle.knowledgeModelEditors
+          , max = fromIntegral limits.knowledgeModelEditors
           }
     , documentTemplates =
         UsageEntryDTO
           { current = fromIntegral tmlCount
-          , max = fromIntegral limitBundle.documentTemplates
+          , max = fromIntegral limits.documentTemplates
           }
     , documentTemplateDrafts =
         UsageEntryDTO
           { current = fromIntegral tmlDraftCount
-          , max = fromIntegral limitBundle.documentTemplateDrafts
+          , max = fromIntegral limits.documentTemplateDrafts
           }
     , projects =
         UsageEntryDTO
           { current = fromIntegral prjCount
-          , max = fromIntegral limitBundle.projects
+          , max = fromIntegral limits.projects
           }
     , documents =
         UsageEntryDTO
           { current = fromIntegral docCount
-          , max = fromIntegral limitBundle.documents
+          , max = fromIntegral limits.documents
           }
-    , storage = UsageEntryDTO {current = storageSize, max = limitBundle.storage}
+    , storage = UsageEntryDTO {current = storageSize, max = limits.storage}
     }

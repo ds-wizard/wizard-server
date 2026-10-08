@@ -22,9 +22,6 @@ instance ToSchema BootstrapCloudDTO where
 instance ToSchema BootstrapSignalBridgeDTO where
   declareNamedSchema = toSwagger (BootstrapSignalBridgeDTO Nothing)
 
-instance ToSchema BootstrapModuleDTO where
-  declareNamedSchema = toSwagger (BootstrapModuleDTO "Wizard" "Projects" "fas fa-hat-wizard" "https://example.com" False)
-
 instance ToSchema WorkspaceBootstrapDTO where
   declareNamedSchema =
     toSwagger

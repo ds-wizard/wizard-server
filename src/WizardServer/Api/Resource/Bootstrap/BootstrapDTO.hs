@@ -29,7 +29,6 @@ data BootstrapDTO
       , cloud :: BootstrapCloudDTO
       , admin :: BootstrapAdminDTO
       , signalBridge :: BootstrapSignalBridgeDTO
-      , modules :: [BootstrapModuleDTO]
       , plugins :: [PluginList]
       , pluginSettings :: M.Map U.UUID A.Value
       , multiWorkspace :: Bool

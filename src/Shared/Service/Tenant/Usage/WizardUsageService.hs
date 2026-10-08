@@ -9,7 +9,9 @@ import Shared.Model.Context.WizardRequestContext
 import qualified Shared.Service.Tenant.Usage.UsageService as Usage
 
 getUsage :: WizardRequestContextC s m => U.UUID -> m WizardUsageDTO
-getUsage = Usage.getUsage
+getUsage tenantUuid = do
+  checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
+  Usage.getUsage tenantUuid
 
 getUsageForCurrentTenant :: WizardRequestContextC s m => m WizardUsageDTO
 getUsageForCurrentTenant = do

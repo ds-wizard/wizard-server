@@ -78,7 +78,7 @@ create_test_200 title requestContext reqHeaders mUserProfile tenant =
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
       let pluginSettings = maybe M.empty (const plugin1Dict) mUserProfile
-      let expDto = toBootstrapDTO requestContext.serverConfig tenant bootstrapSettings [] mUserProfile [] defaultTenantModules (BootstrapPlugins [plugin1List, plugin2List] pluginSettings)
+      let expDto = toBootstrapDTO requestContext.serverConfig tenant bootstrapSettings [] mUserProfile [] (BootstrapPlugins [plugin1List, plugin2List] pluginSettings)
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO U.runMigration requestContext

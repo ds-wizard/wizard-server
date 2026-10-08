@@ -36,7 +36,7 @@ bootstrapSettingsExample =
     }
 
 instance ToSchema BootstrapDTO where
-  declareNamedSchema = toSwaggerWithType "type" (toBootstrapDTO S.defaultConfig defaultTenant bootstrapSettingsExample [defaultOpenIdClientSimple] (Just userAlbertProfile) [] defaultTenantModules (BootstrapPlugins [plugin1List] plugin1Dict))
+  declareNamedSchema = toSwaggerWithType "type" (toBootstrapDTO S.defaultConfig defaultTenant bootstrapSettingsExample [defaultOpenIdClientSimple] (Just userAlbertProfile) [] (BootstrapPlugins [plugin1List] plugin1Dict))
 
 instance ToSchema BootstrapAuthenticationDTO where
   declareNamedSchema = toSwagger (BootstrapAuthenticationDTO defaultSettingsAuthentication [defaultOpenIdClientSimple])

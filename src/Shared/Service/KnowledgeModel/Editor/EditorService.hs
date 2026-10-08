@@ -59,6 +59,7 @@ createEditor reqDto =
     bUuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     currentUser <- getCurrentUser
+    checkKnowledgeModelEditorLimit
     editorList <- createEditorWithParams bUuid now currentUser reqDto
     whenAuditLogEnabled (al_createKnowledgeModelEditor =<< findKnowledgeModelEditorByUuid editorList.uuid)
     return editorList
@@ -67,7 +68,6 @@ createEditorWithParams :: WizardRequestContextC s m => U.UUID -> UTCTime -> User
 createEditorWithParams uuid now currentUser reqDto =
   runInTransaction $ do
     workspaceUuid <- requireWorkspaceScope
-    checkKnowledgeModelEditorLimit
     checkPermissionInWorkspace _KNOWLEDGE_MODEL_EDITORS_USE_ROLE_PERMISSION (Just workspaceUuid)
     validateCreateDto reqDto
     tenantUuid <- asks (.tenantUuid')

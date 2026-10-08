@@ -2,7 +2,6 @@ module Shared.Database.Migration.Development.Tenant.TenantMigration where
 
 import Shared.Constant.Component
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
-import Shared.Database.DAO.Tenant.Module.TenantModuleDAO
 import Shared.Database.DAO.Tenant.TenantLimitBundleDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.Migration.Development.Settings.SettingsMigration
@@ -33,8 +32,7 @@ runConfigMigration :: WizardRequestContextC s m => m ()
 runConfigMigration = do
   seedSettings defaultTenant.uuid
   insertTenantConfigMail (defaultMail {tenantUuid = defaultTenant.uuid} :: TenantConfigMail)
-  deleteTenantModules
-  mapM_ insertTenantModule defaultTenantModules
+  return ()
 
 runLimitMigration :: WizardRequestContextC s m => m ()
 runLimitMigration = do

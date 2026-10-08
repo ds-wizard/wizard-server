@@ -14,6 +14,7 @@ import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContext
 import Shared.Model.Context.Scope
+import Shared.Model.Tenant.Limit.TenantLimitBundleChange
 import Shared.Model.User.RoleSimple
 
 class
@@ -40,3 +41,4 @@ class
 
 class (RequestContextC context ServerConfig m, WizardRequestContextType context) => WizardRequestContextC context m | m -> context where
   runRequestContextWithRequestContext :: m a -> context -> IO (Either String a)
+  findTenantLimits :: U.UUID -> m TenantLimitBundleChange

@@ -1,48 +1,10 @@
 module Shared.Database.Migration.Development.Tenant.Data.WizardTenants (
   module Shared.Database.Migration.Development.Tenant.Data.Tenants,
-  defaultTenantModules,
-  defaultTenantModule,
   tenantCreateDto,
 ) where
 
-import Data.Maybe (fromJust)
-import Data.Time
-
 import Shared.Api.Resource.Tenant.TenantCreateDTO
-import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.Tenant.Data.Tenants
-import Shared.Model.Tenant.Module.TenantModule
-import Shared.Model.User.RolePermission
-
-defaultTenantModules :: [TenantModule]
-defaultTenantModules =
-  [ defaultTenantModule {position = 0, moduleKey = "wizard", title = "Wizard", url = "http://localhost:8080"}
-  , defaultTenantModule {position = 1, moduleKey = "admin", title = "Administration", url = "http://localhost:8080"}
-  , defaultTenantModule
-      { position = 2
-      , moduleKey = "analytics"
-      , title = "Analytics"
-      , url = "http://localhost:8080/analytics"
-      , requiredPermission = Just _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
-      }
-  ]
-
-defaultTenantModule :: TenantModule
-defaultTenantModule =
-  TenantModule
-    { tenantUuid = defaultTenantUuid
-    , position = 0
-    , moduleKey = "wizard"
-    , title = ""
-    , description = ""
-    , icon = ""
-    , url = ""
-    , external = False
-    , requiredPermission = Nothing
-    , enabled = True
-    , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
-    , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
-    }
 
 tenantCreateDto :: TenantCreateDTO
 tenantCreateDto =
