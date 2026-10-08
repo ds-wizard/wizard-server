@@ -14,7 +14,6 @@ import Shared.Model.Plugin.EffectivePlugin
 import Shared.Model.Plugin.Plugin
 import Shared.Model.Plugin.PluginList
 import Shared.Model.Settings.Settings
-import Shared.Model.Tenant.Module.TenantModule
 import Shared.Model.Tenant.Tenant
 import Shared.Model.Workspace.Workspace
 import Shared.Service.Tenant.TenantMapper (tenantServerUrl)
@@ -27,20 +26,6 @@ toCloudDTO serverConfig tenant = BootstrapCloudDTO {enabled = serverConfig.enabl
 
 toSignalBridgeDTO :: ServerConfigCloud -> BootstrapSignalBridgeDTO
 toSignalBridgeDTO serverConfig = BootstrapSignalBridgeDTO {webSocketUrl = serverConfig.signalBridgeUrl}
-
-toModuleDTOs :: [String] -> [TenantModule] -> [BootstrapModuleDTO]
-toModuleDTOs permissions tenantModules =
-  [toModuleDTO m | m <- tenantModules, m.enabled, maybe True (`elem` permissions) m.requiredPermission]
-
-toModuleDTO :: TenantModule -> BootstrapModuleDTO
-toModuleDTO tenantModule =
-  BootstrapModuleDTO
-    { title = tenantModule.title
-    , description = tenantModule.description
-    , icon = tenantModule.icon
-    , url = tenantModule.url
-    , external = tenantModule.external
-    }
 
 toBootstrapPlugins :: Bool -> [PluginList] -> M.Map U.UUID A.Value -> BootstrapPlugins
 toBootstrapPlugins signedIn plugins pluginSettings =

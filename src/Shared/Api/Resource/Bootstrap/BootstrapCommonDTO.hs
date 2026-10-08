@@ -24,15 +24,6 @@ data BootstrapSignalBridgeDTO = BootstrapSignalBridgeDTO
   }
   deriving (Generic, Eq, Show)
 
-data BootstrapModuleDTO = BootstrapModuleDTO
-  { title :: String
-  , description :: String
-  , icon :: String
-  , url :: String
-  , external :: Bool
-  }
-  deriving (Generic, Eq, Show)
-
 data BootstrapPlugins = BootstrapPlugins
   { plugins :: [PluginList]
   , pluginSettings :: M.Map U.UUID A.Value

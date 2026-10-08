@@ -9,7 +9,6 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
-import Shared.Database.Migration.Development.Tenant.Data.TenantUsages
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Service.Tenant.TenantMapper
@@ -50,7 +49,7 @@ test_200 requestContext =
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = toDetailDTO defaultTenant Nothing Nothing defaultUsage [userAlbert]
+      let expDto = toDetailDTO defaultTenant Nothing Nothing [userAlbert]
       let expBody = encode expDto
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody

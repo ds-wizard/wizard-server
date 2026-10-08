@@ -1,6 +1,5 @@
-module WizardServer.Api.Handler.Tenant.Usage.Detail_Wizard_GET where
+module WizardServer.Api.Handler.Tenant.Usage.Current_GET where
 
-import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
@@ -10,16 +9,15 @@ import Shared.Api.Resource.Tenant.Usage.WizardUsageJM ()
 import Shared.Model.Context.TransactionState
 import Shared.Service.Tenant.Usage.WizardUsageService
 
-type Detail_Wizard_GET =
+type Current_GET =
   Header "Authorization" String
     :> Header "Host" String
     :> "tenants"
-    :> Capture "uuid" U.UUID
+    :> "current"
     :> "usages"
-    :> "wizard"
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] WizardUsageDTO)
 
-detail_wizard_GET :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> U.UUID -> sm (Headers '[Header "x-trace-uuid" String] WizardUsageDTO)
-detail_wizard_GET mTokenHeader mServerUrl tenantUuid =
+current_GET :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> sm (Headers '[Header "x-trace-uuid" String] WizardUsageDTO)
+current_GET mTokenHeader mServerUrl =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
-    runInAuthService NoTransaction $ addTraceUuidHeader =<< getUsage tenantUuid
+    runInAuthService NoTransaction $ addTraceUuidHeader =<< getUsageForCurrentTenant

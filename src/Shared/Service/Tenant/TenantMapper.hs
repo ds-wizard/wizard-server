@@ -9,7 +9,6 @@ import Shared.Api.Resource.Tenant.TenantChangeDTO
 import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantDetailDTO
-import Shared.Api.Resource.Tenant.Usage.WizardUsageDTO
 import Shared.Constant.Api
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
@@ -36,8 +35,8 @@ toDTO tenant mLogoUrl mPrimaryColor =
     , updatedAt = tenant.updatedAt
     }
 
-toDetailDTO :: Tenant -> Maybe String -> Maybe String -> WizardUsageDTO -> [User] -> TenantDetailDTO
-toDetailDTO tenant mLogoUrl mPrimaryColor usage users =
+toDetailDTO :: Tenant -> Maybe String -> Maybe String -> [User] -> TenantDetailDTO
+toDetailDTO tenant mLogoUrl mPrimaryColor users =
   TenantDetailDTO
     { uuid = tenant.uuid
     , tenantId = tenant.tenantId
@@ -50,7 +49,6 @@ toDetailDTO tenant mLogoUrl mPrimaryColor usage users =
     , multiWorkspace = tenant.multiWorkspace
     , logoUrl = mLogoUrl
     , primaryColor = mPrimaryColor
-    , usage = usage
     , users = fmap U_Mapper.toDTO users
     , createdAt = tenant.createdAt
     , updatedAt = tenant.updatedAt

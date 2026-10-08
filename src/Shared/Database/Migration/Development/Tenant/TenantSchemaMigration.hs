@@ -92,7 +92,6 @@ createConfigTables = do
   createSettingsTables
   createTcMailTable
   createTenantPluginSettingsTable
-  createTenantModuleTable
 
 createSettingsTables :: WizardRequestContextC s m => m Int64
 createSettingsTables = do
@@ -346,30 +345,6 @@ createTenantLimitBundleTable = do
         \    document_template_drafts integer     NOT NULL, \
         \    CONSTRAINT tenant_limit_bundle_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT tenant_limit_bundle_uuid_fk FOREIGN KEY (uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
-  let action conn = execute_ conn sql
-  runDB action
-
-createTenantModuleTable :: WizardRequestContextC s m => m Int64
-createTenantModuleTable = do
-  logInfo _CMP_MIGRATION "(Table/TenantModule) create table"
-  let sql =
-        "CREATE TABLE tenant_module \
-        \( \
-        \    tenant_uuid         uuid        NOT NULL, \
-        \    position            int         NOT NULL, \
-        \    module_key          varchar     NOT NULL, \
-        \    title               varchar     NOT NULL, \
-        \    description         varchar     NOT NULL, \
-        \    icon                varchar     NOT NULL, \
-        \    url                 varchar     NOT NULL, \
-        \    external            bool        NOT NULL, \
-        \    required_permission varchar, \
-        \    enabled             bool        NOT NULL DEFAULT true, \
-        \    created_at          timestamptz NOT NULL, \
-        \    updated_at          timestamptz NOT NULL, \
-        \    CONSTRAINT tenant_module_pk PRIMARY KEY (tenant_uuid, position), \
-        \    CONSTRAINT tenant_module_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \);"
   let action conn = execute_ conn sql
   runDB action

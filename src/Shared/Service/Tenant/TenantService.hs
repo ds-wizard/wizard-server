@@ -33,7 +33,6 @@ import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantMapper
 import Shared.Service.Tenant.TenantUtil
 import Shared.Service.Tenant.TenantValidation
-import Shared.Service.Tenant.Usage.WizardUsageService
 import Shared.Service.User.UserService
 import qualified Shared.Service.User.WizardUserMapper as U_Mapper
 import Shared.Service.Workspace.WorkspaceService
@@ -100,11 +99,10 @@ getTenantByUuid :: WizardRequestContextC s m => U.UUID -> m TenantDetailDTO
 getTenantByUuid uuid = do
   checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
   tenant <- findTenantByUuid uuid
-  usage <- getUsage uuid
   allUsers <- findUsersWithTenantFiltered uuid []
   let users = filter (elem _USERS_MANAGE_ROLE_PERMISSION . (.role.permissions)) allUsers
   lookAndFeel <- getSettingsByTenantUuid findSettingsLookAndFeel uuid
-  return $ toDetailDTO tenant lookAndFeel.logoUrl lookAndFeel.primaryColor usage users
+  return $ toDetailDTO tenant lookAndFeel.logoUrl lookAndFeel.primaryColor users
 
 modifyTenant :: WizardRequestContextC s m => U.UUID -> TenantChangeDTO -> m Tenant
 modifyTenant uuid reqDto = do

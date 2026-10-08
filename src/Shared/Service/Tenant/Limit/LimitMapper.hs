@@ -23,6 +23,20 @@ fromCreate aUuid now =
     , updatedAt = now
     }
 
+toLimits :: TenantLimitBundle -> TenantLimitBundleChange
+toLimits limitBundle =
+  TenantLimitBundleChange
+    { users = limitBundle.users
+    , activeUsers = limitBundle.activeUsers
+    , knowledgeModels = limitBundle.knowledgeModels
+    , knowledgeModelEditors = limitBundle.knowledgeModelEditors
+    , documentTemplates = limitBundle.documentTemplates
+    , documentTemplateDrafts = limitBundle.documentTemplateDrafts
+    , projects = limitBundle.projects
+    , documents = limitBundle.documents
+    , storage = limitBundle.storage
+    }
+
 fromChangeDTO :: TenantLimitBundle -> TenantLimitBundleChange -> UTCTime -> TenantLimitBundle
 fromChangeDTO limitBundle reqDto now =
   TenantLimitBundle

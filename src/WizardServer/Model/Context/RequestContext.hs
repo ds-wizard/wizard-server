@@ -17,6 +17,7 @@ import Network.Minio (MinioConn)
 import Servant.Client (ClientEnv)
 import Shared.Api.Resource.User.UserDTO
 import Shared.Constant.Component
+import Shared.Database.DAO.Tenant.TenantLimitBundleDAO
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.User.Public
 import Shared.Model.AuditLog.AuditLogSource
@@ -31,6 +32,7 @@ import Shared.Model.Error.Error
 import Shared.Model.Sentry.SentryEvent
 import Shared.Model.User.RoleSimple
 import Shared.Service.Acl.AclService
+import Shared.Service.Tenant.Limit.LimitMapper
 import Shared.Util.Logger
 
 data RequestContext = RequestContext
@@ -143,6 +145,7 @@ instance WizardRequestContextC RequestContext RequestContextM where
         runLogging loggingLevel $ do
           logError _CMP_SERVER ("Caught error: " ++ show error)
           return . Left $ show error
+  findTenantLimits tenantUuid = toLimits <$> findLimitBundleByUuid tenantUuid
 
 instance AclContext RequestContextM where
   checkPermission perm = do
