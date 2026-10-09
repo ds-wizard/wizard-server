@@ -8,7 +8,6 @@ import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
 
-import qualified Data.Map as M
 import Shared.Api.Resource.Document.DocumentCreateDTO
 import Shared.Api.Resource.Document.DocumentDTO
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
@@ -17,17 +16,13 @@ import Shared.Database.DAO.Document.DocumentDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDataDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFormatDAO
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateLocaleDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
-import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
-import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorReplyDAO
-import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Project.ProjectDAO
-import Shared.Database.DAO.Project.ProjectEventDAO
-import Shared.Database.DAO.Project.ProjectVersionDAO
+import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Localization.Messages.WizardPublic
-import Shared.Model.Common.Lens
 import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
@@ -35,16 +30,14 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Document.Document
+import Shared.Model.Document.DocumentContext
+import Shared.Model.Document.PreviewSource
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftData
+import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
 import Shared.Model.Error.Error
-import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
-import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
-import Shared.Model.Project.Event.ProjectEventListLenses ()
+import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.Project.Project
-import Shared.Model.Project.ProjectContent
-import Shared.Model.Project.ProjectReply
-import Shared.Model.Project.Version.ProjectVersion
 import Shared.S3.Document.DocumentS3
 import Shared.Service.Document.Context.DocumentContextService
 import Shared.Service.Document.DocumentAcl
@@ -55,13 +48,10 @@ import Shared.Service.DocumentTemplate.DocumentTemplateService
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleValidation
 import Shared.Service.KnowledgeModel.Editor.EditorAcl
-import qualified Shared.Service.KnowledgeModel.Editor.EditorMapper as EditorMapper
-import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.ProjectAcl
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
-import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
 
@@ -89,23 +79,14 @@ createDocument reqDto =
     format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid reqDto.documentTemplateUuid reqDto.formatUuid
     validateMetamodelVersion tml
     validateLanguageAvailability tml reqDto.language
+    (ctx, mCutOffEventUuid) <- createProjectDocumentContext project reqDto.projectEventUuid
     uuid <- liftIO generateUuid
     mCurrentUser <- asks (.currentUser')
     now <- liftIO getCurrentTime
-    projectEvents <- findProjectEventListsByProjectUuid project.uuid
-    let filteredProjectEvents =
-          case reqDto.projectEventUuid of
-            Just eventUuid -> takeWhileInclusive (\e -> getUuid e /= eventUuid) projectEvents
-            Nothing -> projectEvents
-    let projectContent = compileProjectEvents filteredProjectEvents
-    tcOrganization <- getDocumentContextOrganization
-    projectVersions <- findProjectVersionsByProjectUuid project.uuid
-    let docContextHash = computeHash [] project projectVersions projectContent.phaseUuid projectContent.replies tcOrganization mCurrentUser
-    let doc = fromCreateDTO reqDto uuid docContextHash filteredProjectEvents mCurrentUser project.tenantUuid project.workspaceUuid now
+    let doc = fromCreateDTO reqDto uuid (Just ctx.hash) mCutOffEventUuid mCurrentUser project.tenantUuid project.workspaceUuid now
     insertDocument doc
     al_createDocument doc project tml format
-    pkg <- findPackageByUuid project.knowledgeModelPackageUuid
-    publishToPersistentCommandQueue doc pkg [] project Nothing
+    publishToPersistentCommandQueue doc tml format ctx
     return $ toDTOWithDocTemplate doc project Nothing [] tml format
 
 deleteDocument :: WizardRequestContextC s m => U.UUID -> m ()
@@ -128,73 +109,54 @@ downloadDocument docUuid = do
     url <- createTemporaryFile fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict content)
     return $ TemporaryFileMapper.toDTO url contentType
 
-createDocumentPreviewForProject :: WizardRequestContextC s m => U.UUID -> m (Document, TemporaryFileDTO)
-createDocumentPreviewForProject projectUuid =
+createDocumentPreviewForProject :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m (Document, TemporaryFileDTO)
+createDocumentPreviewForProject projectUuid mDocumentUuid =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     case (project.documentTemplateUuid, project.formatUuid) of
       (Just dtUuid, Just formatUuid) -> do
         tml <- getDocumentTemplateByUuidAndPackageId dtUuid project.knowledgeModelPackageUuid project.workspaceUuid
-        pkg <- findPackageByUuid project.knowledgeModelPackageUuid
-        projectEvents <- findProjectEventListsByProjectUuid projectUuid
-        let projectEventUuid = fmap getUuid (lastSafe projectEvents)
-        let projectContent = compileProjectEvents projectEvents
-        projectVersions <- findProjectVersionsByProjectUuid project.uuid
-        createDocumentPreview tml pkg [] project projectVersions projectEventUuid projectContent.phaseUuid projectContent.replies formatUuid project.documentTemplateLanguage False
+        format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid dtUuid formatUuid
+        resumeOrCreatePreview mDocumentUuid (isPreviewOf (ProjectPreviewSource project) tml format) $ do
+          (ctx, mCutOffEventUuid) <- createProjectDocumentContext project Nothing
+          createDocumentPreview (ProjectPreviewSource project) tml format project.documentTemplateLanguage mCutOffEventUuid ctx
       _ -> throwError $ UserError _ERROR_SERVICE_DOCUMENT__TEMPLATE_OR_FORMAT_NOT_SET_UP
 
-createDocumentPreviewForDocTmlDraft :: WizardRequestContextC s m => U.UUID -> m (Document, TemporaryFileDTO)
-createDocumentPreviewForDocTmlDraft dtUuid =
+createDocumentPreviewForDocTmlDraft :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m (Document, TemporaryFileDTO)
+createDocumentPreviewForDocTmlDraft dtUuid mDocumentUuid =
   runInTransaction $ do
     draftData <- findDraftDataByUuid dtUuid
     case (draftData.projectUuid, draftData.knowledgeModelEditorUuid, draftData.formatUuid) of
       (Just projectUuid, _, Just formatUuid) -> do
         draft <- findDraftByUuid dtUuid
+        format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid dtUuid formatUuid
         project <- findProjectByUuid projectUuid
-        pkg <- findPackageByUuid project.knowledgeModelPackageUuid
         checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
-        projectEvents <- findProjectEventListsByProjectUuid project.uuid
-        let projectEventUuid = fmap getUuid (lastSafe projectEvents)
-        let projectContent = compileProjectEvents projectEvents
-        projectVersions <- findProjectVersionsByProjectUuid project.uuid
-        createDocumentPreview draft pkg [] project projectVersions projectEventUuid projectContent.phaseUuid projectContent.replies formatUuid Nothing False
+        resumeOrCreatePreview mDocumentUuid (isPreviewOf (ProjectPreviewSource project) draft format) $ do
+          (ctx, mCutOffEventUuid) <- createProjectDocumentContext project Nothing
+          createDocumentPreview (ProjectPreviewSource project) draft format Nothing mCutOffEventUuid ctx
       (_, Just kmEditorUuid, Just formatUuid) -> do
         draft <- findDraftByUuid dtUuid
-        let pkg = toTemporaryPackage draft.tenantUuid draft.createdAt
-        editor <- findKnowledgeModelEditorByUuid kmEditorUuid
-        kmEditorEvents <- findKnowledgeModelEventsByEditorUuid kmEditorUuid
-        let kmEvents = fmap EditorMapper.toKnowledgeModelEvent kmEditorEvents
-        kmEditorReplies <- findKnowledgeModelRepliesByEditorUuid kmEditorUuid
-        let replies = EditorMapper.toReplies kmEditorReplies
+        format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid dtUuid formatUuid
         checkPermissionToEditor kmEditorUuid
-        mCurrentUser <- asks (.currentUser')
-        let project = toTemporaryProject editor pkg mCurrentUser
-        let projectEventUuid = Nothing
-        createDocumentPreview draft pkg kmEvents project [] projectEventUuid Nothing replies formatUuid Nothing True
+        editor <- findKnowledgeModelEditorByUuid kmEditorUuid
+        resumeOrCreatePreview mDocumentUuid (isPreviewOf (KnowledgeModelEditorPreviewSource editor) draft format) $ do
+          ctx <- createKnowledgeModelEditorDocumentContext editor
+          createDocumentPreview (KnowledgeModelEditorPreviewSource editor) draft format Nothing Nothing ctx
       _ -> throwError $ UserError _ERROR_SERVICE_DOCUMENT__PROJECT_OR_FORMAT_NOT_SET_UP
 
-createDocumentPreview :: WizardRequestContextC s m => DocumentTemplate -> KnowledgeModelPackage -> [KnowledgeModelEvent] -> Project -> [ProjectVersion] -> Maybe U.UUID -> Maybe U.UUID -> M.Map String Reply -> U.UUID -> Maybe String -> Bool -> m (Document, TemporaryFileDTO)
-createDocumentPreview dt pkg kmEditorEvents project projectVersions projectEventUuid phaseUuid replies formatUuid mLanguage fromKnowledgeModelEditor = do
-  tcOrganization <- getDocumentContextOrganization
-  mCurrentUser <- asks (.currentUser')
-  let repliesHash = computeHash kmEditorEvents project projectVersions phaseUuid replies tcOrganization mCurrentUser
-  logDebugI _CMP_SERVICE ("Replies hash: " ++ show repliesHash)
-  docs <-
-    if fromKnowledgeModelEditor
-      then findDocumentsForCurrentTenantFiltered [("project_replies_hash", show repliesHash), ("durability", "TemporallyDocumentDurability")]
-      else findDocumentsForCurrentTenantFiltered [("project_uuid", U.toString project.uuid), ("project_replies_hash", show repliesHash), ("durability", "TemporallyDocumentDurability")]
-  case filter (filterAlreadyDoneDocument dt.uuid formatUuid mLanguage) docs of
+createDocumentPreview :: WizardRequestContextC s m => PreviewSource -> DocumentTemplate -> DocumentTemplateFormatSimple -> Maybe String -> Maybe U.UUID -> DocumentContext -> m (Document, TemporaryFileDTO)
+createDocumentPreview source dt format mLanguage mEventUuid ctx = do
+  logDebugI _CMP_SERVICE ("Context hash: " ++ ctx.hash)
+  allDocs <- findDocumentsForCurrentTenantFiltered (previewSourceFilter source : [("context_hash", ctx.hash), ("durability", "TemporallyDocumentDurability")])
+  let docs = filter (matchesDocumentKey (previewSourceName source) dt.uuid format.uuid mLanguage) allDocs
+  case filter isFinishedDocument docs of
     (doc : _) -> do
       logInfoI _CMP_SERVICE "Retrieving from cache"
-      if doc.state == DoneDocumentState
-        then do
-          let expirationInSeconds = 60
-          link <- presignGetDocumentUrl doc.uuid expirationInSeconds
-          return (doc, TemporaryFileDTO link (fromMaybe "text/plain" doc.contentType))
-        else return (doc, TemporaryFileMapper.emptyFileDTO)
+      toPreviewResult doc
     [] ->
-      case filter (\d -> d.state == QueuedDocumentState || d.state == InProgressDocumentState) docs of
+      case filter isPendingDocument docs of
         (doc : _) -> do
           logInfoI _CMP_SERVICE "Waiting to generation"
           return (doc, TemporaryFileMapper.emptyFileDTO)
@@ -202,17 +164,49 @@ createDocumentPreview dt pkg kmEditorEvents project projectVersions projectEvent
           logInfoI _CMP_SERVICE "Generating new preview"
           validateMetamodelVersion dt
           dUuid <- liftIO generateUuid
+          mCurrentUser <- asks (.currentUser')
           now <- liftIO getCurrentTime
-          let doc = fromTemporallyCreateDTO dUuid project projectEventUuid dt.uuid formatUuid mLanguage repliesHash mCurrentUser project.tenantUuid now fromKnowledgeModelEditor
+          let doc = fromTemporallyCreateDTO dUuid source mEventUuid dt.uuid format.uuid mLanguage (Just ctx.hash) mCurrentUser now
           insertDocument doc
-          let mReplies = if fromKnowledgeModelEditor then Just replies else Nothing
-          publishToPersistentCommandQueue doc pkg kmEditorEvents project mReplies
+          publishToPersistentCommandQueue doc dt format ctx
           return (doc, TemporaryFileMapper.emptyFileDTO)
 
-publishToPersistentCommandQueue :: WizardRequestContextC s m => Document -> KnowledgeModelPackage -> [KnowledgeModelEvent] -> Project -> Maybe (M.Map String Reply) -> m ()
-publishToPersistentCommandQueue doc pkg kmEditorEvents project mReplies = do
-  docContext <- createDocumentContext doc pkg kmEditorEvents project mReplies
+publishToPersistentCommandQueue :: WizardRequestContextC s m => Document -> DocumentTemplate -> DocumentTemplateFormatSimple -> DocumentContext -> m ()
+publishToPersistentCommandQueue doc dt format ctx = do
+  mCreatedBy <- traverse findUserByUuid doc.createdBy
+  mLocale <- maybe (return Nothing) (findDocumentTemplateLocaleByDocumentTemplateUuidAndCode' doc.documentTemplateUuid) doc.language
   pUuid <- liftIO generateUuid
-  let command = toDocPersistentCommand pUuid docContext doc
-  insertPersistentCommand command
+  let docContext = withDocument doc dt format mCreatedBy mLocale ctx
+  insertPersistentCommand (toDocPersistentCommand pUuid docContext doc)
   return ()
+
+-- --------------------------------
+-- PRIVATE
+-- --------------------------------
+resumeOrCreatePreview :: WizardRequestContextC s m => Maybe U.UUID -> (Document -> Bool) -> m (Document, TemporaryFileDTO) -> m (Document, TemporaryFileDTO)
+resumeOrCreatePreview Nothing _ create = create
+resumeOrCreatePreview (Just documentUuid) belongsToSource create = do
+  mDoc <- findDocumentByUuid' documentUuid
+  case mDoc of
+    Just doc | doc.durability == TemporallyDocumentDurability && belongsToSource doc -> toPreviewResult doc
+    _ -> create
+
+toPreviewResult :: WizardRequestContextC s m => Document -> m (Document, TemporaryFileDTO)
+toPreviewResult doc
+  | doc.state == DoneDocumentState = do
+      let expirationInSeconds = 60
+      link <- presignGetDocumentUrl doc.uuid expirationInSeconds
+      return (doc, TemporaryFileDTO link (fromMaybe "text/plain" doc.contentType))
+  | otherwise = return (doc, TemporaryFileMapper.emptyFileDTO)
+
+previewSourceFilter :: PreviewSource -> (String, String)
+previewSourceFilter (ProjectPreviewSource project) = ("project_uuid", U.toString project.uuid)
+previewSourceFilter (KnowledgeModelEditorPreviewSource editor) = ("knowledge_model_editor_uuid", U.toString editor.uuid)
+
+isPreviewOf :: PreviewSource -> DocumentTemplate -> DocumentTemplateFormatSimple -> Document -> Bool
+isPreviewOf source dt format doc =
+  doc.documentTemplateUuid == dt.uuid
+    && doc.formatUuid == format.uuid
+    && case source of
+      ProjectPreviewSource project -> doc.projectUuid == Just project.uuid
+      KnowledgeModelEditorPreviewSource editor -> doc.knowledgeModelEditorUuid == Just editor.uuid

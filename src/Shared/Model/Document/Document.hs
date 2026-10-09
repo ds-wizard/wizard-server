@@ -24,7 +24,6 @@ data Document = Document
   , durability :: DocumentDurability
   , projectUuid :: Maybe U.UUID
   , projectEventUuid :: Maybe U.UUID
-  , projectRepliesHash :: Int
   , documentTemplateUuid :: U.UUID
   , formatUuid :: U.UUID
   , language :: Maybe String
@@ -38,5 +37,7 @@ data Document = Document
   , finishedAt :: Maybe UTCTime
   , createdAt :: UTCTime
   , workspaceUuid :: U.UUID
+  , contextHash :: Maybe String
+  , knowledgeModelEditorUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

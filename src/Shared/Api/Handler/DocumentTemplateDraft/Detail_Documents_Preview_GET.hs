@@ -4,13 +4,11 @@ import qualified Data.UUID as U
 import Servant
 
 import Shared.Api.Handler.Common
+import Shared.Api.Handler.Document.Preview
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
 import Shared.Api.Resource.TemporaryFile.TemporaryFileJM ()
-import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.TransactionState
-import Shared.Model.Document.Document
-import Shared.Model.Error.Error
 import Shared.Service.Document.DocumentService
 
 type Detail_Documents_Preview_GET =
@@ -20,6 +18,7 @@ type Detail_Documents_Preview_GET =
     :> Capture "uuid" U.UUID
     :> "documents"
     :> "preview"
+    :> QueryParam "documentUuid" U.UUID
     :> Get '[SafeJSON] (Headers '[Header "x-trace-uuid" String] TemporaryFileDTO)
 
 detail_documents_preview_GET
@@ -27,13 +26,8 @@ detail_documents_preview_GET
   => Maybe String
   -> Maybe String
   -> U.UUID
-  -> sm (Headers '[Header "x-trace-uuid" String] TemporaryFileDTO)
-detail_documents_preview_GET mTokenHeader mServerUrl uuid =
+  -> Maybe U.UUID
+  -> sm DocumentPreviewResponse
+detail_documents_preview_GET mTokenHeader mServerUrl uuid mDocumentUuid =
   getMaybeAuthServiceExecutor mTokenHeader mServerUrl $ \runInMaybeAuthService ->
-    runInMaybeAuthService Transactional $ do
-      (doc, fileDto) <- createDocumentPreviewForDocTmlDraft uuid
-      case doc.state of
-        DoneDocumentState -> addTraceUuidHeader fileDto
-        ErrorDocumentState ->
-          throwError $ SystemLogError (_ERROR_SERVICE_PROJECT__UNABLE_TO_GENERATE_DOCUMENT_PREVIEW doc.workerLog)
-        _ -> throwError AcceptedError
+    respondDocumentPreview (runInMaybeAuthService Transactional) (createDocumentPreviewForDocTmlDraft uuid mDocumentUuid)

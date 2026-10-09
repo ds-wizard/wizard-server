@@ -1,6 +1,5 @@
 module Shared.Service.Bootstrap.BootstrapMapper where
 
-import Control.Applicative ((<|>))
 import qualified Data.Aeson as A
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
@@ -15,7 +14,6 @@ import Shared.Model.Plugin.Plugin
 import Shared.Model.Plugin.PluginList
 import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Tenant
-import Shared.Model.Workspace.Workspace
 import Shared.Service.Tenant.TenantMapper (tenantServerUrl)
 
 toPrivacyDTO :: Maybe String -> Maybe String -> BootstrapPrivacyDTO
@@ -34,11 +32,11 @@ toBootstrapPlugins signedIn plugins pluginSettings =
     , pluginSettings = if signedIn then M.restrictKeys pluginSettings (S.fromList [p.uuid | p <- plugins, p.enabled]) else M.empty
     }
 
-toWorkspaceBootstrapDTO :: Workspace -> SettingsLookAndFeel -> SettingsDashboardAndMenu -> SettingsProjects -> SettingsSupport -> SettingsSubmission -> [EffectivePlugin] -> WorkspaceBootstrapDTO
-toWorkspaceBootstrapDTO workspace lookAndFeel dashboardAndMenu projects support submission effectivePlugins =
+toWorkspaceBootstrapDTO :: SettingsLookAndFeel -> SettingsDashboardAndMenu -> SettingsProjects -> SettingsSupport -> SettingsSubmission -> [EffectivePlugin] -> WorkspaceBootstrapDTO
+toWorkspaceBootstrapDTO lookAndFeel dashboardAndMenu projects support submission effectivePlugins =
   WorkspaceBootstrapDTO
-    { logo = workspace.logo <|> lookAndFeel.logoUrl
-    , primaryColor = workspace.primaryColor <|> lookAndFeel.primaryColor
+    { logo = lookAndFeel.logoUrl
+    , primaryColor = lookAndFeel.primaryColor
     , dashboardAndMenu = dashboardAndMenu
     , projects = projects
     , support = support

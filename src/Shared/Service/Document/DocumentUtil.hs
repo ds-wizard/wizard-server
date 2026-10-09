@@ -1,30 +1,18 @@
 module Shared.Service.Document.DocumentUtil where
 
 import Data.Foldable (toList)
-import Data.Hashable
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
 import qualified Data.UUID as U
 
-import Control.Monad.Reader (asks)
 import Shared.Api.Resource.Document.DocumentDTO
-import Shared.Api.Resource.User.UserDTO
-import Shared.Database.DAO.Settings.SettingsUsersDAO
 import Shared.Database.DAO.Submission.SubmissionDAO
-import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Model.Common.Page
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Document.Document
-import Shared.Model.Document.DocumentContext
 import Shared.Model.Document.DocumentList
-import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
-import Shared.Model.Project.Project
-import Shared.Model.Project.ProjectReply
-import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Settings.Settings
-import Shared.Model.Tenant.Tenant
 import Shared.Service.Document.DocumentMapper
-import Shared.Service.Settings.SettingsService
 import Shared.Service.Settings.WorkspaceSettingsService
 
 enhanceDocuments :: WizardRequestContextC s m => Page DocumentList -> m (Page DocumentDTO)
@@ -41,27 +29,15 @@ enhanceDocument submissionSettings doc = do
       else return []
   return $ toDTO doc submissions
 
-filterAlreadyDoneDocument :: U.UUID -> U.UUID -> Maybe String -> Document -> Bool
-filterAlreadyDoneDocument documentTemplateUuid formatUuid mLanguage doc =
-  (doc.state == DoneDocumentState || doc.state == ErrorDocumentState) && Just doc.documentTemplateUuid == Just documentTemplateUuid && Just doc.formatUuid == Just formatUuid && doc.language == mLanguage
+matchesDocumentKey :: String -> U.UUID -> U.UUID -> Maybe String -> Document -> Bool
+matchesDocumentKey name documentTemplateUuid formatUuid mLanguage doc =
+  doc.name == name
+    && doc.documentTemplateUuid == documentTemplateUuid
+    && doc.formatUuid == formatUuid
+    && doc.language == mLanguage
 
-computeHash :: [KnowledgeModelEvent] -> Project -> [ProjectVersion] -> Maybe U.UUID -> M.Map String Reply -> DocumentContextOrganization -> Maybe UserDTO -> Int
-computeHash kmEditorEvents project versions phaseUuid replies tcOrganization mCurrentUser =
-  sum
-    [ hash kmEditorEvents
-    , hash project.name
-    , hash project.description
-    , hash versions
-    , hash project.projectTags
-    , maybe 0 hash phaseUuid
-    , hash . M.toList $ replies
-    , hash tcOrganization
-    , maybe 0 hash mCurrentUser
-    ]
+isFinishedDocument :: Document -> Bool
+isFinishedDocument doc = doc.state == DoneDocumentState || doc.state == ErrorDocumentState
 
-getDocumentContextOrganization :: WizardRequestContextC s m => m DocumentContextOrganization
-getDocumentContextOrganization = do
-  tenantUuid <- asks (.tenantUuid')
-  tenant <- findTenantByUuid tenantUuid
-  users <- getSettingsByTenantUuid findSettingsUsers tenantUuid
-  return $ DocumentContextOrganization {name = tenant.name, affiliations = users.affiliations}
+isPendingDocument :: Document -> Bool
+isPendingDocument doc = doc.state == QueuedDocumentState || doc.state == InProgressDocumentState

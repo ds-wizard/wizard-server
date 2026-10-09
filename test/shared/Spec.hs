@@ -83,6 +83,8 @@ import Specs.Model.PersistentCommand.Mail.MailCommandSpec
 import Specs.Service.Acl.AclServiceSpec
 import Specs.Service.AuditLog.AuditLogServiceSpec
 import Specs.Service.Coordinate.CoordinateValidationSpec
+import Specs.Service.Document.Context.DocumentContextHashSpec
+import Specs.Service.Document.Context.DocumentContextServiceSpec
 import Specs.Service.Document.DocumentServiceSpec
 import Specs.Service.DocumentTemplate.DocumentTemplateUtilSpec
 import Specs.Service.KnowledgeModel.Compiler.CompilerSpec
@@ -119,6 +121,7 @@ import Specs.Service.User.UserServiceSpec
 import Specs.Service.Workspace.CoordinateResolutionSpec
 import Specs.Service.Workspace.WorkspaceScopeServiceSpec
 import Specs.Util.GettextSpec
+import Specs.Util.JSON.CanonicalSpec
 import Specs.Util.JinjaSpec
 import Specs.Util.ListSpec
 import Specs.Util.LocaleCodeSpec
@@ -217,6 +220,7 @@ main =
             describe "SERVICE" $ do
               aclServiceSpec
               describe "Coordinate" coordinateValidationSpec
+              describe "Document" documentContextHashSpec
               describe "Document Template" documentTemplateUtilSpec
               describe "KnowledgeModel" $ do
                 describe "Metamodel" $
@@ -249,6 +253,7 @@ main =
               stringSpec
               tokenSpec
               jinjaSpec
+              canonicalSpec
               gettextSpec
               localeCodeSpec
           before (resetDB requestContext) $ describe "INTEGRATION TESTING" $ do
@@ -297,7 +302,8 @@ main =
                 describe "Production" $
                   migration_4_35_2Spec requestContext
             describe "SERVICE" $ do
-              documentIntegrationSpec requestContext
+              documentServiceSpec requestContext
+              documentContextServiceSpec requestContext
               describe "KnowledgeModel" $ do
                 describe "Editor" $ do
                   describe "Migration" $ do

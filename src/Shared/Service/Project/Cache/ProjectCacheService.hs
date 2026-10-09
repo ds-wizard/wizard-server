@@ -49,11 +49,11 @@ refreshProjectCache source =
           (questionnaire, report) <- computeQuestionnaireAndReport source.projectUuid
           void $ updateProjectCacheQuestionnaireByProjectUuid source.projectUuid questionnaire report source.questionnaireSourceUpdatedAt now
         when (cachedVersionsSourceUpdatedAt < source.versionsSourceUpdatedAt) $ do
-          versions <- findProjectVersionListByProjectUuidAndCreatedAt source.projectUuid Nothing
+          versions <- findProjectVersionListByProjectUuid source.projectUuid
           void $ updateProjectCacheVersionsByProjectUuid source.projectUuid versions source.versionsSourceUpdatedAt now
       Nothing -> do
         (questionnaire, report) <- computeQuestionnaireAndReport source.projectUuid
-        versions <- findProjectVersionListByProjectUuidAndCreatedAt source.projectUuid Nothing
+        versions <- findProjectVersionListByProjectUuid source.projectUuid
         tenantUuid <- asks (.tenantUuid')
         project <- findProjectByUuid source.projectUuid
         void $

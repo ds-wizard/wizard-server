@@ -1,7 +1,7 @@
 module Shared.Database.Migration.Development.Document.Data.Documents where
 
 import qualified Data.ByteString.Char8 as BS
-import Data.Hashable
+import qualified Data.List as L
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import Data.Time
@@ -12,23 +12,29 @@ import qualified Shared.Constant.DocumentTemplate as TemplateConstant
 import Shared.Constant.Workspace
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFormats
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.KnowledgeModels
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
+import Shared.Database.Migration.Development.Project.Data.ProjectVersions
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.Report.Data.Reports
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import Shared.Model.Document.Document
 import Shared.Model.Document.DocumentContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
+import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.KnowledgeModelLenses
+import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectContent
+import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.User
+import Shared.Service.Document.Context.DocumentContextHash
 import Shared.Service.Document.Context.DocumentContextMapper
 import Shared.Service.Document.DocumentMapper
-import Shared.Service.Project.Version.ProjectVersionMapper
 import Shared.Util.Uuid
 
 doc1 :: Document
@@ -40,7 +46,6 @@ doc1 =
     , durability = PersistentDocumentDurability
     , projectUuid = Just project1.uuid
     , projectEventUuid = Just . getUuid . last $ project1Events
-    , projectRepliesHash = hash . M.toList $ project1Ctn.replies
     , documentTemplateUuid = wizardDocumentTemplate.uuid
     , formatUuid = formatJson.uuid
     , language = Nothing
@@ -54,6 +59,8 @@ doc1 =
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
+    , contextHash = Just dmp1.hash
+    , knowledgeModelEditorUuid = Nothing
     }
 
 doc1Content :: BS.ByteString
@@ -67,55 +74,86 @@ doc1Content =
       ++ "Aliquam volutpat molestie nibh sit amet iaculis."
 
 dmp1 :: DocumentContext
-dmp1 =
+dmp1 = dmp1WithoutHash {hash = computeContextHash dmp1WithoutHash}
+
+dmp1WithoutHash :: DocumentContext
+dmp1WithoutHash =
   DocumentContext
-    { config =
-        DocumentContextConfig
-          { clientUrl = "https://example.com"
-          , appTitle = Nothing
-          , primaryColor = Nothing
-          , logoUrl = Nothing
-          }
-    , document =
-        DocumentContextDocument
-          { uuid = doc1.uuid
-          , name = doc1.name
-          , documentTemplateUuid = doc1.documentTemplateUuid
-          , formatUuid = doc1.formatUuid
-          , language = Nothing
-          , locale = Nothing
-          , createdBy = Just . toDocumentContextUser $ userNikola
-          , createdAt = doc1.createdAt
-          }
-    , project =
-        DocumentContextProject
-          { uuid = project1.uuid
-          , name = project1.name
-          , description = project1.description
-          , replies = project1Ctn.replies
-          , phaseUuid = project1Ctn.phaseUuid
-          , labels = project1Ctn.labels
-          , versionUuid = Nothing
-          , versions = fmap (`toVersionList` Just userAlbertDto) project1Versions
-          , projectTags = project1.projectTags
-          , files = []
-          , language = Nothing
-          , createdBy = Just . toDocumentContextUser $ userAlbert
-          , createdAt = project1.createdAt
-          , updatedAt = project1.updatedAt
-          }
+    { metamodelVersion = TemplateConstant.documentTemplateMetamodelVersion
+    , hash = ""
+    , workspace = toDocumentContextWorkspace defaultWorkspace
+    , project = Just dmp1Project
+    , knowledgeModelEditor = Nothing
+    , questionnaire = dmp1Questionnaire
     , knowledgeModel = km1WithQ4
-    , report = report1
-    , knowledgeModelPackage = toDocumentContextPackage germanyKmPackage
-    , organization = DocumentContextOrganization {name = defaultTenant.name, affiliations = []}
-    , metamodelVersion = TemplateConstant.documentTemplateMetamodelVersion
-    , users =
-        [ DocumentContextUserPerm
-            { user = toDocumentContextUser userAlbert
-            , perms = ["VIEW", "COMMENT", "EDIT", "ADMIN"]
-            }
-        ]
-    , groups = []
+    , knowledgeModelPackage = Just dmp1Package
+    , document = Nothing
+    , config = dmpConfig
+    }
+
+dmp1Project :: DocumentContextProject
+dmp1Project = toDocumentContextProject project1 (Just userAlbert) [dmp1AlbertPerm] []
+
+dmp1AlbertPerm :: DocumentContextUserPerm
+dmp1AlbertPerm = DocumentContextUserPerm {user = toDocumentContextUser userAlbert, perms = L.sort ownerPermissions}
+
+dmp1Questionnaire :: DocumentContextQuestionnaire
+dmp1Questionnaire =
+  DocumentContextQuestionnaire
+    { replies = project1Ctn.replies
+    , labels = project1Ctn.labels
+    , phaseUuid = project1Ctn.phaseUuid
+    , versionUuid = Just (projectVersion1 project1.uuid).uuid
+    , versions = qVersionsList project1.uuid
+    , files = []
+    , report = toDocumentContextReport report1
+    , language = project1.language
+    }
+
+dmp1Package :: DocumentContextPackage
+dmp1Package = toDocumentContextPackage germanyKmPackage
+
+dmp1Document :: DocumentContextDocument
+dmp1Document = toDocumentContextDocument doc1 wizardDocumentTemplate formatJsonSimple (Just userNikola) Nothing
+
+dmpKmEditor1 :: DocumentContext
+dmpKmEditor1 = dmpKmEditor1WithoutHash {hash = computeContextHash dmpKmEditor1WithoutHash}
+
+dmpKmEditor1WithoutHash :: DocumentContext
+dmpKmEditor1WithoutHash =
+  DocumentContext
+    { metamodelVersion = TemplateConstant.documentTemplateMetamodelVersion
+    , hash = ""
+    , workspace = toDocumentContextWorkspace defaultWorkspace
+    , project = Nothing
+    , knowledgeModelEditor = Just dmpKmEditor1Editor
+    , questionnaire =
+        DocumentContextQuestionnaire
+          { replies = amsterdamKnowledgeModelEditorReplies
+          , labels = M.empty
+          , phaseUuid = Nothing
+          , versionUuid = Nothing
+          , versions = []
+          , files = []
+          , report = toDocumentContextReport report1
+          , language = Just amsterdamKnowledgeModelEditor.language
+          }
+    , knowledgeModel = amsterdamKnowledgeModelEditorKnowledgeModel
+    , knowledgeModelPackage = Just $ toDocumentContextPackage netherlandsKmPackage
+    , document = Nothing
+    , config = dmpConfig
+    }
+
+dmpKmEditor1Editor :: DocumentContextKnowledgeModelEditor
+dmpKmEditor1Editor = toDocumentContextKnowledgeModelEditor amsterdamKnowledgeModelEditor (Just netherlandsKmPackage) (Just userAlbert)
+
+dmpConfig :: DocumentContextConfig
+dmpConfig =
+  DocumentContextConfig
+    { clientUrl = "https://example.com"
+    , appTitle = Nothing
+    , primaryColor = Nothing
+    , logoUrl = Nothing
     }
 
 doc1Create :: DocumentCreateDTO
@@ -141,7 +179,6 @@ doc2 =
     , durability = PersistentDocumentDurability
     , projectUuid = Just project2.uuid
     , projectEventUuid = Just . getUuid . last $ project2Events
-    , projectRepliesHash = hash . M.toList $ project2Ctn.replies
     , documentTemplateUuid = wizardDocumentTemplate.uuid
     , formatUuid = formatJson.uuid
     , language = Nothing
@@ -155,6 +192,8 @@ doc2 =
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
+    , contextHash = Nothing
+    , knowledgeModelEditorUuid = Nothing
     }
 
 doc3 :: Document
@@ -166,7 +205,6 @@ doc3 =
     , durability = PersistentDocumentDurability
     , projectUuid = Just project2.uuid
     , projectEventUuid = Just . getUuid . last $ project2Events
-    , projectRepliesHash = hash . M.toList $ project2Ctn.replies
     , documentTemplateUuid = wizardDocumentTemplate.uuid
     , formatUuid = formatJson.uuid
     , language = Nothing
@@ -180,6 +218,8 @@ doc3 =
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
+    , contextHash = Nothing
+    , knowledgeModelEditorUuid = Nothing
     }
 
 doc4 :: Document
@@ -251,7 +291,6 @@ differentDoc =
     , durability = PersistentDocumentDurability
     , projectUuid = Just differentProject.uuid
     , projectEventUuid = Nothing
-    , projectRepliesHash = hash . M.toList $ project1Ctn.replies
     , documentTemplateUuid = differentDocumentTemplate.uuid
     , formatUuid = formatJson.uuid
     , language = Nothing
@@ -265,6 +304,8 @@ differentDoc =
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 20) 0
+    , contextHash = Nothing
+    , knowledgeModelEditorUuid = Nothing
     }
 
 secondWorkspaceDoc :: Document
@@ -275,4 +316,5 @@ secondWorkspaceDoc =
     , projectUuid = Just project16.uuid
     , projectEventUuid = Nothing
     , workspaceUuid = project16.workspaceUuid
+    , contextHash = Nothing
     }

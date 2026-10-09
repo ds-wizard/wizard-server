@@ -6,6 +6,7 @@ import Servant.Swagger.Tags
 import Shared.Api.Handler.Project.Comment.Api
 import Shared.Api.Handler.Project.Detail_Content_PUT
 import Shared.Api.Handler.Project.Detail_DELETE
+import Shared.Api.Handler.Project.Detail_DocumentContext_GET
 import Shared.Api.Handler.Project.Detail_Documents_GET
 import Shared.Api.Handler.Project.Detail_Documents_Preview_GET
 import Shared.Api.Handler.Project.Detail_GET
@@ -45,6 +46,7 @@ type ProjectAPI =
            :<|> Detail_DELETE
            :<|> Detail_Content_PUT
            :<|> Detail_Report_GET
+           :<|> Detail_DocumentContext_GET
            :<|> Detail_Documents_GET
            :<|> Detail_Documents_Preview_GET
            :<|> Detail_WS
@@ -77,6 +79,7 @@ projectServer =
     :<|> detail_DELETE
     :<|> detail_content_PUT
     :<|> detail_report_GET
+    :<|> detail_documentContext_GET
     :<|> detail_documents_GET
     :<|> detail_documents_preview_GET
     :<|> detail_WS

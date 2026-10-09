@@ -43,7 +43,7 @@ getVersions :: WizardRequestContextC s m => U.UUID -> m [ProjectVersionList]
 getVersions projectUuid = do
   project <- findProjectByUuid projectUuid
   checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
-  findProjectVersionListByProjectUuidAndCreatedAt projectUuid Nothing
+  findProjectVersionListByProjectUuid projectUuid
 
 createVersion :: WizardRequestContextC s m => U.UUID -> ProjectVersionChangeDTO -> m ProjectVersionList
 createVersion projectUuid reqDto =

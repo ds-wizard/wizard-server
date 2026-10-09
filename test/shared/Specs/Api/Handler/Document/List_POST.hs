@@ -220,7 +220,9 @@ create_test_403 title requestContext project projectEvents authHeader errorMessa
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_404 requestContext =
+test_404 requestContext = do
+  create_test_404_event "HTTP 404 NOT FOUND (unknown project event)" requestContext (u' "e4f59b09-4b6a-4d4f-9b19-3d8c6f1a2b3c")
+  create_test_404_event "HTTP 404 NOT FOUND (project event of another project)" requestContext (getUuid . last $ project2Events)
   it "HTTP 404 NOT FOUND (document template of another workspace)" $
     -- GIVEN: Prepare request
     do
@@ -239,6 +241,32 @@ test_404 requestContext =
       runInContextIO deleteDocuments requestContext
       insertSecondWorkspace requestContext
       runInContextIO (insertDocumentTemplate secondWorkspaceDocumentTemplate) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertCountInDB findDocuments requestContext 0
+
+create_test_404_event title requestContext eventUuid =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let reqDto = (reqDtoT project1 project1Events) {projectEventUuid = Just eventUuid} :: DocumentCreateDTO
+      let reqBody = encode reqDto
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError $ _ERROR_DATABASE__ENTITY_NOT_FOUND "project_event" [("uuid", show eventUuid)]
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO deleteDocuments requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

@@ -5,6 +5,7 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_DELETE
+import Specs.Api.Handler.KnowledgeModelEditor.Detail_DocumentContext_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_Locales_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_PUT
@@ -23,4 +24,5 @@ knowledgeModelEditorAPI serverContext requestContext =
       detail_PUT requestContext
       detail_DELETE requestContext
       detail_locales_GET requestContext
+      detail_documentContext_GET requestContext
       knowledgeModelEditorMigrationAPI requestContext

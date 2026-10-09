@@ -117,6 +117,11 @@ findDocumentByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
+findDocumentByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe Document)
+findDocumentByUuid' uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+
 countDocuments :: WizardRequestContextC s m => m Int
 countDocuments = do
   tenantUuid <- asks (.tenantUuid')

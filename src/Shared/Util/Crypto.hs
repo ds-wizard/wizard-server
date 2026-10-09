@@ -3,13 +3,14 @@ module Shared.Util.Crypto where
 import Crypto.Cipher.AES (AES256)
 import Crypto.Cipher.Types (BlockCipher (..), Cipher (..), nullIV)
 import Crypto.Error (throwCryptoError)
-import Crypto.Hash (Digest, MD5 (..), SHA256 (..), hash)
+import Crypto.Hash (Digest, MD5 (..), SHA256 (..), hash, hashlazy)
 import qualified Crypto.PubKey.RSA.Types as RSA
 import Crypto.Random (getRandomBytes)
 import qualified Data.Base64.Types as B64_Types
 import Data.ByteArray.Encoding (Base (..), convertToBase)
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy as BSL
 import Data.PEM (pemContent, pemName, pemParseBS)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -52,6 +53,12 @@ hashSHA256 :: String -> String
 hashSHA256 text =
   let digest :: Digest SHA256
       digest = hash . TE.encodeUtf8 . T.pack $ text
+   in show digest
+
+sha256Hex :: BSL.ByteString -> String
+sha256Hex bytes =
+  let digest :: Digest SHA256
+      digest = hashlazy bytes
    in show digest
 
 readRSAPrivateKey :: BS.ByteString -> Maybe RSA.PrivateKey

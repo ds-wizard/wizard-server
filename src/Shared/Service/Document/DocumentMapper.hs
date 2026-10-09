@@ -1,32 +1,26 @@
 module Shared.Service.Document.DocumentMapper where
 
-import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Document.DocumentCreateDTO
 import Shared.Api.Resource.Document.DocumentDTO
 import Shared.Api.Resource.User.UserDTO
-import Shared.Constant.KnowledgeModel
-import Shared.Model.Common.Lens
 import Shared.Model.Document.Document
 import Shared.Model.Document.DocumentContext
 import Shared.Model.Document.DocumentContextJM ()
 import Shared.Model.Document.DocumentList
+import Shared.Model.Document.PreviewSource
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
-import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.PersistentCommand.PersistentCommand
-import Shared.Model.Project.Event.ProjectEventList
-import Shared.Model.Project.Event.ProjectEventListLenses ()
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectSimple
 import Shared.Model.Submission.SubmissionList
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import Shared.Service.PersistentCommand.PersistentCommandMapper
 import Shared.Util.JSON
-import Shared.Util.List
 import Shared.Util.String (trim)
 
 toDTO :: DocumentList -> [SubmissionList] -> DocumentDTO
@@ -75,19 +69,15 @@ toDTOWithDocTemplate doc project mProjectVersion submissions dt format =
     , workspaceUuid = doc.workspaceUuid
     }
 
-fromCreateDTO :: DocumentCreateDTO -> U.UUID -> Int -> [ProjectEventList] -> Maybe UserDTO -> U.UUID -> U.UUID -> UTCTime -> Document
-fromCreateDTO dto docUuid repliesHash projectEvents mCurrentUser tenantUuid workspaceUuid now =
+fromCreateDTO :: DocumentCreateDTO -> U.UUID -> Maybe String -> Maybe U.UUID -> Maybe UserDTO -> U.UUID -> U.UUID -> UTCTime -> Document
+fromCreateDTO dto docUuid contextHash mProjectEventUuid mCurrentUser tenantUuid workspaceUuid now =
   Document
     { uuid = docUuid
     , name = trim dto.name
     , state = QueuedDocumentState
     , durability = PersistentDocumentDurability
     , projectUuid = Just dto.projectUuid
-    , projectEventUuid =
-        case dto.projectEventUuid of
-          Just projectEventUuid -> Just projectEventUuid
-          Nothing -> fmap getUuid (lastSafe projectEvents)
-    , projectRepliesHash = repliesHash
+    , projectEventUuid = mProjectEventUuid
     , documentTemplateUuid = dto.documentTemplateUuid
     , formatUuid = dto.formatUuid
     , language = dto.language
@@ -101,21 +91,22 @@ fromCreateDTO dto docUuid repliesHash projectEvents mCurrentUser tenantUuid work
     , finishedAt = Nothing
     , createdAt = now
     , workspaceUuid = workspaceUuid
+    , contextHash = contextHash
+    , knowledgeModelEditorUuid = Nothing
     }
 
-fromTemporallyCreateDTO :: U.UUID -> Project -> Maybe U.UUID -> U.UUID -> U.UUID -> Maybe String -> Int -> Maybe UserDTO -> U.UUID -> UTCTime -> Bool -> Document
-fromTemporallyCreateDTO docUuid project projectEventUuid documentTemplateUuid formatUuid language repliesHash mCurrentUser tenantUuid now fromKnowledgeModelEditor =
+fromTemporallyCreateDTO :: U.UUID -> PreviewSource -> Maybe U.UUID -> U.UUID -> U.UUID -> Maybe String -> Maybe String -> Maybe UserDTO -> UTCTime -> Document
+fromTemporallyCreateDTO docUuid source mProjectEventUuid documentTemplateUuid formatUuid language contextHash mCurrentUser now =
   Document
     { uuid = docUuid
-    , name = trim project.name
+    , name = previewSourceName source
     , state = QueuedDocumentState
     , durability = TemporallyDocumentDurability
     , projectUuid =
-        if fromKnowledgeModelEditor
-          then Nothing
-          else Just project.uuid
-    , projectEventUuid = projectEventUuid
-    , projectRepliesHash = repliesHash
+        case source of
+          ProjectPreviewSource project -> Just project.uuid
+          KnowledgeModelEditorPreviewSource _ -> Nothing
+    , projectEventUuid = mProjectEventUuid
     , documentTemplateUuid = documentTemplateUuid
     , formatUuid = formatUuid
     , language = language
@@ -124,60 +115,27 @@ fromTemporallyCreateDTO docUuid project projectEventUuid documentTemplateUuid fo
     , contentType = Nothing
     , fileSize = Nothing
     , workerLog = Nothing
-    , tenantUuid = tenantUuid
+    , tenantUuid =
+        case source of
+          ProjectPreviewSource project -> project.tenantUuid
+          KnowledgeModelEditorPreviewSource editor -> editor.tenantUuid
     , retrievedAt = Nothing
     , finishedAt = Nothing
     , createdAt = now
-    , workspaceUuid = project.workspaceUuid
+    , workspaceUuid =
+        case source of
+          ProjectPreviewSource project -> project.workspaceUuid
+          KnowledgeModelEditorPreviewSource editor -> editor.workspaceUuid
+    , contextHash = contextHash
+    , knowledgeModelEditorUuid =
+        case source of
+          ProjectPreviewSource _ -> Nothing
+          KnowledgeModelEditorPreviewSource editor -> Just editor.uuid
     }
 
-toTemporaryPackage :: U.UUID -> UTCTime -> KnowledgeModelPackage
-toTemporaryPackage tenantUuid createdAt =
-  KnowledgeModelPackage
-    { uuid = U.nil
-    , name = "Example Knowledge Model"
-    , id = "org.example.km-example"
-    , version = "1.0.0"
-    , phase = ReleasedKnowledgeModelPackagePhase
-    , metamodelVersion = knowledgeModelMetamodelVersion
-    , description = "Example description"
-    , readme = "# Example Knowledge Model\n\nThis is an example knowledge model."
-    , license = "Apache-2.0"
-    , language = "en"
-    , previousPackageUuid = Nothing
-    , forkOfPackageId = Nothing
-    , mergeCheckpointPackageId = Nothing
-    , nonEditable = False
-    , public = False
-    , tenantUuid = tenantUuid
-    , workspaceUuid = Nothing
-    , createdAt = createdAt
-    }
-
-toTemporaryProject :: KnowledgeModelEditor -> KnowledgeModelPackage -> Maybe UserDTO -> Project
-toTemporaryProject kmEditor package mCurrentUser =
-  Project
-    { uuid = kmEditor.uuid
-    , name = kmEditor.name
-    , description = Just kmEditor.description
-    , visibility = PrivateProjectVisibility
-    , sharing = RestrictedProjectSharing
-    , knowledgeModelPackageUuid = fromMaybe package.uuid kmEditor.previousPackageUuid
-    , selectedQuestionTagUuids = []
-    , projectTags = []
-    , language = Nothing
-    , documentTemplateUuid = Nothing
-    , formatUuid = Nothing
-    , documentTemplateLanguage = Nothing
-    , creatorUuid = fmap (.uuid) mCurrentUser
-    , permissions = []
-    , isTemplate = False
-    , squashed = True
-    , tenantUuid = kmEditor.tenantUuid
-    , createdAt = kmEditor.createdAt
-    , updatedAt = kmEditor.updatedAt
-    , workspaceUuid = kmEditor.workspaceUuid
-    }
+previewSourceName :: PreviewSource -> String
+previewSourceName (ProjectPreviewSource project) = trim project.name
+previewSourceName (KnowledgeModelEditorPreviewSource editor) = trim editor.name
 
 toDocPersistentCommand :: U.UUID -> DocumentContext -> Document -> PersistentCommand U.UUID
 toDocPersistentCommand uuid docContext doc =

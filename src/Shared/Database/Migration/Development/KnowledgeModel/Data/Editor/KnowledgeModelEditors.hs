@@ -227,6 +227,9 @@ packagePublishMigrationDTO =
     , localeUuids = Nothing
     }
 
+amsterdamKnowledgeModelEditorCopy :: KnowledgeModelEditor
+amsterdamKnowledgeModelEditorCopy = amsterdamKnowledgeModelEditor {uuid = u' "7a1c2d3e-4f5a-4b6c-8d9e-0f1a2b3c4d5e"}
+
 secondWorkspaceKnowledgeModelEditor :: KnowledgeModelEditor
 secondWorkspaceKnowledgeModelEditor =
   amsterdamKnowledgeModelEditor

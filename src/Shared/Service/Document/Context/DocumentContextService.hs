@@ -1,113 +1,135 @@
 module Shared.Service.Document.Context.DocumentContextService (
-  createDocumentContext,
+  getProjectDocumentContext,
+  getKnowledgeModelEditorDocumentContext,
+  createProjectDocumentContext,
+  createKnowledgeModelEditorDocumentContext,
+  withDocument,
 ) where
 
-import Control.Monad (forM)
-import Control.Monad.Reader (liftIO)
+import Control.Monad (forM_, unless)
+import Control.Monad.Except (throwError)
 import Data.Either (partitionEithers)
-import qualified Data.Map.Strict as M
-import Data.Time
+import qualified Data.List as L
 import qualified Data.UUID as U
 
-import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
-import Shared.Database.DAO.DocumentTemplate.DocumentTemplateLocaleDAO
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorReplyDAO
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
+import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Project.ProjectFileDAO
 import Shared.Database.DAO.Project.ProjectVersionDAO
-import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserGroupDAO
+import Shared.Database.DAO.Workspace.WorkspaceDAO
+import Shared.Localization.Messages.Public
 import Shared.Model.Common.Lens
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Document.Document
 import Shared.Model.Document.DocumentContext
-import Shared.Model.Document.DocumentContextJM ()
-import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
-import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Model.DocumentTemplate.DocumentTemplate
+import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
+import Shared.Model.DocumentTemplate.Locale.DocumentTemplateLocale
+import Shared.Model.Error.Error
+import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.Project.Acl.ProjectPerm
+import Shared.Model.Project.Event.ProjectEventList
 import Shared.Model.Project.Event.ProjectEventListLenses ()
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectContent
-import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersion
+import Shared.Model.Project.Version.ProjectVersionList
+import Shared.Model.Settings.Settings
+import Shared.Model.User.User
 import Shared.Model.User.UserGroup
+import Shared.Model.Workspace.Workspace
+import Shared.Service.Document.Context.DocumentContextHash
 import Shared.Service.Document.Context.DocumentContextMapper
-import Shared.Service.Document.DocumentUtil (getDocumentContextOrganization)
+import Shared.Service.KnowledgeModel.Editor.EditorAcl
+import qualified Shared.Service.KnowledgeModel.Editor.EditorMapper as EditorMapper
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Project.Compiler.ProjectCompilerService
+import Shared.Service.Project.ProjectAcl
 import Shared.Service.Report.ReportGenerator
-import Shared.Service.Settings.SettingsService
+import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Tenant.TenantHelper
-import qualified Shared.Service.User.Group.UserGroupMapper as UGR_Mapper
 import Shared.Util.List
 
-createDocumentContext :: WizardRequestContextC s m => Document -> KnowledgeModelPackage -> [KnowledgeModelEvent] -> Project -> Maybe (M.Map String Reply) -> m DocumentContext
-createDocumentContext doc pkg kmEditorEvents project mReplies = do
-  km <- compileKnowledgeModelWithCaching' kmEditorEvents (Just project.knowledgeModelPackageUuid) project.selectedQuestionTagUuids (not . null $ kmEditorEvents)
-  dt <- findDocumentTemplateByUuid doc.documentTemplateUuid
-  mProjectCreatedBy <- forM project.creatorUuid findUserByUuid
-  mDocCreatedBy <- forM doc.createdBy findUserByUuid
-  tcOrganization <- getDocumentContextOrganization
-  tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
-  clientUrl <- getClientUrl
-  now <- liftIO getCurrentTime
-  (phaseUuid, replies, labels) <-
-    case mReplies of
-      Just replies -> return (Nothing, replies, M.empty)
-      _ -> do
-        projectEvents <- findProjectEventListsByProjectUuid project.uuid
-        let filteredProjectEvents =
-              case doc.projectEventUuid of
-                Just eventUuid -> takeWhileInclusive (\e -> getUuid e /= eventUuid) projectEvents
-                Nothing -> projectEvents
-        let projectContent = compileProjectEvents filteredProjectEvents
-        return (projectContent.phaseUuid, projectContent.replies, projectContent.labels)
-  report <- generateReport phaseUuid km replies
-  mProjectVersion <-
-    case doc.projectEventUuid of
-      (Just eventUuid) -> findProjectVersionByEventUuid' project.uuid eventUuid
-      _ -> return Nothing
-  projectVersionsList <- findProjectVersionListByProjectUuidAndCreatedAt project.uuid (fmap (.createdAt) mProjectVersion)
-  projectFiles <-
-    case doc.projectUuid of
-      Just projectUuid -> findProjectFilesSimpleByProject projectUuid
-      Nothing -> return []
-  mLocale <-
-    case doc.language of
-      Just language -> findDocumentTemplateLocaleByDocumentTemplateUuidAndCode' doc.documentTemplateUuid language
-      Nothing -> return Nothing
+getProjectDocumentContext :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m DocumentContext
+getProjectDocumentContext projectUuid mEventUuid = do
+  project <- findProjectByUuid projectUuid
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
+  fst <$> createProjectDocumentContext project mEventUuid
+
+getKnowledgeModelEditorDocumentContext :: WizardRequestContextC s m => U.UUID -> m DocumentContext
+getKnowledgeModelEditorDocumentContext editorUuid = do
+  checkPermissionToEditor editorUuid
+  editor <- findKnowledgeModelEditorByUuid editorUuid
+  createKnowledgeModelEditorDocumentContext editor
+
+createProjectDocumentContext :: WizardRequestContextC s m => Project -> Maybe U.UUID -> m (DocumentContext, Maybe U.UUID)
+createProjectDocumentContext project mEventUuid = do
+  projectEvents <- findProjectEventListsByProjectUuid project.uuid
+  forM_ mEventUuid (validateProjectEventUuid projectEvents)
+  let events = maybe projectEvents (\eventUuid -> takeWhileInclusive (\e -> getUuid e /= eventUuid) projectEvents) mEventUuid
+  let mCutOff = lastSafe events
+  let content = compileProjectEvents events
+  km <- compileKnowledgeModelWithCaching' [] (Just project.knowledgeModelPackageUuid) project.selectedQuestionTagUuids True
+  pkg <- findPackageByUuid project.knowledgeModelPackageUuid
+  workspace <- findWorkspaceByUuid project.workspaceUuid
+  mCreatedBy <- maybe (return Nothing) findUserByUuid' project.creatorUuid
   (users, groups) <- heSettingsToPerms project
-  return $
-    toDocumentContext
-      doc
-      clientUrl
-      project
-      phaseUuid
-      replies
-      labels
-      mProjectVersion
-      projectVersionsList
-      projectFiles
-      km
-      dt
-      report
-      pkg
-      tcOrganization
-      tcLookAndFeel
-      mProjectCreatedBy
-      mDocCreatedBy
-      mLocale
-      users
-      groups
+  mVersion <- maybe (return Nothing) (findProjectVersionByEventUuid' project.uuid . getUuid) mCutOff
+  versions <- findVersionsUpTo project events
+  files <- findProjectFilesSimpleByProject project.uuid
+  report <- generateReport content.phaseUuid km content.replies
+  config <- createConfig workspace
+  let ctx = toProjectDocumentContext workspace project mCreatedBy users groups content (fmap (.uuid) mVersion) versions files report km pkg config
+  return (ctx {hash = computeContextHash ctx}, fmap getUuid mCutOff)
+
+createKnowledgeModelEditorDocumentContext :: WizardRequestContextC s m => KnowledgeModelEditor -> m DocumentContext
+createKnowledgeModelEditorDocumentContext editor = do
+  kmEvents <- fmap EditorMapper.toKnowledgeModelEvent <$> findKnowledgeModelEventsByEditorUuid editor.uuid
+  replies <- EditorMapper.toReplies <$> findKnowledgeModelRepliesByEditorUuid editor.uuid
+  km <- compileKnowledgeModelWithCaching' kmEvents editor.previousPackageUuid [] False
+  mPreviousPkg <- maybe (return Nothing) findPackageByUuid' editor.previousPackageUuid
+  workspace <- findWorkspaceByUuid editor.workspaceUuid
+  mCreatedBy <- maybe (return Nothing) findUserByUuid' editor.createdBy
+  report <- generateReport Nothing km replies
+  config <- createConfig workspace
+  let ctx = toKnowledgeModelEditorDocumentContext workspace editor mPreviousPkg mCreatedBy replies report km config
+  return ctx {hash = computeContextHash ctx}
+
+withDocument :: Document -> DocumentTemplate -> DocumentTemplateFormatSimple -> Maybe User -> Maybe DocumentTemplateLocale -> DocumentContext -> DocumentContext
+withDocument doc dt format mCreatedBy mLocale ctx = ctx {document = Just $ toDocumentContextDocument doc dt format mCreatedBy mLocale}
 
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
-findProjectVersionUuid :: U.UUID -> [ProjectVersion] -> Maybe U.UUID
-findProjectVersionUuid _ [] = Nothing
-findProjectVersionUuid desiredEventUuid (version : rest)
-  | desiredEventUuid == version.eventUuid = Just version.uuid
-  | otherwise = findProjectVersionUuid desiredEventUuid rest
+validateProjectEventUuid :: WizardRequestContextC s m => [ProjectEventList] -> U.UUID -> m ()
+validateProjectEventUuid events eventUuid =
+  unless (any ((== eventUuid) . getUuid) events) $
+    throwError . NotExistsError $
+      _ERROR_DATABASE__ENTITY_NOT_FOUND "project_event" [("uuid", U.toString eventUuid)]
+
+findVersionsUpTo :: WizardRequestContextC s m => Project -> [ProjectEventList] -> m [ProjectVersionList]
+findVersionsUpTo project events = do
+  versions <- findProjectVersionListByProjectUuid project.uuid
+  let eventUuids = fmap getUuid events
+  return $ filter (\v -> v.eventUuid `elem` eventUuids) versions
+
+createConfig :: WizardRequestContextC s m => Workspace -> m DocumentContextConfig
+createConfig workspace = do
+  lookAndFeel <- getEffectiveLookAndFeel workspace
+  clientUrl <- getClientUrl
+  return
+    DocumentContextConfig
+      { clientUrl = clientUrl
+      , appTitle = lookAndFeel.appTitle
+      , primaryColor = lookAndFeel.primaryColor
+      , logoUrl = lookAndFeel.logoUrl
+      }
 
 heSettingsToPerms :: WizardRequestContextC s m => Project -> m ([DocumentContextUserPerm], [DocumentContextUserGroupPerm])
 heSettingsToPerms project = do
@@ -122,13 +144,13 @@ heToDocumentContextPerm perm =
       return . Left $
         DocumentContextUserPerm
           { user = toDocumentContextUser user
-          , perms = perm.perms
+          , perms = L.sort perm.perms
           }
     UserGroupProjectPermType -> do
       userGroup <- findUserGroupByUuid perm.memberUuid
       members <- findUsersByUserGroupUuid userGroup.uuid
       return . Right $
         DocumentContextUserGroupPerm
-          { group = UGR_Mapper.toDetailDTO userGroup members
-          , perms = perm.perms
+          { group = toDocumentContextUserGroup userGroup members
+          , perms = L.sort perm.perms
           }

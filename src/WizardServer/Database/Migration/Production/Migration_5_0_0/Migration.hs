@@ -37,6 +37,7 @@ migrateShared dbPool = do
   insertWorkspaceMemberships dbPool
   addWorkspaceColumn dbPool "project"
   addWorkspaceColumn dbPool "document"
+  reworkDocumentContextHash dbPool
   addWorkspaceColumn dbPool "knowledge_model_editor"
   addWorkspaceColumn dbPool "user_group"
   addWorkspaceColumn dbPool "project_cache"
@@ -149,6 +150,16 @@ addWorkspaceColumn dbPool table =
       \ALTER TABLE %s ADD CONSTRAINT %s_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE; \
       \CREATE INDEX %s_workspace_uuid_index ON %s (workspace_uuid);"
       [table, table, table, table, table, table, table, table]
+
+reworkDocumentContextHash :: Pool Connection -> LoggingT IO ()
+reworkDocumentContextHash dbPool =
+  runSql
+    dbPool
+    "DELETE FROM document WHERE durability = 'TemporallyDocumentDurability'; \
+    \ALTER TABLE document DROP COLUMN project_replies_hash; \
+    \ALTER TABLE document ADD COLUMN context_hash varchar; \
+    \ALTER TABLE document ADD COLUMN knowledge_model_editor_uuid uuid; \
+    \ALTER TABLE document ADD CONSTRAINT document_knowledge_model_editor_uuid_fk FOREIGN KEY (knowledge_model_editor_uuid) REFERENCES knowledge_model_editor (uuid) ON DELETE CASCADE;"
 
 addNullableWorkspaceColumn :: Pool Connection -> String -> LoggingT IO ()
 addNullableWorkspaceColumn dbPool table =
