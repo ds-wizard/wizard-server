@@ -5,6 +5,7 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.DocumentTemplateDraft.Detail_DELETE
+import Specs.Api.Handler.DocumentTemplateDraft.Detail_Documents_Preview_GET
 import Specs.Api.Handler.DocumentTemplateDraft.Detail_Documents_Preview_Settings_PUT
 import Specs.Api.Handler.DocumentTemplateDraft.Detail_GET
 import Specs.Api.Handler.DocumentTemplateDraft.Detail_PUT
@@ -19,4 +20,5 @@ documentTemplateDraftAPI serverContext requestContext =
       detail_GET requestContext
       detail_PUT requestContext
       detail_DELETE requestContext
+      detail_documents_preview_GET requestContext
       detail_documents_preview_settings_PUT requestContext

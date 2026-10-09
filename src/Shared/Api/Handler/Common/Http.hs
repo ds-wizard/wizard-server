@@ -22,3 +22,12 @@ addTraceUuidHeader result = do
   context <- ask
   let traceUuid = context.traceUuid'
   return $ addHeader (U.toString traceUuid) result
+
+addEtagHeaders
+  :: (MonadReader s m, HasField "traceUuid'" s U.UUID, MonadIO m)
+  => String
+  -> a
+  -> m (Headers '[Header "x-trace-uuid" String, Header "ETag" String, Header "Cache-Control" String] a)
+addEtagHeaders etag result = do
+  context <- ask
+  return . addHeader (U.toString context.traceUuid') . addHeader ("\"" ++ etag ++ "\"") . addHeader "private, no-cache" $ result

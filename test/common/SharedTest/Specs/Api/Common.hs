@@ -43,6 +43,7 @@ resCorsHeadersPlain =
   , ("Access-Control-Allow-Credential", "true")
   , ("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
   , ("Access-Control-Allow-Methods", "OPTIONS, HEAD, GET, POST, PUT, DELETE")
+  , ("Access-Control-Expose-Headers", "ETag, x-trace-uuid")
   ]
 
 resCorsHeaders =
@@ -50,6 +51,7 @@ resCorsHeaders =
   , "Access-Control-Allow-Credential" <:> "true"
   , "Access-Control-Allow-Headers" <:> "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   , "Access-Control-Allow-Methods" <:> "OPTIONS, HEAD, GET, POST, PUT, DELETE"
+  , "Access-Control-Expose-Headers" <:> "ETag, x-trace-uuid"
   ]
 
 shouldRespondWith r matcher = forM_ (match r matcher) (liftIO . expectationFailure)

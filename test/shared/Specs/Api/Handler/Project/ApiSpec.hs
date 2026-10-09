@@ -7,7 +7,9 @@ import Specs.Api.Handler.Common
 import Specs.Api.Handler.Project.Comment.ApiSpec
 import Specs.Api.Handler.Project.Detail_Content_PUT
 import Specs.Api.Handler.Project.Detail_DELETE
+import Specs.Api.Handler.Project.Detail_DocumentContext_GET
 import Specs.Api.Handler.Project.Detail_Documents_GET
+import Specs.Api.Handler.Project.Detail_Documents_Preview_GET
 import Specs.Api.Handler.Project.Detail_GET
 import Specs.Api.Handler.Project.Detail_Preview_GET
 import Specs.Api.Handler.Project.Detail_Questionnaire_GET
@@ -44,7 +46,9 @@ projectAPI serverContext requestContext =
       detail_DELETE requestContext
       detail_content_PUT requestContext
       detail_report_GET requestContext
+      detail_documentContext_GET requestContext
       detail_documents_GET requestContext
+      detail_documents_preview_GET requestContext
       detail_revert_POST requestContext
       detail_revert_preview_POST requestContext
       projectCommentAPI requestContext

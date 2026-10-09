@@ -38,7 +38,6 @@ createDocumentTable = do
         \    durability             varchar     NOT NULL, \
         \    project_uuid           uuid, \
         \    project_event_uuid     uuid, \
-        \    project_replies_hash   bigint      NOT NULL, \
         \    document_template_uuid uuid        NOT NULL, \
         \    format_uuid            uuid        NOT NULL, \
         \    created_by             uuid, \
@@ -52,13 +51,16 @@ createDocumentTable = do
         \    file_size              bigint, \
         \    language               varchar, \
         \    workspace_uuid         uuid        NOT NULL, \
+        \    context_hash           varchar, \
+        \    knowledge_model_editor_uuid uuid, \
         \    CONSTRAINT document_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT document_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT document_document_template_uuid_fk FOREIGN KEY (document_template_uuid) REFERENCES document_template (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT document_format_uuid_fk FOREIGN KEY (document_template_uuid, format_uuid) REFERENCES document_template_format (document_template_uuid, uuid) ON DELETE CASCADE, \
         \    CONSTRAINT document_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE SET NULL, \
         \    CONSTRAINT document_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
-        \    CONSTRAINT document_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE \
+        \    CONSTRAINT document_workspace_uuid_fk FOREIGN KEY (workspace_uuid) REFERENCES workspace (uuid) ON DELETE CASCADE, \
+        \    CONSTRAINT document_knowledge_model_editor_uuid_fk FOREIGN KEY (knowledge_model_editor_uuid) REFERENCES knowledge_model_editor (uuid) ON DELETE CASCADE \
         \); \
         \ \
         \CREATE INDEX document_workspace_uuid_index ON document (workspace_uuid);"

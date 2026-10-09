@@ -11,7 +11,6 @@ import Shared.Api.Resource.Bootstrap.WorkspaceBootstrapDTO
 import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.Plugin.PluginDAO
 import Shared.Database.DAO.Plugin.TenantPluginSettingsDAO
-import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
 import Shared.Localization.Messages.Public
 import Shared.Model.Context.WizardRequestContext
@@ -20,7 +19,6 @@ import Shared.Model.Tenant.Tenant
 import Shared.Service.Bootstrap.BootstrapMapper
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
 import Shared.Service.Plugin.PluginEffectiveService
-import Shared.Service.Settings.SettingsService
 import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Workspace.WorkspaceScopeService
 
@@ -28,13 +26,13 @@ getWorkspaceBootstrap :: WizardRequestContextC s m => m WorkspaceBootstrapDTO
 getWorkspaceBootstrap = do
   workspaceUuid <- requireWorkspaceScope
   workspace <- findWorkspaceByUuid workspaceUuid
-  lookAndFeel <- getCurrentSettings findSettingsLookAndFeel
+  lookAndFeel <- getEffectiveLookAndFeel workspace
   dashboardAndMenu <- getEffectiveSettingsDashboardAndMenu (Just workspaceUuid)
   projects <- getEffectiveSettingsProjects (Just workspaceUuid)
   support <- getEffectiveSettingsSupport (Just workspaceUuid)
   submission <- getEffectiveSettingsSubmission (Just workspaceUuid)
   effectivePlugins <- getEffectivePlugins workspaceUuid
-  return $ toWorkspaceBootstrapDTO workspace lookAndFeel dashboardAndMenu projects support submission effectivePlugins
+  return $ toWorkspaceBootstrapDTO lookAndFeel dashboardAndMenu projects support submission effectivePlugins
 
 getBootstrapPlugins :: WizardRequestContextC s m => U.UUID -> m BootstrapPlugins
 getBootstrapPlugins tenantUuid = do

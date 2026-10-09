@@ -1,59 +1,75 @@
 module Shared.Model.Document.DocumentContext where
 
-import Data.Hashable
 import qualified Data.Map.Strict as M
 import Data.Time
 import qualified Data.UUID as U
 import GHC.Generics
 
-import Shared.Api.Resource.User.Group.UserGroupDetailDTO
 import Shared.Model.Common.SemVer2Tuple
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.Project.File.ProjectFileSimple
+import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersionList
 import Shared.Model.Report.Report
+import Shared.Model.User.UserGroupMembership
 
 data DocumentContext = DocumentContext
-  { config :: DocumentContextConfig
-  , document :: DocumentContextDocument
-  , project :: DocumentContextProject
+  { metamodelVersion :: SemVer2Tuple
+  , hash :: String
+  , workspace :: DocumentContextWorkspace
+  , project :: Maybe DocumentContextProject
+  , knowledgeModelEditor :: Maybe DocumentContextKnowledgeModelEditor
+  , questionnaire :: DocumentContextQuestionnaire
   , knowledgeModel :: KnowledgeModel
-  , report :: Report
-  , knowledgeModelPackage :: DocumentContextPackage
-  , organization :: DocumentContextOrganization
-  , metamodelVersion :: SemVer2Tuple
+  , knowledgeModelPackage :: Maybe DocumentContextPackage
+  , document :: Maybe DocumentContextDocument
+  , config :: DocumentContextConfig
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextWorkspace = DocumentContextWorkspace
+  { uuid :: U.UUID
+  , name :: String
+  , description :: Maybe String
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextProject = DocumentContextProject
+  { uuid :: U.UUID
+  , name :: String
+  , description :: Maybe String
+  , createdBy :: Maybe DocumentContextUser
+  , createdAt :: UTCTime
+  , updatedAt :: UTCTime
+  , visibility :: ProjectVisibility
+  , sharing :: ProjectSharing
+  , isTemplate :: Bool
+  , knowledgeModelPackageUuid :: U.UUID
+  , selectedQuestionTagUuids :: [U.UUID]
+  , projectTags :: [String]
+  , documentTemplateUuid :: Maybe U.UUID
+  , formatUuid :: Maybe U.UUID
   , users :: [DocumentContextUserPerm]
   , groups :: [DocumentContextUserGroupPerm]
   }
   deriving (Show, Eq, Generic)
 
-data DocumentContextConfig = DocumentContextConfig
-  { clientUrl :: String
-  , appTitle :: Maybe String
-  , primaryColor :: Maybe String
-  , logoUrl :: Maybe String
-  }
-  deriving (Show, Eq, Generic)
-
-data DocumentContextOrganization = DocumentContextOrganization
-  { name :: String
-  , affiliations :: [String]
-  }
-  deriving (Show, Eq, Generic)
-
-instance Hashable DocumentContextOrganization
-
-data DocumentContextPackage = DocumentContextPackage
+data DocumentContextKnowledgeModelEditor = DocumentContextKnowledgeModelEditor
   { uuid :: U.UUID
   , name :: String
-  , id :: String
-  , version :: String
-  , versions :: [String]
-  , remoteLatestVersion :: Maybe String
   , description :: String
-  , language :: String
+  , createdBy :: Maybe DocumentContextUser
   , createdAt :: UTCTime
+  , updatedAt :: UTCTime
+  , dckeId :: String
+  , version :: String
+  , license :: String
+  , readme :: String
+  , previousPackageUuid :: Maybe U.UUID
+  , previousPackageId :: Maybe String
+  , previousPackageVersion :: Maybe String
+  , dckeMetamodelVersion :: Int
   }
   deriving (Show, Eq, Generic)
 
@@ -70,33 +86,97 @@ data DocumentContextUser = DocumentContextUser
   }
   deriving (Show, Eq, Generic)
 
-data DocumentContextProject = DocumentContextProject
+data DocumentContextUserPerm = DocumentContextUserPerm
+  { user :: DocumentContextUser
+  , perms :: [String]
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextUserGroupPerm = DocumentContextUserGroupPerm
+  { group :: DocumentContextUserGroup
+  , perms :: [String]
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextUserGroup = DocumentContextUserGroup
   { uuid :: U.UUID
   , name :: String
   , description :: Maybe String
-  , replies :: M.Map String Reply
-  , phaseUuid :: Maybe U.UUID
-  , labels :: M.Map String [U.UUID]
-  , versionUuid :: Maybe U.UUID
-  , versions :: [ProjectVersionList]
-  , projectTags :: [String]
-  , files :: [ProjectFileSimple]
-  , language :: Maybe String
-  , createdBy :: Maybe DocumentContextUser
+  , private :: Bool
+  , members :: [DocumentContextUserGroupMember]
   , createdAt :: UTCTime
   , updatedAt :: UTCTime
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextUserGroupMember = DocumentContextUserGroupMember
+  { uuid :: U.UUID
+  , firstName :: String
+  , lastName :: String
+  , gravatarHash :: String
+  , imageUrl :: Maybe String
+  , affiliation :: Maybe String
+  , membershipType :: UserGroupMembershipType
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextQuestionnaire = DocumentContextQuestionnaire
+  { replies :: M.Map String Reply
+  , labels :: M.Map String [U.UUID]
+  , phaseUuid :: Maybe U.UUID
+  , versionUuid :: Maybe U.UUID
+  , versions :: [ProjectVersionList]
+  , files :: [ProjectFileSimple]
+  , report :: DocumentContextReport
+  , language :: Maybe String
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextReport = DocumentContextReport
+  { totalReport :: TotalReport
+  , chapterReports :: [ChapterReport]
+  , chapters :: [Chapter]
+  , metrics :: [Metric]
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextPackage = DocumentContextPackage
+  { uuid :: U.UUID
+  , dcpId :: String
+  , version :: String
+  , name :: String
+  , description :: String
+  , language :: String
+  , createdAt :: UTCTime
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)
 
 data DocumentContextDocument = DocumentContextDocument
   { uuid :: U.UUID
   , name :: String
-  , documentTemplateUuid :: U.UUID
-  , formatUuid :: U.UUID
+  , documentTemplate :: DocumentContextDocumentTemplate
+  , format :: DocumentContextFormat
   , language :: Maybe String
   , locale :: Maybe DocumentContextDocumentTemplateLocale
+  , preview :: Bool
+  , eventUuid :: Maybe U.UUID
   , createdBy :: Maybe DocumentContextUser
   , createdAt :: UTCTime
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextDocumentTemplate = DocumentContextDocumentTemplate
+  { uuid :: U.UUID
+  , dcdtId :: String
+  , version :: String
+  , workspaceUuid :: Maybe U.UUID
+  }
+  deriving (Show, Eq, Generic)
+
+data DocumentContextFormat = DocumentContextFormat
+  { uuid :: U.UUID
+  , name :: String
   }
   deriving (Show, Eq, Generic)
 
@@ -109,14 +189,10 @@ data DocumentContextDocumentTemplateLocale = DocumentContextDocumentTemplateLoca
   }
   deriving (Show, Eq, Generic)
 
-data DocumentContextUserPerm = DocumentContextUserPerm
-  { user :: DocumentContextUser
-  , perms :: [String]
-  }
-  deriving (Show, Eq, Generic)
-
-data DocumentContextUserGroupPerm = DocumentContextUserGroupPerm
-  { group :: UserGroupDetailDTO
-  , perms :: [String]
+data DocumentContextConfig = DocumentContextConfig
+  { clientUrl :: String
+  , appTitle :: Maybe String
+  , primaryColor :: Maybe String
+  , logoUrl :: Maybe String
   }
   deriving (Show, Eq, Generic)

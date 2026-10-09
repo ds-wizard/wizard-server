@@ -29,7 +29,6 @@ instance ToRow Document where
     , toField durability
     , toField projectUuid
     , toField projectEventUuid
-    , toField projectRepliesHash
     , toField documentTemplateUuid
     , toField formatUuid
     , toField createdBy
@@ -43,6 +42,8 @@ instance ToRow Document where
     , toField fileSize
     , toField language
     , toField workspaceUuid
+    , toField contextHash
+    , toField knowledgeModelEditorUuid
     ]
 
 instance FromRow Document where
@@ -53,7 +54,6 @@ instance FromRow Document where
     durability <- field
     projectUuid <- field
     projectEventUuid <- field
-    projectRepliesHash <- field
     documentTemplateUuid <- field
     formatUuid <- field
     createdBy <- field
@@ -67,4 +67,6 @@ instance FromRow Document where
     fileSize <- field
     language <- field
     workspaceUuid <- field
+    contextHash <- field
+    knowledgeModelEditorUuid <- field
     return $ Document {..}

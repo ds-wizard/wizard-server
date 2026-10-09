@@ -1,18 +1,27 @@
 module Specs.Api.Handler.Common where
 
-import Data.Aeson (encode)
+import Data.Aeson (Value (..), encode)
+import Data.Aeson.Key (toString)
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import Data.Either (isRight)
 import qualified Data.List as L
+import Data.Maybe (fromMaybe, isJust)
+import Data.String (fromString)
+import qualified Data.Text as T
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
+import Network.Wai.Test (SResponse)
 import Servant (serve)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Middleware.WizardLoggingMiddleware
+import Shared.Api.Resource.Document.DocumentPreviewAcceptedDTO
+import Shared.Api.Resource.Document.DocumentPreviewAcceptedJM ()
 import Shared.Bootstrap.Web
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.Migration.Development.User.Data.WizardUserTokens
@@ -132,3 +141,36 @@ getOneFromDB dbFunction requestContext = do
   liftIO $ isRight eitherOne `shouldBe` True
   let (Right one) = eitherOne
   return one
+
+assertEtagHeaders :: ResponseHeaders -> String -> WaiSession () ()
+assertEtagHeaders headers hash = liftIO $ do
+  lookup "ETag" headers `shouldBe` Just (BS.pack $ "\"" ++ hash ++ "\"")
+  lookup "Cache-Control" headers `shouldBe` Just "private, no-cache"
+  isJust (lookup "x-trace-uuid" headers) `shouldBe` True
+
+assertAccepted :: SResponse -> Int -> ResponseHeaders -> WaiSession () U.UUID
+assertAccepted response expStatus expHeaders = do
+  let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, DocumentPreviewAcceptedDTO)
+  assertResStatus status expStatus
+  assertResHeaders headers expHeaders
+  return resDto.documentUuid
+
+contextKeys :: [String]
+contextKeys = L.sort ["metamodelVersion", "hash", "workspace", "project", "knowledgeModelEditor", "questionnaire", "knowledgeModel", "knowledgeModelPackage", "document", "config"]
+
+jsonField :: String -> Value -> Value
+jsonField key (Object o) = fromMaybe Null (KM.lookup (fromString key) o)
+jsonField _ _ = Null
+
+jsonString :: Value -> String
+jsonString (String s) = T.unpack s
+jsonString _ = ""
+
+jsonKeys :: Value -> [String]
+jsonKeys (Object o) = L.sort . fmap toString . KM.keys $ o
+jsonKeys _ = []
+
+jsonKeysDeep :: Value -> [String]
+jsonKeysDeep (Object o) = fmap toString (KM.keys o) ++ concatMap jsonKeysDeep (KM.elems o)
+jsonKeysDeep (Array a) = concatMap jsonKeysDeep a
+jsonKeysDeep _ = []

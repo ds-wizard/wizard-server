@@ -1,14 +1,17 @@
 module Shared.Service.Settings.WorkspaceSettingsService where
 
+import Control.Applicative ((<|>))
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Settings.SettingsDTO
 import qualified Shared.Database.DAO.Settings.SettingsDashboardAndMenuDAO as DashboardAndMenu
+import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import qualified Shared.Database.DAO.Settings.SettingsProjectsDAO as Projects
 import qualified Shared.Database.DAO.Settings.SettingsSubmissionDAO as Submission
 import qualified Shared.Database.DAO.Settings.SettingsSupportDAO as Support
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Settings.Settings
+import Shared.Model.Workspace.Workspace
 import Shared.Service.Project.ProjectValidation
 import Shared.Service.Settings.SettingsAuditLog
 import Shared.Service.Settings.SettingsService
@@ -36,6 +39,15 @@ getEffectiveSettingsSupport = getEffectiveSettings supportSection
 
 getEffectiveSettingsSubmission :: WizardRequestContextC s m => Maybe U.UUID -> m SettingsSubmission
 getEffectiveSettingsSubmission = getEffectiveSettings submissionSection
+
+getEffectiveLookAndFeel :: WizardRequestContextC s m => Workspace -> m SettingsLookAndFeel
+getEffectiveLookAndFeel workspace = do
+  lookAndFeel <- getCurrentSettings findSettingsLookAndFeel
+  return
+    lookAndFeel
+      { logoUrl = workspace.logo <|> lookAndFeel.logoUrl
+      , primaryColor = workspace.primaryColor <|> lookAndFeel.primaryColor
+      }
 
 getSettingsDashboardAndMenu :: WizardRequestContextC s m => m (SettingsDTO SettingsDashboardAndMenu)
 getSettingsDashboardAndMenu = getOverridableSettings dashboardAndMenuSection
