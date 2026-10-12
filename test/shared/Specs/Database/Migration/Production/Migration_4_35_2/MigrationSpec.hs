@@ -20,6 +20,7 @@ migration_4_35_2Spec requestContext =
     it "replaces the invalid seeded role uuids" $ do
       -- GIVEN: Prepare DB with the uuids of the init migration
       runInContextIO U_Migration.runMigration requestContext
+      createLegacyAuthenticationConfig requestContext
       runLoggingT (remapRoleUuids (fmap swap roleUuidMapping) requestContext.dbPool) (\_ _ _ _ -> return ())
       -- WHEN: Run migration
       _ <- runLoggingT (snd definition requestContext.dbPool) (\_ _ _ _ -> return ())
@@ -30,6 +31,21 @@ migration_4_35_2Spec requestContext =
       length userRoleUuids `shouldBe` 3
       defaultRoleUuids <- findUuids requestContext "SELECT default_role_uuid FROM config_authentication WHERE default_role_uuid IN (?, ?, ?)"
       defaultRoleUuids `shouldBe` [researcherRole.uuid]
+      -- CLEAN UP
+      dropLegacyAuthenticationConfig requestContext
+
+createLegacyAuthenticationConfig :: RequestContext -> IO ()
+createLegacyAuthenticationConfig requestContext =
+  withResource requestContext.dbPool $ \conn -> do
+    _ <- execute_ conn "CREATE TABLE config_authentication (tenant_uuid uuid NOT NULL, default_role_uuid uuid NOT NULL)"
+    _ <- execute conn "INSERT INTO config_authentication VALUES (?, ?)" (researcherRole.tenantUuid, researcherRole.uuid)
+    return ()
+
+dropLegacyAuthenticationConfig :: RequestContext -> IO ()
+dropLegacyAuthenticationConfig requestContext =
+  withResource requestContext.dbPool $ \conn -> do
+    _ <- execute_ conn "DROP TABLE config_authentication"
+    return ()
 
 findUuids :: RequestContext -> Query -> IO [U.UUID]
 findUuids requestContext sql =

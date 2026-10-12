@@ -22,7 +22,7 @@ settingsUsers :: SettingsUsers
 settingsUsers = defaultSettingsUsers
 
 settingsRoles :: SettingsRoles
-settingsRoles = SettingsRoles {defaultRoleUuid = u' "a0000000-0000-0000-0000-000000000003"}
+settingsRoles = SettingsRoles {defaultRoleUuid = u' "4e79c242-4100-4447-becd-45eca47fa60b"}
 
 settingsAnnouncement :: SettingsAnnouncement
 settingsAnnouncement = SettingsAnnouncement {content = "Hello", level = InfoAnnouncementLevelType}
