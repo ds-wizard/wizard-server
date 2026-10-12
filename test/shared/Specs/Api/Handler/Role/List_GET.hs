@@ -107,7 +107,7 @@ test_200_workspace requestContext = do
     "HTTP 200 OK (tenant=true lists the organization roles)"
     requestContext
     "/api/roles?tenant=true&sort=uuid,asc"
-    (Page "roles" (PageMetadata 20 3 1 0) [Mapper.toDTO adminRole 2, Mapper.toDTO dataStewardRole 1, Mapper.toDTO researcherRole 1])
+    (Page "roles" (PageMetadata 20 3 1 0) [Mapper.toDTO adminRole 2, Mapper.toDTO researcherRole 1, Mapper.toDTO dataStewardRole 1])
   create_test_200_multi
     "HTTP 200 OK (w lists the roles of the workspace)"
     requestContext
