@@ -34,7 +34,7 @@ detail_GET requestContext =
 -- ----------------------------------------------------
 reqMethod = methodGet
 
-reqUrl = "/wizard-api/roles/a0000000-0000-0000-0000-000000000001"
+reqUrl = "/wizard-api/roles/378bdd91-96e4-44ad-9b39-25cd3cdde18d"
 
 reqHeaders = [reqAuthHeader]
 

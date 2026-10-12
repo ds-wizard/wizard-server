@@ -52,13 +52,13 @@ test_200 requestContext = do
     ( Page
         "roles"
         (PageMetadata 20 3 1 0)
-        [Mapper.toDTO adminRole 2, Mapper.toDTO dataStewardRole 1, Mapper.toDTO researcherRole 1]
+        [Mapper.toDTO adminRole 2, Mapper.toDTO researcherRole 1, Mapper.toDTO dataStewardRole 1]
     )
   create_test_200
     "HTTP 200 OK (pagination)"
     requestContext
     "/wizard-api/roles?sort=uuid,asc&page=1&size=1"
-    (Page "roles" (PageMetadata 1 3 3 1) [Mapper.toDTO dataStewardRole 1])
+    (Page "roles" (PageMetadata 1 3 3 1) [Mapper.toDTO researcherRole 1])
   create_test_200
     "HTTP 200 OK (query)"
     requestContext

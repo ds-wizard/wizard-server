@@ -62,6 +62,7 @@ import Specs.Api.Handler.User.News.ApiSpec
 import Specs.Api.Handler.User.Tour.ApiSpec
 import Specs.Api.Handler.UserGroup.ApiSpec
 import Specs.Api.Handler.Websocket.Common
+import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
 import Specs.Integration.Http.Common.SsrfProtectionSpec
 import Specs.Model.Common.PageSpec
@@ -252,6 +253,10 @@ main =
               userTourAPI serverContext requestContext
               roleAPI serverContext requestContext
               userGroupAPI serverContext requestContext
+            describe "DATABASE" $
+              describe "Migration" $
+                describe "Production" $
+                  migration_4_35_2Spec requestContext
             describe "SERVICE" $ do
               documentIntegrationSpec requestContext
               describe "KnowledgeModel" $ do

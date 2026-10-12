@@ -85,7 +85,7 @@ insertProjectCache cache = do
           \                                        versions_source_updated_at = EXCLUDED.versions_source_updated_at, \
           \                                        updated_at = EXCLUDED.updated_at"
   let params = toRow cache
-  logQuery sql params
+  logInsertAndUpdate sql params
   let action conn = execute conn sql params
   runDB action
 
@@ -94,7 +94,7 @@ updateProjectCacheQuestionnaireByProjectUuid projectUuid questionnaire report so
   tenantUuid <- asks (.tenantUuid')
   let sql = fromString "UPDATE project_cache SET questionnaire = ?, report = ?, questionnaire_source_updated_at = ?, updated_at = ? WHERE tenant_uuid = ? AND project_uuid = ?"
   let params = [toJSONField questionnaire, toJSONField report, toField sourceUpdatedAt, toField now, toField tenantUuid, toField projectUuid]
-  logQuery sql params
+  logInsertAndUpdate sql params
   let action conn = execute conn sql params
   runDB action
 
@@ -103,7 +103,7 @@ updateProjectCacheVersionsByProjectUuid projectUuid versions sourceUpdatedAt now
   tenantUuid <- asks (.tenantUuid')
   let sql = fromString "UPDATE project_cache SET versions = ?, versions_source_updated_at = ?, updated_at = ? WHERE tenant_uuid = ? AND project_uuid = ?"
   let params = [toJSONField versions, toField sourceUpdatedAt, toField now, toField tenantUuid, toField projectUuid]
-  logQuery sql params
+  logInsertAndUpdate sql params
   let action conn = execute conn sql params
   runDB action
 

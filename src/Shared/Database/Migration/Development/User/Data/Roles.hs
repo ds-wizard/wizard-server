@@ -10,7 +10,7 @@ import Shared.Util.Uuid
 adminRole :: Role
 adminRole =
   Role
-    { uuid = u' "a0000000-0000-0000-0000-000000000001"
+    { uuid = u' "378bdd91-96e4-44ad-9b39-25cd3cdde18d"
     , name = "Admin"
     , permissions =
         [ -- Shared
@@ -36,7 +36,7 @@ adminRole =
 dataStewardRole :: Role
 dataStewardRole =
   Role
-    { uuid = u' "a0000000-0000-0000-0000-000000000002"
+    { uuid = u' "65f88e18-8a24-4f70-92e7-8f20f7559600"
     , name = "Data Steward"
     , permissions =
         [ _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION
@@ -54,7 +54,7 @@ dataStewardRole =
 researcherRole :: Role
 researcherRole =
   Role
-    { uuid = u' "a0000000-0000-0000-0000-000000000003"
+    { uuid = u' "4e79c242-4100-4447-becd-45eca47fa60b"
     , name = "Researcher"
     , permissions = []
     , isAdmin = False
@@ -66,7 +66,7 @@ researcherRole =
 deletableRole :: Role
 deletableRole =
   researcherRole
-    { uuid = u' "a0000000-0000-0000-0000-0000000000ff"
+    { uuid = u' "1df6b458-304f-440b-b9e6-2f87e75f2eee"
     , name = "Temporary Role"
     , permissions = []
     , isAdmin = False
@@ -75,20 +75,20 @@ deletableRole =
 differentAdminRole :: Role
 differentAdminRole =
   adminRole
-    { uuid = u' "a0000000-0000-0000-0000-000000000011"
+    { uuid = u' "8261f971-eaa9-44bf-ba35-fb5cb0dc92eb"
     , tenantUuid = differentTenant.uuid
     }
 
 differentDataStewardRole :: Role
 differentDataStewardRole =
   dataStewardRole
-    { uuid = u' "a0000000-0000-0000-0000-000000000012"
+    { uuid = u' "3f09af4e-07b1-4d61-b79f-e2689a6903f4"
     , tenantUuid = differentTenant.uuid
     }
 
 differentResearcherRole :: Role
 differentResearcherRole =
   researcherRole
-    { uuid = u' "a0000000-0000-0000-0000-000000000013"
+    { uuid = u' "59f1d8c9-9ba5-4063-8ee8-e75d752a2c3c"
     , tenantUuid = differentTenant.uuid
     }

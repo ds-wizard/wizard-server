@@ -34,7 +34,7 @@ insertKnowledgeModelCache :: WizardRequestContextC s m => KnowledgeModelCache ->
 insertKnowledgeModelCache kmCache = do
   let sql = fromString "INSERT INTO knowledge_model_cache VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"
   let params = toRow kmCache
-  logQuery sql params
+  logInsertAndUpdate sql params
   let action conn = execute conn sql params
   runDB action
 

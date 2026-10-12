@@ -64,7 +64,7 @@ defaultAuthenticationEncrypted = process defaultSecret defaultAuthentication
 defaultAuthenticationChangeDto :: TenantConfigAuthenticationChangeDTO
 defaultAuthenticationChangeDto =
   TenantConfigAuthenticationChangeDTO
-    { defaultRoleUuid = u' "a0000000-0000-0000-0000-000000000003"
+    { defaultRoleUuid = u' "4e79c242-4100-4447-becd-45eca47fa60b"
     , internal = defaultAuthenticationInternal
     }
 

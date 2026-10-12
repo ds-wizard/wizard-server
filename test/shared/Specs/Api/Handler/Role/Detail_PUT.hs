@@ -45,9 +45,9 @@ detail_PUT requestContext =
 -- ----------------------------------------------------
 reqMethod = methodPut
 
-reqUrl = "/wizard-api/roles/a0000000-0000-0000-0000-000000000002"
+reqUrl = "/wizard-api/roles/65f88e18-8a24-4f70-92e7-8f20f7559600"
 
-reqUrlAdmin = "/wizard-api/roles/a0000000-0000-0000-0000-000000000001"
+reqUrlAdmin = "/wizard-api/roles/378bdd91-96e4-44ad-9b39-25cd3cdde18d"
 
 reqHeaders = [reqCtHeader, reqAuthHeader]
 

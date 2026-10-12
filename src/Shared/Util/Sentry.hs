@@ -50,8 +50,13 @@ toFingerprintInterface fingerprint = [("fingerprint", toJSON fingerprint)]
 breadcrumbLimit :: Int
 breadcrumbLimit = 50
 
+breadcrumbMessageLimit :: Int
+breadcrumbMessageLimit = 1000
+
 addBreadcrumb :: IORef [SentryBreadcrumb] -> SentryBreadcrumb -> IO ()
-addBreadcrumb buffer breadcrumb = modifyIORef' buffer (take breadcrumbLimit . (breadcrumb :))
+addBreadcrumb buffer breadcrumb = do
+  let message = take breadcrumbMessageLimit breadcrumb.message
+  length message `seq` modifyIORef' buffer (take breadcrumbLimit . (breadcrumb {message = message} :))
 
 toBreadcrumbsInterface :: [SentryBreadcrumb] -> [(String, Value)]
 toBreadcrumbsInterface [] = []

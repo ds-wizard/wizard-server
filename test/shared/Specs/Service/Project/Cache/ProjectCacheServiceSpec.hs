@@ -1,6 +1,7 @@
 module Specs.Service.Project.Cache.ProjectCacheServiceSpec where
 
 import Data.Foldable (traverse_)
+import Data.IORef (readIORef)
 import Data.Maybe (isJust)
 import Test.Hspec
 
@@ -26,6 +27,7 @@ import Shared.Model.Project.Cache.ProjectCache
 import Shared.Model.Project.Project
 import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Project.Version.ProjectVersionList
+import Shared.Model.Sentry.SentryEvent
 import Shared.Service.Project.Cache.ProjectCacheService
 import Shared.Service.Project.ProjectService
 import Shared.Service.Project.Version.ProjectVersionService
@@ -56,6 +58,17 @@ projectCacheServiceSpec requestContext =
         cache.versions `shouldBe` versions
         (Right mKmCache) <- runInContext (findKnowledgeModelCacheByUuid' project1.knowledgeModelPackageUuid project1.selectedQuestionTagUuids defaultTenantUuid) requestContext
         isJust mKmCache `shouldBe` True
+
+    it "refreshProjectCaches keeps no large payload in the breadcrumbs" $
+      -- GIVEN:
+      do
+        runInContextIO TML_Migration.runMigration requestContext
+        runInContextIO PRJ_Migration.runMigration requestContext
+        -- WHEN:
+        (Right []) <- runInContext refreshProjectCaches requestContext
+        -- THEN:
+        breadcrumbs <- readIORef requestContext.breadcrumbs'
+        maximum (fmap (length . (.message)) breadcrumbs) `shouldSatisfy` (<= 1000)
 
     it "refreshProjectCaches leaves an unchanged project alone" $
       -- GIVEN:

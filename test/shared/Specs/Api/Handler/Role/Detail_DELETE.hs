@@ -42,7 +42,7 @@ detail_DELETE requestContext =
 -- ----------------------------------------------------
 reqMethod = methodDelete
 
-reqUrl = "/wizard-api/roles/a0000000-0000-0000-0000-0000000000ff"
+reqUrl = "/wizard-api/roles/1df6b458-304f-440b-b9e6-2f87e75f2eee"
 
 reqHeaders = [reqAuthHeader, reqCtHeader]
 
@@ -72,11 +72,11 @@ test_204 requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400_admin requestContext = createDeleteValidationTest requestContext "the admin role is deleted" "a0000000-0000-0000-0000-000000000001" _ERROR_VALIDATION__USER_ROLE_ADMIN_CANNOT_BE_DELETED
+test_400_admin requestContext = createDeleteValidationTest requestContext "the admin role is deleted" "378bdd91-96e4-44ad-9b39-25cd3cdde18d" _ERROR_VALIDATION__USER_ROLE_ADMIN_CANNOT_BE_DELETED
 
-test_400_default requestContext = createDeleteValidationTest requestContext "the default role is deleted" "a0000000-0000-0000-0000-000000000003" _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT
+test_400_default requestContext = createDeleteValidationTest requestContext "the default role is deleted" "4e79c242-4100-4447-becd-45eca47fa60b" _ERROR_VALIDATION__USER_ROLE_IS_DEFAULT
 
-test_400_in_use requestContext = createDeleteValidationTest requestContext "the role is assigned to users" "a0000000-0000-0000-0000-000000000002" _ERROR_VALIDATION__USER_ROLE_IN_USE
+test_400_in_use requestContext = createDeleteValidationTest requestContext "the role is assigned to users" "65f88e18-8a24-4f70-92e7-8f20f7559600" _ERROR_VALIDATION__USER_ROLE_IN_USE
 
 createDeleteValidationTest requestContext title roleUuid expError =
   it ("HTTP 400 BAD REQUEST when " ++ title) $ do
