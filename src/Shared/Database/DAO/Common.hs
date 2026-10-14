@@ -523,7 +523,7 @@ mapSortWithCustomMapping xs customMapping = "ORDER BY " ++ createRecord xs
   where
     createRecord [] = ""
     createRecord [sort] = create sort
-    createRecord (sort : xs) = create sort ++ ", " ++ mapSortWithCustomMapping xs customMapping
+    createRecord (sort : xs) = create sort ++ ", " ++ createRecord xs
     create (Sort name order) =
       let sanitize name =
             case L.find (\(cmName, value) -> cmName == name) customMapping of

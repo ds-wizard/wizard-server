@@ -73,6 +73,7 @@ import Specs.Api.Handler.UserGroup.ApiSpec
 import Specs.Api.Handler.Websocket.Common
 import Specs.Api.Handler.Workspace.ApiSpec
 import Specs.Api.Resource.Coordinate.CoordinateJMSpec
+import Specs.Database.DAO.CommonSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
 import Specs.Database.Migration.Production.PermissionMappingSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
@@ -208,7 +209,9 @@ main =
             describe "API" $ do
               apiSpec
               coordinateJMSpec
-            describe "DATABASE" permissionMappingSpec
+            describe "DATABASE" $ do
+              daoCommonSpec
+              permissionMappingSpec
             describe "INTEGRATION" $
               describe "Http" $ do
                 describe "Common" commonResponseMapperSpec
