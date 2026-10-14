@@ -40,6 +40,7 @@ migrateShared dbPool = do
   reworkDocumentContextHash dbPool
   addWorkspaceColumn dbPool "knowledge_model_editor"
   addWorkspaceColumn dbPool "user_group"
+  runSql dbPool "TRUNCATE project_cache;"
   addWorkspaceColumn dbPool "project_cache"
   addNullableWorkspaceColumn dbPool "knowledge_model_package"
   addNullableWorkspaceColumn dbPool "document_template"
