@@ -26,6 +26,12 @@ _ERROR_VALIDATION__DOC_TML_LOCALE_NOT_AVAILABLE code =
 -- SERVICE
 -- --------------------------------------
 -- DocumentTemplate
+_ERROR_SERVICE_TB__UNABLE_TO_READ_ARCHIVE =
+  LocaleRecord
+    "error.service.tb.unable_to_read_archive"
+    "The uploaded file isn't a valid ZIP archive, it may be incomplete or corrupted"
+    []
+
 _ERROR_SERVICE_TB__MISSING_TEMPLATE_JSON =
   LocaleRecord
     "error.service.tb.missing_template_json"
