@@ -54,7 +54,10 @@ toBundle tml formats files assets =
     }
 
 fromDocumentTemplateArchive :: BSL.ByteString -> Either AppError (DocumentTemplateBundleDTO, [(DocumentTemplateAssetDTO, BS.ByteString)])
-fromDocumentTemplateArchive = fromDocumentTemplateZip . toArchive
+fromDocumentTemplateArchive content =
+  case toArchiveOrFail content of
+    Right archive -> fromDocumentTemplateZip archive
+    Left _ -> Left $ UserError _ERROR_SERVICE_TB__UNABLE_TO_READ_ARCHIVE
 
 fromDocumentTemplateZip :: Archive -> Either AppError (DocumentTemplateBundleDTO, [(DocumentTemplateAssetDTO, BS.ByteString)])
 fromDocumentTemplateZip archive = do
