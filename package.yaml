@@ -138,6 +138,7 @@ executables:
   wizard-server:
     main: Main.hs
     source-dirs: app/wizard-server
+    ghc-options: -rtsopts "-with-rtsopts=-maxN4 -A64m -qg --nonmoving-gc"
     when: *default-ghc-options
     dependencies:
     - base
