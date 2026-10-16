@@ -101,6 +101,12 @@ compilerSpec =
                         }
                   }
         computed `shouldBe` expected
+      it "Apply: AddQuestionEvent (parent is not a list question)" $ do
+        let (Right computed) = compile (Just km1) [a_km1_ch1_q1_q4]
+        computed `shouldBe` km1
+      it "Apply: AddQuestionEvent (parent does not exist)" $ do
+        let (Right computed) = compile (Just km1) [a_km1_missing_q4]
+        computed `shouldBe` km1
       it "Apply: EditQuestionEvent" $ do
         let (Right computed) = compile (Just km1) [e_km1_ch1_q2]
         let expected =
@@ -134,6 +140,28 @@ compilerSpec =
         let (Right computed) = compile (Just km1WithQ4Plain) [event]
         let expected = putInQuestionsM question4Edited.uuid question4Edited' km1WithQ4Plain
         computed `shouldBe` expected
+      it "Apply: EditQuestionEvent (type change)" $ do
+        let (Right computed) = compile (Just km1) [e_km1_ch1_q2_type]
+        let expected =
+              km1
+                { entities =
+                    km1.entities
+                      { questions =
+                          toMap
+                            [ question1'
+                            , question2WithNewType'
+                            , question3'
+                            , question9'
+                            , question10'
+                            , question11'
+                            , question12'
+                            , question13'
+                            , question14'
+                            ]
+                      , answers = toMap [q3_answerNo, q3_answerYes]
+                      }
+                }
+        computed `shouldBe` expected
       it "Apply: DeleteQuestionEvent" $ do
         let initKM = setChaptersL km1 [chapter1WithAddedQuestion3, chapter2, chapter3]
         let (Right computed) = compile (Just initKM) [d_km1_ch1_q3]
@@ -166,6 +194,18 @@ compilerSpec =
                       }
                 }
         computed `shouldBe` expected
+      it "Apply: DeleteQuestionEvent (multi-choice question)" $ do
+        let (Right computed) = compile (Just km1) [d_km1_ch3_q11]
+        let expected =
+              putInChaptersM chapter3.uuid (chapter3 {questionUuids = L.delete question11.uuid chapter3.questionUuids}) $
+                km1
+                  { entities =
+                      km1.entities
+                        { questions = toMap $ L.delete question11' (getQuestionsL km1)
+                        , choices = toMap []
+                        }
+                  }
+        computed `shouldBe` expected
     -- ---------------
     describe "Apply: Answer Events" $ do
       it "Apply: AddAnswerEvent" $ do
@@ -190,6 +230,9 @@ compilerSpec =
                         }
                   }
         computed `shouldBe` expected
+      it "Apply: AddAnswerEvent (parent is not an options question)" $ do
+        let (Right computed) = compile (Just km1) [a_km1_ch3_q11_aMaybe]
+        computed `shouldBe` km1
       it "Apply: EditAnswerEvent" $ do
         let (Right computed) = compile (Just km1) [e_km1_ch1_q2_aYes1]
         let expected =
@@ -327,6 +370,9 @@ compilerSpec =
                         }
                   }
         computed `shouldBe` expected
+      it "Apply: AddChoiceEvent (parent is not a multi-choice question)" $ do
+        let (Right computed) = compile (Just km1) [a_km1_ch1_q1_cho3]
+        computed `shouldBe` km1
       it "Apply: EditChoiceEvent" $ do
         let (Right computed) = compile (Just km1) [e_km1_ch3_q11_cho1]
         let expected = setChoicesL km1 [q11_choice1Edited, q11_choice2]
@@ -539,6 +585,9 @@ compilerSpec =
                 . putInChaptersM chapter2.uuid (chapter2 {questionUuids = [question3.uuid, question1.uuid]})
                 $ km1
         computed `shouldBe` expected
+      it "Apply: MoveQuestionEvent (target does not exist)" $ do
+        let (Right computed) = compile (Just km1) [m_km1_ch1_q1__to_missing]
+        computed `shouldBe` km1
       it "Apply: MoveAnswerEvent" $ do
         let (Right computed) = compile (Just km1) [m_km1_ch1_q2_aYes__to_ch2_q3]
         let expected =
@@ -546,6 +595,9 @@ compilerSpec =
                 . putInQuestionsM question3.uuid (setAnswerUuids question3' [q3_answerNo.uuid, q3_answerYes.uuid, q2_answerYes.uuid])
                 $ km1
         computed `shouldBe` expected
+      it "Apply: MoveAnswerEvent (target is not an options question)" $ do
+        let (Right computed) = compile (Just km1) [m_km1_ch1_q2_aYes__to_ch3_q11]
+        computed `shouldBe` km1
       it "Apply: MoveChoiceEvent" $ do
         let (Right computed) = compile (Just km1) [m_km1_ch3_q11_cho1__to_ch3_q12]
         let expected =
@@ -553,6 +605,9 @@ compilerSpec =
                 . putInQuestionsM question12.uuid (setChoiceUuids question12' [q11_choice1.uuid])
                 $ km1
         computed `shouldBe` expected
+      it "Apply: MoveChoiceEvent (target is not a multi-choice question)" $ do
+        let (Right computed) = compile (Just km1) [m_km1_ch3_q11_cho1__to_ch1_q1]
+        computed `shouldBe` km1
       it "Apply: MoveExpertEvent" $ do
         let (Right computed) = compile (Just km1) [m_km1_ch1_q2_eAlbert__to_ch2_q3]
         let expected =

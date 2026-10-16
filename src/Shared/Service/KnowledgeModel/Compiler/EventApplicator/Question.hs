@@ -22,27 +22,49 @@ import Shared.Service.KnowledgeModel.Compiler.Modifier.Reference ()
 import Shared.Service.KnowledgeModel.Compiler.Modifier.Tag ()
 
 instance ApplyEvent AddQuestionEvent where
-  apply event content = Right . addEntity . addEntityReference
+  apply event content km = Right . maybe km addEntity . addEntityReference $ km
     where
-      addEntityReference :: KnowledgeModel -> KnowledgeModel
+      addEntityReference :: KnowledgeModel -> Maybe KnowledgeModel
       addEntityReference km =
         case M.lookup event.parentUuid (getChaptersM km) of
           Just parent ->
-            putInChaptersM event.parentUuid (parent {questionUuids = parent.questionUuids ++ [event.entityUuid]}) km
+            Just $ putInChaptersM event.parentUuid (parent {questionUuids = parent.questionUuids ++ [event.entityUuid]}) km
           Nothing ->
             case M.lookup event.parentUuid (getQuestionsM km) of
-              Just parent ->
-                putInQuestionsM event.parentUuid (setItemTemplateQuestionUuids parent (getItemTemplateQuestionUuids parent ++ [event.entityUuid])) km
+              Just parent@(ListQuestion' _) ->
+                Just $ putInQuestionsM event.parentUuid (setItemTemplateQuestionUuids parent (getItemTemplateQuestionUuids parent ++ [event.entityUuid])) km
+              Just _ -> Nothing
               Nothing ->
                 case M.lookup event.parentUuid (getAnswersM km) of
                   Just parent ->
-                    putInAnswersM event.parentUuid (parent {followUpUuids = parent.followUpUuids ++ [event.entityUuid]}) km
-                  Nothing -> km
+                    Just $ putInAnswersM event.parentUuid (parent {followUpUuids = parent.followUpUuids ++ [event.entityUuid]}) km
+                  Nothing -> Nothing
       addEntity :: KnowledgeModel -> KnowledgeModel
       addEntity = putInQuestionsM event.entityUuid (createEntity event content)
 
 instance ApplyEvent EditQuestionEvent where
-  apply = applyEditEvent getQuestionsM setQuestionsM
+  apply event content km =
+    case M.lookup event.entityUuid (getQuestionsM km) of
+      Nothing -> Right km
+      Just question ->
+        let editedQuestion = editEntity event content question
+         in Right . putInQuestionsM event.entityUuid editedQuestion . deleteUnfittingChildren question editedQuestion $ km
+
+deleteUnfittingChildren :: Question -> Question -> KnowledgeModel -> KnowledgeModel
+deleteUnfittingChildren question editedQuestion = deleteItemTemplateQuestions . deleteChoices . deleteAnswers
+  where
+    deleteAnswers km =
+      case editedQuestion of
+        OptionsQuestion' _ -> km
+        _ -> foldl deleteAnswer km (getAnswerUuids question)
+    deleteChoices km =
+      case editedQuestion of
+        MultiChoiceQuestion' _ -> km
+        _ -> foldl deleteChoice km (getChoiceUuids question)
+    deleteItemTemplateQuestions km =
+      case editedQuestion of
+        ListQuestion' _ -> km
+        _ -> foldl deleteQuestion km (getItemTemplateQuestionUuids question)
 
 instance ApplyEvent DeleteQuestionEvent where
   apply event content = Right . deleteEntity . deleteEntityReference

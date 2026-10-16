@@ -42,6 +42,7 @@ knowledgeModelFilterSpec =
                         { chapters = toMap [chapter1 {questionUuids = [question1.uuid]}, chapter2 {questionUuids = []}, chapter3 {questionUuids = []}]
                         , questions = toMap [setTagUuids question1' [tagDataScience.uuid]]
                         , answers = M.empty
+                        , choices = M.empty
                         , references = M.empty
                         , experts = M.empty
                         , tags = toMap [tagDataScience]
