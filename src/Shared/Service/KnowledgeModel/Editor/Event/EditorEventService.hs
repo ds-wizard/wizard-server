@@ -1,6 +1,6 @@
 module Shared.Service.KnowledgeModel.Editor.Event.EditorEventService where
 
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (asks, local)
 import Data.Foldable (traverse_)
 import qualified Data.UUID as U
 
@@ -14,8 +14,8 @@ import Shared.Util.Logger
 
 squashEvents :: WizardRequestContextC s m => m ()
 squashEvents = do
-  editorUuids <- findEditorsForSquashing
-  traverse_ squashEventsForEditor editorUuids
+  editors <- findEditorsForSquashing
+  traverse_ (\(editorUuid, tenantUuid) -> local (setTenantUuid tenantUuid) (squashEventsForEditor editorUuid)) editors
 
 squashEventsForEditor :: WizardRequestContextC s m => U.UUID -> m ()
 squashEventsForEditor editorUuid =
@@ -29,6 +29,7 @@ squashEventsForEditor editorUuid =
     let squashedKmEditorEvents = fmap (toKnowledgeModelEditorEvent editorUuid tenantUuid) squashedEvents
     deleteKnowledgeModelEventsByEditorUuid editorUuid
     traverse_ insertKnowledgeModelEvent squashedKmEditorEvents
+    updateKnowledgeModelEditorSquashedByUuid editorUuid True
     logInfoI
       _CMP_SERVICE
       ( f'

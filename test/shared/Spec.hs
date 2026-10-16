@@ -90,6 +90,7 @@ import Specs.Service.Document.DocumentServiceSpec
 import Specs.Service.DocumentTemplate.DocumentTemplateUtilSpec
 import Specs.Service.KnowledgeModel.Compiler.CompilerSpec
 import Specs.Service.KnowledgeModel.Compiler.Modifier.ModifierSpec
+import Specs.Service.KnowledgeModel.Editor.Event.EditorEventServiceSpec
 import Specs.Service.KnowledgeModel.Editor.KnowledgeModelEditorServiceSpec
 import Specs.Service.KnowledgeModel.KnowledgeModelFilterSpec
 import Specs.Service.KnowledgeModel.Locale.Pot.PotFileServiceSpec
@@ -313,11 +314,13 @@ main =
                     migratorSpec requestContext
                     KM_SanitizerSpec.sanitizerSpec requestContext
                   knowledgeModelEditorServiceSpec requestContext
+                  editorEventServiceSpec requestContext
                 describe "Package" $ packageValidationSpec requestContext
               auditLogServiceSpec requestContext
               localeServiceIntegrationSpec requestContext
               mailerIntegrationSpec requestContext
               persistentCommandServiceSpec requestContext
+              projectEventServiceIntegrationSpec requestContext
               registrySynchronizationServiceSpec requestContext
               typeHintServiceSpec requestContext
               describe "Project" $ do

@@ -6,17 +6,28 @@ import qualified Data.UUID as U
 import Test.Hspec
 
 import Shared.Constant.Tenant
+import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.Project.ProjectEventDAO
+import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.Project.Data.ProjectEvents
 import Shared.Database.Migration.Development.Project.Data.ProjectVersions
 import Shared.Database.Migration.Development.Project.Data.Projects
+import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
+import Shared.Database.Migration.Development.Tenant.Data.Tenants
+import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Model.Common.Lens
+import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Project.Event.ProjectEvent
 import Shared.Model.Project.Event.ProjectEventLenses ()
+import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectReply
 import Shared.Model.Project.Version.ProjectVersion
+import Shared.Model.Tenant.Tenant
 import Shared.Service.Project.Event.ProjectEventService
 import Shared.Util.Date
 import Shared.Util.Uuid
+
+import Specs.Common
 
 -- ---------------------------
 -- TESTS
@@ -76,9 +87,54 @@ projectEventServiceSpec =
         -- THEN:
         resultEvents `shouldBe` expEvents
 
+projectEventServiceIntegrationSpec requestContext =
+  describe "ProjectEventService" $
+    it "squashProjectEvents squashes a project of another tenant" $
+      -- GIVEN: prepare data
+      do
+        let differentContext = setTenantUuid differentTenant.uuid requestContext
+        runInContextIO U_Migration.runMigration requestContext
+        runInContextIO TML_Migration.runMigration requestContext
+        runInContextIO PRJ_Migration.runMigration requestContext
+        runInContextIO (insertProjectEvents [differentQ1Event1, differentQ1Event2]) differentContext
+        runInContextIO (updateProjectSquashedByUuid differentProject.uuid False) differentContext
+        -- WHEN:
+        runInContextIO squashProjectEvents requestContext
+        -- THEN:
+        (Right events) <- runInContext (findProjectEventsByProjectUuid differentProject.uuid) differentContext
+        events `shouldBe` [differentQ1Event2]
+        (Right project) <- runInContext (findProjectByUuid differentProject.uuid) differentContext
+        project.squashed `shouldBe` True
+
 -- ---------------------------
 -- EVENTS
 -- ---------------------------
+differentQ1Event1 :: ProjectEvent
+differentQ1Event1 =
+  SetReplyEvent' $
+    SetReplyEvent
+      { uuid = createEventUuid differentProject.uuid "4b2a1d62f725"
+      , path = "question1"
+      , value = StringReply "question1_value_1"
+      , projectUuid = differentProject.uuid
+      , tenantUuid = differentTenant.uuid
+      , createdBy = Nothing
+      , createdAt = dt'' 2018 1 21 1
+      }
+
+differentQ1Event2 :: ProjectEvent
+differentQ1Event2 =
+  SetReplyEvent' $
+    SetReplyEvent
+      { uuid = createEventUuid differentProject.uuid "0d2b486b3231"
+      , path = "question1"
+      , value = StringReply "question1_value_2"
+      , projectUuid = differentProject.uuid
+      , tenantUuid = differentTenant.uuid
+      , createdBy = Nothing
+      , createdAt = dt'' 2018 1 21 2
+      }
+
 q1_event1 :: ProjectEvent
 q1_event1 =
   SetReplyEvent' $
