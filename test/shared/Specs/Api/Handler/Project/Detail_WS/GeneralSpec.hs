@@ -72,7 +72,7 @@ test403 requestContext = do
       -- WHEN: Update permission
       runInContext (modifyProjectShare updatedProject.uuid (toChangeDTO updatedProject)) requestContext
       -- THEN: Read response
-      read_SetUserList c1 1
+      skip_SetProject c1
       read_SetUserList c1 0
       read_SetUserList_or_Error c2 expError
       read_SetUserList_or_Error c3 expError

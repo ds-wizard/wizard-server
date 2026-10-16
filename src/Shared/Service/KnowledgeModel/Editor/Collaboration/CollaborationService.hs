@@ -1,62 +1,48 @@
 module Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService where
 
-import Control.Monad (when)
+import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
-import Data.Aeson (ToJSON)
-import Data.Foldable (traverse_)
+import Data.Aeson (ToJSON, toJSON)
 import qualified Data.UUID as U
-import Network.WebSockets (Connection)
 
 import Shared.Api.Resource.KnowledgeModel.Editor.Event.KnowledgeModelEditorWebSocketEventDTO
 import Shared.Api.Resource.KnowledgeModel.Editor.Event.SetRepliesDTO
 import Shared.Api.Resource.Websocket.KnowledgeModelEditorMessageJM ()
 import Shared.Api.Resource.Websocket.WebsocketActionJM ()
-import Shared.Cache.KnowledgeModelEditorWebsocketCache
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO (insertKnowledgeModelEvent)
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorReplyDAO
-import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.WizardRequestContext
-import Shared.Model.Error.Error
-import Shared.Model.Websocket.WebsocketMessage
-import Shared.Model.Websocket.WebsocketRecord
+import Shared.Model.Websocket.WebsocketBusMessage
+import Shared.Model.Websocket.WebsocketPerm
+import Shared.Model.Websocket.WebsocketRegistry
+import Shared.Model.Websocket.WebsocketSubscription
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationAcl
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationMapper
+import Shared.Service.Websocket.WebsocketBusService
+import Shared.Service.Websocket.WebsocketRegistryService
 import Shared.Service.Websocket.WebsocketService
-import Shared.Util.Uuid
 import Shared.Util.Websocket
 
-putUserOnline :: WizardRequestContextC s m => U.UUID -> U.UUID -> Connection -> m ()
-putUserOnline kmEditorUuid connectionUuid connection = do
-  myself <- createRecord connectionUuid connection (U.toString kmEditorUuid) EditorWebsocketPerm []
-  checkViewPermission myself
+putUserOnline :: WizardRequestContextC s m => U.UUID -> U.UUID -> WebsocketOutbound -> m ()
+putUserOnline kmEditorUuid connectionUuid outbound = do
+  checkViewPermission kmEditorUuid
   _ <- findKnowledgeModelEditorByUuid kmEditorUuid
-  addToCache myself
+  key <- editorKey kmEditorUuid
+  connectUser key connectionUuid outbound EditorWebsocketPerm [] []
   logWS connectionUuid "New user added to the list"
-  setUserList kmEditorUuid connectionUuid
+  publishUserListChanged key
 
 deleteUser :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteUser kmEditorUuid connectionUuid = do
-  deleteFromCache connectionUuid
-  setUserList kmEditorUuid connectionUuid
-
-setUserList :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
-setUserList kmEditorUuid connectionUuid = do
-  logWS connectionUuid "Informing other users about user list changes"
-  records <- getAllFromCache
-  broadcast (U.toString kmEditorUuid) records (toSetUserListMessage records) disconnectUser
-  logWS connectionUuid "Informed completed"
+  key <- editorKey kmEditorUuid
+  present <- disconnectUser key connectionUuid
+  when present (publishUserListChanged key)
 
 logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged :: WizardRequestContextC s m => U.UUID -> m ()
 logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged kmEditorUuid = do
-  records <- getAllFromCache
-  let error = NotExistsError $ _ERROR_SERVICE_KNOWLEDGE_MODEL_EDITOR__COLLABORATION__FORCE_DISCONNECT (U.toString kmEditorUuid)
-  traverse_ (logOut error) records
-  where
-    logOut error record =
-      when
-        (record.entityId == U.toString kmEditorUuid)
-        (sendError record.connectionUuid record.connection record.entityId disconnectUser error)
+  (tenantUuid, subscription, entityUuid) <- editorKey kmEditorUuid
+  publish LogOutAll {..}
 
 -- --------------------------------
 setContent :: WizardRequestContextC s m => U.UUID -> U.UUID -> KnowledgeModelEditorWebSocketEventDTO -> m ()
@@ -66,25 +52,35 @@ setContent kmEditorUuid connectionUuid reqDto =
 
 addKnowledgeModelEvent :: WizardRequestContextC s m => U.UUID -> U.UUID -> AddKnowledgeModelEditorWebSocketEventDTO -> m ()
 addKnowledgeModelEvent kmEditorUuid connectionUuid reqDto = do
-  myself <- getFromCache' connectionUuid
-  checkEditPermission myself
+  checkConnection kmEditorUuid connectionUuid
+  checkEditPermission kmEditorUuid
   tenantUuid <- asks (.tenantUuid')
-  let kmEditorEvent = fromAddKnowledgeModelEditorWebSocketEventDTO reqDto.event kmEditorUuid tenantUuid
-  insertKnowledgeModelEvent kmEditorEvent
-  records <- getAllFromCache
-  broadcast (U.toString kmEditorUuid) records (toAddKnowledgeModelEditorWebsocketMessage reqDto) disconnectUser
+  insertKnowledgeModelEvent (fromAddKnowledgeModelEditorWebSocketEventDTO reqDto.event kmEditorUuid tenantUuid)
+  broadcast kmEditorUuid (toAddKnowledgeModelEditorWebsocketMessage reqDto)
 
 -- --------------------------------
 setReplies :: WizardRequestContextC s m => U.UUID -> U.UUID -> SetRepliesDTO -> m ()
 setReplies kmEditorUuid connectionUuid reqDto = do
-  myself <- getFromCache' connectionUuid
-  checkEditPermission myself
+  checkConnection kmEditorUuid connectionUuid
+  checkEditPermission kmEditorUuid
   tenantUuid <- asks (.tenantUuid')
-  let kmEditorReplies = fromSetRepliesEventDTO kmEditorUuid tenantUuid reqDto.replies
-  updateKnowledgeModelRepliesByEditorUuid kmEditorUuid kmEditorReplies
-  records <- getAllFromCache
-  broadcast (U.toString kmEditorUuid) records (toSetRepliesMessage reqDto) disconnectUser
+  updateKnowledgeModelRepliesByEditorUuid kmEditorUuid (fromSetRepliesEventDTO kmEditorUuid tenantUuid reqDto.replies)
+  broadcast kmEditorUuid (toSetRepliesMessage reqDto)
 
 -- --------------------------------
-disconnectUser :: (WizardRequestContextC s m, ToJSON resDto) => WebsocketMessage resDto -> m ()
-disconnectUser msg = deleteUser (u' msg.entityId) msg.connectionUuid
+-- PRIVATE
+-- --------------------------------
+editorKey :: WizardRequestContextC s m => U.UUID -> m WebsocketEntityKey
+editorKey kmEditorUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  return (tenantUuid, KnowledgeModelEditorWebsocketSubscription, kmEditorUuid)
+
+checkConnection :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
+checkConnection kmEditorUuid connectionUuid = do
+  key <- editorKey kmEditorUuid
+  void $ findLocalConnection' key connectionUuid
+
+broadcast :: (WizardRequestContextC s m, ToJSON content) => U.UUID -> content -> m ()
+broadcast kmEditorUuid content = do
+  (tenantUuid, subscription, entityUuid) <- editorKey kmEditorUuid
+  publish Broadcast {recipients = AllRecipients, payload = toJSON content, ..}

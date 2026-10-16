@@ -2,7 +2,6 @@ module Specs.Api.Handler.Project.Detail_WS.AssignCommentThreadSpec where
 
 import Data.Aeson
 import Data.Foldable (traverse_)
-import Network.WebSockets
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
@@ -17,6 +16,8 @@ import Shared.Database.Migration.Development.Project.Data.ProjectEvents
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Model.Project.Project
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.Project.Detail_WS.Common
 import Specs.Api.Handler.Websocket.Common
@@ -60,7 +61,7 @@ write_AssignCommentThread connection replyDto = do
   sendMessage connection reqDto
 
 read_AssignCommentThread connection expReplyDto = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerProjectMessageDTO)
   let (Right (Success_ServerActionDTO (SetContent_ServerProjectMessageDTO replyDto))) = eResult
   expReplyDto `shouldBe` replyDto

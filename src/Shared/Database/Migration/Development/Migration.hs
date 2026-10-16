@@ -55,6 +55,7 @@ import qualified Shared.Database.Migration.Development.User.UserRegistrationPend
 import qualified Shared.Database.Migration.Development.User.UserSchemaMigration as User
 import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLinkMigration as UserEmailLink
 import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLinkSchemaMigration as UserEmailLink
+import qualified Shared.Database.Migration.Development.Websocket.WebsocketSchemaMigration as Websocket
 import qualified Shared.Database.Migration.Development.Workspace.WorkspaceMigration as Workspace
 import qualified Shared.Database.Migration.Development.Workspace.WorkspaceSchemaMigration as Workspace
 import Shared.Model.Context.WizardRequestContext
@@ -77,6 +78,7 @@ runMigration = do
   KnowledgeModelPackage.dropFunctions
   Common.dropFunctions
   -- 3. Drop DB schema
+  Websocket.dropTables
   ExternalLink.dropTables
   Component.dropTables
   Registry.dropTables
@@ -130,6 +132,7 @@ runMigration = do
   UserOpenIdIdentity.createTables
   UserRegistrationPending.createTables
   TemporaryFile.createTables
+  Websocket.createTables
   KnowledgeModelPackage.createTables
   KnowledgeModelLocale.createTables
   KnowledgeModelSecret.createTables

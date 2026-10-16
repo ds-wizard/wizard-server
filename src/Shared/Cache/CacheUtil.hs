@@ -13,15 +13,11 @@ import Shared.Model.Context.WizardRequestContext
 purgeCache :: WizardRequestContextC s m => m ()
 purgeCache = do
   cache <- asks (.cache')
-  liftIO . C.purge $ cache.knowledgeModelEditorWebsocket
-  liftIO . C.purge $ cache.projectWebsocket
   liftIO . C.purge $ cache.userToken
 
 purgeExpiredCache :: WizardRequestContextC s m => m ()
 purgeExpiredCache = do
   cache <- asks (.cache')
-  liftIO . C.purgeExpired $ cache.knowledgeModelEditorWebsocket
-  liftIO . C.purgeExpired $ cache.projectWebsocket
   liftIO . C.purgeExpired $ cache.userToken
 
 computeUserTokenCacheSize :: WizardRequestContextC s m => m String

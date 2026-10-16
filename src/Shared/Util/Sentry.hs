@@ -23,6 +23,7 @@ import System.Log.Raven.Types (SentryRecord (..))
 import System.TimeManager (TimeoutThread (..))
 
 import Shared.Model.Sentry.SentryEvent
+import Shared.Util.Http (maskQueryString)
 
 sendSentryEvent :: SentryTarget -> SentryEvent -> IO ()
 sendSentryEvent target event =
@@ -140,7 +141,7 @@ toRequestInterface request =
   , object
       [ "url" .= (T.pack . BS.unpack . WAI.rawPathInfo $ request)
       , "method" .= (T.pack . BS.unpack . WAI.requestMethod $ request)
-      , "query_string" .= (T.pack . BS.unpack . WAI.rawQueryString $ request)
+      , "query_string" .= (T.pack . BS.unpack . maskQueryString . WAI.rawQueryString $ request)
       , "headers" .= object ["Host" .= (T.pack . maybe "" BS.unpack . WAI.requestHeaderHost $ request)]
       ]
   )

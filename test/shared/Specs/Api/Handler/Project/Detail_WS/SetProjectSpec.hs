@@ -8,7 +8,6 @@ import qualified Data.Map.Strict as M
 import qualified Data.UUID as U
 import qualified Network.HTTP.Client as HC
 import Network.HTTP.Types.Status (ok200)
-import Network.WebSockets
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
@@ -23,6 +22,8 @@ import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Model.Http.HttpRequest
 import Shared.Model.Project.Project
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Project.Detail_WS.Common
@@ -80,7 +81,7 @@ test200 requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 read_SetProject connection expProjectChangeDto = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerProjectMessageDTO)
   let (Right (Success_ServerActionDTO (SetProject_ServerProjectMessageDTO projectChangeDto))) = eResult
   expProjectChangeDto `shouldBe` projectChangeDto

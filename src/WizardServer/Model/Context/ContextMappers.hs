@@ -64,6 +64,8 @@ requestContextFromServerContext tenantUuid mUser transactionState serverContext 
           , tenantMultiWorkspace = False
           , workspaceRoles = M.empty
           , auditLogSource = toAuditLogSource mUser
+          , websocketRegistry = serverContext.websocketRegistry
+          , nodeUuid = serverContext.nodeUuid
           }
   case transactionState of
     Transactional -> do
@@ -85,4 +87,6 @@ serverContextFromRequestContext requestContext =
     , registryClient = requestContext.registryClient
     , shutdownFlag = requestContext.shutdownFlag
     , cache = requestContext.cache
+    , websocketRegistry = requestContext.websocketRegistry
+    , nodeUuid = requestContext.nodeUuid
     }

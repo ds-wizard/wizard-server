@@ -9,8 +9,10 @@ import Specs.Api.Handler.Project.Detail_WS.AssignCommentThreadSpec
 import Specs.Api.Handler.Project.Detail_WS.ClearReplySpec
 import Specs.Api.Handler.Project.Detail_WS.DeleteCommentSpec
 import Specs.Api.Handler.Project.Detail_WS.DeleteCommentThreadSpec
+import Specs.Api.Handler.Project.Detail_WS.DeliverySpec
 import Specs.Api.Handler.Project.Detail_WS.EditCommentSpec
 import Specs.Api.Handler.Project.Detail_WS.GeneralSpec
+import Specs.Api.Handler.Project.Detail_WS.PresenceSpec
 import Specs.Api.Handler.Project.Detail_WS.ReopenCommentThreadSpec
 import Specs.Api.Handler.Project.Detail_WS.ResolveCommentThreadSpec
 import Specs.Api.Handler.Project.Detail_WS.SetLabelsSpec
@@ -22,6 +24,8 @@ projectWebsocketAPI :: RequestContext -> SpecWith ()
 projectWebsocketAPI requestContext =
   describe "WS /api/projects/{projectUuid}/websocket" $ do
     generalSpec requestContext
+    presenceSpec requestContext
+    deliverySpec requestContext
     setReplySpec requestContext
     clearReplySpec requestContext
     setPhaseSpec requestContext

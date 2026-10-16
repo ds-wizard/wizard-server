@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -75,6 +75,7 @@ migrateShared dbPool = do
   dropLocaleLimit dbPool
   dropProjectCommands dbPool
   dropTenantModule dbPool
+  createWebsocketTables dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -825,6 +826,44 @@ createAuditLog dbPool =
     \ \
     \CREATE INDEX audit_log_tenant_uuid_created_at_idx ON audit_log (tenant_uuid, created_at DESC); \
     \CREATE INDEX audit_log_tenant_uuid_workspace_uuid_created_at_idx ON audit_log (tenant_uuid, workspace_uuid, created_at DESC);"
+
+createWebsocketTables :: Pool Connection -> LoggingT IO ()
+createWebsocketTables dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE websocket_connection \
+    \( \
+    \    uuid             uuid        NOT NULL, \
+    \    node_uuid        uuid        NOT NULL, \
+    \    tenant_uuid      uuid        NOT NULL, \
+    \    subscription     varchar     NOT NULL, \
+    \    entity_uuid      uuid        NOT NULL, \
+    \    user_uuid        uuid, \
+    \    websocket_perm   varchar     NOT NULL, \
+    \    user_group_uuids uuid[]      NOT NULL, \
+    \    online_user      jsonb       NOT NULL, \
+    \    created_at       timestamptz NOT NULL, \
+    \    heartbeat_at     timestamptz NOT NULL, \
+    \    CONSTRAINT websocket_connection_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT websocket_connection_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT websocket_connection_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES user_entity (uuid) ON DELETE CASCADE \
+    \); \
+    \ \
+    \CREATE INDEX websocket_connection_entity_idx ON websocket_connection (tenant_uuid, subscription, entity_uuid); \
+    \CREATE INDEX websocket_connection_node_uuid_idx ON websocket_connection (node_uuid); \
+    \CREATE INDEX websocket_connection_heartbeat_at_idx ON websocket_connection (heartbeat_at); \
+    \ \
+    \CREATE TABLE websocket_outbox \
+    \( \
+    \    uuid        uuid        NOT NULL, \
+    \    tenant_uuid uuid        NOT NULL, \
+    \    payload     jsonb       NOT NULL, \
+    \    created_at  timestamptz NOT NULL, \
+    \    CONSTRAINT websocket_outbox_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT websocket_outbox_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \); \
+    \ \
+    \CREATE INDEX websocket_outbox_created_at_idx ON websocket_outbox (created_at);"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

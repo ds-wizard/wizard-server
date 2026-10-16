@@ -11,33 +11,12 @@ import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorEvent
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorReply
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.Project.ProjectReply
-import Shared.Model.Websocket.WebsocketMessage
-import Shared.Model.Websocket.WebsocketRecord
-import Shared.Util.Websocket
 
-toWebsocketMessage :: WebsocketRecord -> content -> WebsocketMessage content
-toWebsocketMessage record content =
-  WebsocketMessage
-    { connectionUuid = record.connectionUuid
-    , connection = record.connection
-    , entityId = record.entityId
-    , content = content
-    }
+toAddKnowledgeModelEditorWebsocketMessage :: AddKnowledgeModelEditorWebSocketEventDTO -> Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO
+toAddKnowledgeModelEditorWebsocketMessage = Success_ServerActionDTO . SetContent_ServerKnowledgeModelEditorMessageDTO . AddKnowledgeModelEditorWebSocketEventDTO'
 
-toSetUserListMessage
-  :: [WebsocketRecord] -> WebsocketRecord -> WebsocketMessage (Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO)
-toSetUserListMessage records record =
-  toWebsocketMessage record $
-    Success_ServerActionDTO . SetUserList_ServerKnowledgeModelEditorMessageDTO $
-      getCollaborators record.connectionUuid record.entityId records
-
-toAddKnowledgeModelEditorWebsocketMessage :: AddKnowledgeModelEditorWebSocketEventDTO -> WebsocketRecord -> WebsocketMessage (Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO)
-toAddKnowledgeModelEditorWebsocketMessage reqDto record =
-  toWebsocketMessage record $ Success_ServerActionDTO . SetContent_ServerKnowledgeModelEditorMessageDTO . AddKnowledgeModelEditorWebSocketEventDTO' $ reqDto
-
-toSetRepliesMessage :: SetRepliesDTO -> WebsocketRecord -> WebsocketMessage (Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO)
-toSetRepliesMessage reqDto record =
-  toWebsocketMessage record $ Success_ServerActionDTO . SetReplies_ServerKnowledgeModelEditorMessageDTO $ reqDto
+toSetRepliesMessage :: SetRepliesDTO -> Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO
+toSetRepliesMessage = Success_ServerActionDTO . SetReplies_ServerKnowledgeModelEditorMessageDTO
 
 fromAddKnowledgeModelEditorWebSocketEventDTO :: KnowledgeModelEvent -> U.UUID -> U.UUID -> KnowledgeModelEditorEvent
 fromAddKnowledgeModelEditorWebSocketEventDTO KnowledgeModelEvent {..} knowledgeModelEditorUuid tenantUuid = KnowledgeModelEditorEvent {..}

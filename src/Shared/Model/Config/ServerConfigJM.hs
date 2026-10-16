@@ -83,7 +83,6 @@ instance FromJSON ServerConfigCloud where
     enabled <- o .:? "enabled" .!= defaultCloud.enabled
     domain <- o .:? "domain" .!= defaultCloud.domain
     publicRegistrationEnabled <- o .:? "publicRegistrationEnabled" .!= defaultCloud.publicRegistrationEnabled
-    signalBridgeUrl <- o .:? "signalBridgeUrl" .!= defaultCloud.signalBridgeUrl
     return ServerConfigCloud {..}
   parseJSON _ = mzero
 

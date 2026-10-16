@@ -1,24 +1,25 @@
 module Specs.Api.Handler.Project.Detail_WS.Common where
 
+import Control.Concurrent (threadDelay)
 import qualified Control.Exception.Base as E
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BSL
+import Data.Either (fromRight)
 import Data.Foldable (traverse_)
 import qualified Data.Map.Strict as M
 import qualified Data.UUID as U
 import qualified Network.HTTP.Client as HC
-import Network.WebSockets
 import qualified Network.Wreq as W
 import qualified Network.Wreq.Types as WT
-import System.Timeout
 import Test.Hspec.Expectations.Pretty
 
 import Shared.Api.Resource.Websocket.ProjectMessageDTO
 import Shared.Api.Resource.Websocket.WebsocketActionDTO
-import Shared.Cache.ProjectWebsocketCache
+import Shared.Constant.Tenant
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.Websocket.WebsocketConnectionDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
@@ -26,11 +27,16 @@ import Shared.Integration.Http.Common.HttpClient (mapHeader)
 import Shared.Integration.Http.Common.HttpClientFactory
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Http.HttpRequest
-import Shared.Model.Websocket.WebsocketRecord
-import Shared.Service.Project.Collaboration.ProjectCollaborationService
+import Shared.Model.Websocket.WebsocketRegistry
+import Shared.Model.Websocket.WebsocketSubscription
+import Shared.Service.Websocket.WebsocketRegistryService
+import Shared.Service.Websocket.WebsocketService
 import Shared.Util.JSON
 import Shared.Util.String
+import qualified Shared.Util.Websocket as WS
 import WizardServer.Model.Context.RequestContext
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Websocket.Common
@@ -40,8 +46,11 @@ import Specs.Common
 -- ASSERTS
 -- --------------------------------
 assertCountOfWebsocketConnection requestContext expCount = do
-  (Right resCount) <- runInContext countCache requestContext
+  (Right resCount) <- runInContext countWebsocketConnections requestContext
   resCount `shouldBe` expCount
+
+assertCountOfWebsocketConnectionEventually requestContext =
+  assertEventually (fromRight (-1) <$> runInContext countWebsocketConnections requestContext)
 
 -- --------------------------------
 -- URL
@@ -87,19 +96,25 @@ connectTestWebsocketUsers requestContext projectUuid =
     return ((c1, s1), (c2, s2), (c3, s3))
 
 read_SetUserList connection expConnectionCount = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerProjectMessageDTO)
   let (Right (Success_ServerActionDTO (SetUserList_ServerProjectMessageDTO resConnection))) = eResult
   length resConnection `shouldBe` expConnectionCount
 
+skip_SetProject connection = do
+  resDto <- receiveDataWithin connection
+  let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerProjectMessageDTO)
+  let (Right (Success_ServerActionDTO (SetProject_ServerProjectMessageDTO _))) = eResult
+  return ()
+
 read_Error connection expError = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String Error_ServerActionDTO
   let (Right (Error_ServerActionDTO error)) = eResult
   error `shouldBe` expError
 
 read_SetUserList_or_Error connection expError = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let (Right result) = eitherDecode resDto :: Either String Object
   let resultType = getField "type" result return
   case resultType of
@@ -110,21 +125,19 @@ read_SetUserList_or_Error connection expError = do
       error `shouldBe` expError
     rest -> print rest
 
-nothingWasReceived connection = do
-  maybeResDto <- timeout 1000 (receive connection)
-  maybeResDto `shouldBe` Nothing
-
 -- --------------------------------
 -- DISCONNECT
 -- --------------------------------
 clearConnections :: RequestContext -> U.UUID -> IO ()
 clearConnections requestContext projectUuid = do
-  (Right records) <- runInContext getAllFromCache requestContext
-  traverse_ (clearConnection requestContext projectUuid) . filter (\r -> r.entityId == U.toString projectUuid) $ records
+  let key = (defaultTenantUuid, ProjectWebsocketSubscription, projectUuid)
+  (Right connections) <- runInContext (findLocalConnections key) requestContext
+  traverse_ (clearConnection requestContext key) connections
+  threadDelay 300000
 
-clearConnection :: RequestContext -> U.UUID -> WebsocketRecord -> IO ()
-clearConnection requestContext projectUuid record = do
-  runInContext (deleteUser projectUuid record.connectionUuid) requestContext
+clearConnection :: RequestContext -> WebsocketEntityKey -> LocalWebsocketConnection -> IO ()
+clearConnection requestContext key connection = do
+  runInContext (disconnectUser key connection.connectionUuid >> WS.closeConnection connection 1001 Nothing) requestContext
   return ()
 
 -- --------------------------------

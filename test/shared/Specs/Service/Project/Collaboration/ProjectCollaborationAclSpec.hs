@@ -10,7 +10,7 @@ import Shared.Model.User.RolePermission
 import Shared.Model.User.User
 import Shared.Model.User.UserGroup
 import Shared.Model.User.UserGroupMembership
-import Shared.Model.Websocket.WebsocketRecord
+import Shared.Model.Websocket.WebsocketPerm
 import Shared.Service.Project.Collaboration.ProjectCollaborationAcl
 import Shared.Service.Project.ProjectMapper
 import Shared.Util.Uuid
@@ -173,14 +173,6 @@ projectCollaborationAclSpec requestContext =
         fn userWithoutPerm userWithoutPermRole userWithoutPermGroups `shouldBe` EditorWebsocketPerm
         fn anonymous anonymousRole anonymousGroups `shouldBe` EditorWebsocketPerm
     describe "check permissions" $ do
-      let record perm =
-            WebsocketRecord
-              { connectionUuid = undefined
-              , connection = undefined
-              , entityId = undefined
-              , entityPerm = perm
-              , user = undefined
-              }
       it "checkViewPermission" $ do
         shouldSucceed requestContext (checkViewPermission EditorWebsocketPerm)
         shouldSucceed requestContext (checkViewPermission ViewerWebsocketPerm)

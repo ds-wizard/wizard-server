@@ -63,7 +63,6 @@ defaultCloud =
     { enabled = False
     , domain = Nothing
     , publicRegistrationEnabled = False
-    , signalBridgeUrl = Nothing
     }
 
 defaultPersistentCommand :: ServerConfigPersistentCommand

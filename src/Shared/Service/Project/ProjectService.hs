@@ -326,7 +326,7 @@ modifyProjectShare projectUuid reqDto =
     updateProjectByUuid updatedProject
     al_updateProject project updatedProject
     al_updateProjectPermissions project updatedProject
-    updatePermsForOnlineUsers projectUuid project.workspaceUuid updatedProject.visibility updatedProject.sharing updatedProject.permissions
+    updatePermsForOnlineUsers projectUuid
     permissionDtos <- traverse enhanceProjectPerm updatedProject.permissions
     skipIfAssigningProject
       project

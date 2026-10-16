@@ -1,6 +1,7 @@
 module WizardServer.Application where
 
 import Control.Concurrent
+import Control.Exception (finally)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Logger (MonadLogger)
 import Control.Monad.Reader (liftIO)
@@ -9,6 +10,7 @@ import Database.PostgreSQL.Simple (Connection)
 import Network.HTTP.Client (Manager)
 import Network.Minio (MinioConn)
 import System.Environment (lookupEnv, setEnv)
+import System.IO (hPutStrLn, stderr)
 
 import Shared.Api.Middleware.WizardLoggingMiddleware
 import Shared.Application
@@ -24,7 +26,10 @@ import Shared.Model.Config.BuildInfoConfig
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardServerContext
+import Shared.Service.Websocket.WebsocketNodeService
+import Shared.Service.Websocket.WebsocketRegistryService
 import Shared.Util.Jinja (verifyJinja)
+import Shared.Util.Uuid
 import WizardServer.Api.Sentry
 import WizardServer.Api.Web
 import WizardServer.Constant.ASCIIArt
@@ -54,6 +59,8 @@ createServerContext serverConfig buildInfoConfig dbPool s3Client httpClientManag
   registryClient <- liftIO $ createRegistryClient serverConfig httpClientManager
   restrictedHttpClientManager <- liftIO $ createRestrictedHttpClientManager serverConfig.logging serverConfig.httpClient.restricted.allowedHosts
   cache <- liftIO (createServerCache serverConfig)
+  websocketRegistry <- liftIO createWebsocketRegistry
+  nodeUuid <- liftIO generateUuid
   return ServerContext {..}
 
 afterDbMigrationHook :: WizardServerContextType context => context -> IO ()
@@ -68,7 +75,9 @@ afterDbMigrationHook context = do
     Nothing -> return ()
 
 runWebServer :: ServerContext -> IO ()
-runWebServer context = runWebServerFactory context getSentryIdentity loggingMiddleware webApi webServer
+runWebServer context =
+  runWebServerFactory context getSentryIdentity loggingMiddleware webApi webServer
+    `finally` (runRequestContextWithServerContext'' shutdownWebsocketNode context >>= either (hPutStrLn stderr . ("Websocket shutdown failed: " ++)) return)
 
 runWorker :: MVar () -> ServerContext -> IO ()
 runWorker shutdownFlag context =

@@ -19,11 +19,6 @@ data BootstrapCloudDTO = BootstrapCloudDTO
   }
   deriving (Generic, Eq, Show)
 
-data BootstrapSignalBridgeDTO = BootstrapSignalBridgeDTO
-  { webSocketUrl :: Maybe String
-  }
-  deriving (Generic, Eq, Show)
-
 data BootstrapPlugins = BootstrapPlugins
   { plugins :: [PluginList]
   , pluginSettings :: M.Map U.UUID A.Value

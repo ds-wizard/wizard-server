@@ -1,7 +1,6 @@
 module Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.SetEventSpec where
 
 import Data.Aeson
-import Network.WebSockets
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
@@ -11,6 +10,8 @@ import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.Knowledg
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.Common
 import Specs.Api.Handler.Websocket.Common
@@ -48,7 +49,7 @@ write_SetReply connection replyDto = do
   sendMessage connection reqDto
 
 read_SetReply connection expReplyDto = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO)
   let (Right (Success_ServerActionDTO (SetContent_ServerKnowledgeModelEditorMessageDTO replyDto))) = eResult
   expReplyDto `shouldBe` replyDto

@@ -63,6 +63,7 @@ import qualified Shared.Database.Migration.Development.User.UserOpenIdIdentitySc
 import qualified Shared.Database.Migration.Development.User.UserRegistrationPendingSchemaMigration as UserRegistrationPending
 import qualified Shared.Database.Migration.Development.User.UserSchemaMigration as User
 import qualified Shared.Database.Migration.Development.UserEmailLink.UserEmailLinkSchemaMigration as UserEmailLink
+import qualified Shared.Database.Migration.Development.Websocket.WebsocketSchemaMigration as Websocket
 import Shared.Database.Migration.Development.Workspace.Data.Workspaces
 import qualified Shared.Database.Migration.Development.Workspace.WorkspaceSchemaMigration as Workspace
 import Shared.Model.Cache.ServerCache
@@ -88,6 +89,7 @@ buildSchema requestContext = do
   runInContext KnowledgeModelPackage.dropFunctions requestContext
   runInContext Common.dropFunctions requestContext
   putStrLn "DB: dropping schema"
+  runInContext Websocket.dropTables requestContext
   runInContext ExternalLink.dropTables requestContext
   runInContext Component.dropTables requestContext
   runInContext Registry.dropTables requestContext
@@ -140,6 +142,7 @@ buildSchema requestContext = do
   runInContext UserOpenIdIdentity.createTables requestContext
   runInContext UserRegistrationPending.createTables requestContext
   runInContext TemporaryFile.createTables requestContext
+  runInContext Websocket.createTables requestContext
   runInContext KnowledgeModelPackage.createTables requestContext
   runInContext KnowledgeModelLocale.createTables requestContext
   runInContext KnowledgeModelSecret.createTables requestContext
@@ -228,7 +231,9 @@ resetDBContent requestContext = do
 deleteAllEntitiesSql :: Query
 deleteAllEntitiesSql =
   fromString . intercalate "; " . fmap ("DELETE FROM " <>) $
-    [ "external_link_usage"
+    [ "websocket_connection"
+    , "websocket_outbox"
+    , "external_link_usage"
     , "registry_knowledge_model_package"
     , "registry_document_template"
     , "registry_locale"

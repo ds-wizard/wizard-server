@@ -1,31 +1,36 @@
 module Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.Common where
 
+import Control.Concurrent (threadDelay)
 import Data.Aeson
 import Data.Foldable (traverse_)
 import Data.Maybe (fromJust)
 import qualified Data.UUID as U
-import Network.WebSockets
-import System.Timeout
 import Test.Hspec.Expectations.Pretty
 
 import Shared.Api.Resource.Websocket.KnowledgeModelEditorMessageDTO
 import Shared.Api.Resource.Websocket.WebsocketActionDTO
-import Shared.Cache.KnowledgeModelEditorWebsocketCache
+import Shared.Constant.Tenant
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
+import Shared.Database.DAO.Websocket.WebsocketConnectionDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
-import Shared.Model.Websocket.WebsocketRecord
-import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService
+import Shared.Model.Websocket.WebsocketRegistry
+import Shared.Model.Websocket.WebsocketSubscription
 import Shared.Service.KnowledgeModel.Editor.EditorService
+import Shared.Service.Websocket.WebsocketRegistryService
+import Shared.Service.Websocket.WebsocketService
 import Shared.Util.JSON
 import Shared.Util.String
+import qualified Shared.Util.Websocket as WS
 import WizardServer.Model.Context.RequestContext
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Websocket.Common
@@ -35,7 +40,7 @@ import Specs.Common
 -- ASSERTS
 -- --------------------------------
 assertCountOfWebsocketConnection requestContext expCount = do
-  (Right resCount) <- runInContext countCache requestContext
+  (Right resCount) <- runInContext countWebsocketConnections requestContext
   resCount `shouldBe` expCount
 
 -- --------------------------------
@@ -85,19 +90,19 @@ connectTestWebsocketUsers requestContext bUuid =
     return ((c1, s1), (c2, s2))
 
 read_SetUserList connection expConnectionCount = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO)
   let (Right (Success_ServerActionDTO (SetUserList_ServerKnowledgeModelEditorMessageDTO resConnection))) = eResult
   length resConnection `shouldBe` expConnectionCount
 
 read_Error connection expError = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String Error_ServerActionDTO
   let (Right (Error_ServerActionDTO error)) = eResult
   error `shouldBe` expError
 
 read_SetUserList_or_Error connection expError = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let (Right result) = eitherDecode resDto :: Either String Object
   let resultType = getField "type" result return
   case resultType of
@@ -108,19 +113,17 @@ read_SetUserList_or_Error connection expError = do
       error `shouldBe` expError
     rest -> print rest
 
-nothingWasReceived connection = do
-  maybeResDto <- timeout 1000 (receive connection)
-  maybeResDto `shouldBe` Nothing
-
 -- --------------------------------
 -- DISCONNECT
 -- --------------------------------
 clearConnections :: RequestContext -> U.UUID -> IO ()
 clearConnections requestContext bUuid = do
-  (Right records) <- runInContext getAllFromCache requestContext
-  traverse_ (clearConnection requestContext bUuid) . filter (\r -> r.entityId == U.toString bUuid) $ records
+  let key = (defaultTenantUuid, KnowledgeModelEditorWebsocketSubscription, bUuid)
+  (Right connections) <- runInContext (findLocalConnections key) requestContext
+  traverse_ (clearConnection requestContext key) connections
+  threadDelay 300000
 
-clearConnection :: RequestContext -> U.UUID -> WebsocketRecord -> IO ()
-clearConnection requestContext bUuid record = do
-  runInContext (deleteUser bUuid record.connectionUuid) requestContext
+clearConnection :: RequestContext -> WebsocketEntityKey -> LocalWebsocketConnection -> IO ()
+clearConnection requestContext key connection = do
+  runInContext (disconnectUser key connection.connectionUuid >> WS.closeConnection connection 1001 Nothing) requestContext
   return ()

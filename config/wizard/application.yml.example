@@ -16,6 +16,16 @@ database:
   #     - knowledge_model_package
   #     - registry_knowledge_model_package
 
+# Presence rows without a heartbeat for 2 minutes and outbox rows older than 5 minutes are
+# deleted by these jobs.
+# websocket:
+#   cleanConnections:
+#     enabled: true
+#     cron: "* * * * *"
+#   cleanOutbox:
+#     enabled: true
+#     cron: "*/5 * * * *"
+
 httpClient:
   restricted:
     allowedHosts: []
