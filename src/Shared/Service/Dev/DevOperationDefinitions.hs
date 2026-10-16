@@ -9,12 +9,14 @@ import Shared.Cache.CacheUtil
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Plugin.PluginDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
+import Shared.Database.DAO.Websocket.WebsocketConnectionDAO
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Context.ContextMappers
 import Shared.Model.Context.WizardRequestContext hiding (cache)
 import Shared.Model.Dev.Dev
 import Shared.Model.Tenant.Tenant
+import Shared.Model.Websocket.WebsocketSubscription
 import Shared.Service.Document.DocumentCleanService
 import Shared.Service.KnowledgeModel.Editor.Event.EditorEventService
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
@@ -30,6 +32,8 @@ import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.ApiKey.ApiKeyService
 import Shared.Service.UserToken.UserTokenService
+import Shared.Service.Websocket.WebsocketRegistryService
+import Shared.Util.String (f')
 import Shared.Util.Uuid
 
 sections :: WizardRequestContextC s m => [DevSection m]
@@ -125,6 +129,7 @@ cache =
     , operations =
         [ cache_purgeCache
         , cache_getUserTokenCacheSize
+        , cache_getWebsocketConnections
         ]
     }
 
@@ -149,6 +154,22 @@ cache_getUserTokenCacheSize =
     , parameters = []
     , function = const computeUserTokenCacheSize
     }
+
+-- ---------------------------------------------------------------------------------------------------------------------
+cache_getWebsocketConnections :: WizardRequestContextC s m => DevOperation m
+cache_getWebsocketConnections =
+  DevOperation
+    { name = "Get Websocket Connections"
+    , description = Just "Connections per entity on this node and the total over all nodes"
+    , parameters = []
+    , function = \_ -> do
+        local <- countLocalConnectionsByEntity
+        total <- countWebsocketConnections
+        return . unlines $ fmap formatEntity local ++ [f' "Total (all nodes): %s" [show total]]
+    }
+  where
+    formatEntity ((tenantUuid, subscription, entityUuid), count) =
+      f' "%s %s (tenant %s): %s" [websocketSubscriptionName subscription, U.toString entityUuid, U.toString tenantUuid, show count]
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DOCUMENT

@@ -17,7 +17,6 @@ import Shared.Localization.Messages.WizardPublic
 import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.Tenant.Tenant
 import Shared.Model.User.Role
@@ -47,6 +46,7 @@ saveWorkspaceMembership :: WizardRequestContextC s m => Workspace -> U.UUID -> M
 saveWorkspaceMembership workspace userUuid mRoleUuid now = do
   mOldMembership <- findWorkspaceMembership' workspace.uuid userUuid
   addWorkspaceMembership workspace userUuid mRoleUuid now
+  updatePermsForWorkspace workspace.uuid
   whenAuditLogEnabled $ al_saveWorkspaceMembership workspace mOldMembership =<< findWorkspaceMembership workspace.uuid userUuid
 
 resolveMemberRoleUuid :: WizardRequestContextC s m => Workspace -> Maybe U.UUID -> m U.UUID
@@ -64,5 +64,5 @@ removeWorkspaceMembership workspaceUuid userUuid = do
   deleteProjectPermsInWorkspaceByUserUuid workspaceUuid userUuid
   void $ deleteWorkspaceMembership workspaceUuid userUuid
   traverse_ (\userGroupUuid -> removeUserGroupMembersFromOnlineUsers userGroupUuid [userUuid]) userGroupUuids
-  traverse_ (\project -> updatePermsForOnlineUsers project.uuid workspaceUuid project.visibility project.sharing (filter (\perm -> perm.memberUuid /= userUuid) project.permissions)) projects
+  updatePermsForWorkspace workspaceUuid
   traverse_ (deleteProjectCacheByProjectUuid . (.uuid)) projects

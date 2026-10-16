@@ -16,6 +16,7 @@ import Shared.Model.Context.RequestContext
 import Shared.Model.Context.Scope
 import Shared.Model.Tenant.Limit.TenantLimitBundleChange
 import Shared.Model.User.RoleSimple
+import Shared.Model.Websocket.WebsocketRegistry
 
 class
   ( RequestContextType context ServerConfig
@@ -30,6 +31,8 @@ class
   , HasField "workspaceRoles'" context (M.Map U.UUID RoleSimple)
   , HasField "auditLogEnabled'" context Bool
   , HasField "auditLogSource'" context AuditLogSource
+  , HasField "websocketRegistry'" context WebsocketRegistry
+  , HasField "nodeUuid'" context U.UUID
   ) =>
   WizardRequestContextType context
   where

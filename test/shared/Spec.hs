@@ -25,6 +25,8 @@ import Shared.S3.Common
 import Shared.Service.Config.BuildInfo.BuildInfoConfigService
 import Shared.Service.Config.Server.ServerConfigService
 import Shared.Service.User.WizardUserMapper
+import Shared.Service.Websocket.WebsocketRegistryService
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 import WizardServer.Model.Context.ServerContext
 import WizardServer.Service.Config.Server.ServerConfigValidation
@@ -71,9 +73,12 @@ import Specs.Api.Handler.User.News.ApiSpec
 import Specs.Api.Handler.User.Tour.ApiSpec
 import Specs.Api.Handler.UserGroup.ApiSpec
 import Specs.Api.Handler.Websocket.Common
+import Specs.Api.Handler.Websocket.MultiNodeSpec
 import Specs.Api.Handler.Workspace.ApiSpec
 import Specs.Api.Resource.Coordinate.CoordinateJMSpec
 import Specs.Database.DAO.CommonSpec
+import Specs.Database.DAO.Websocket.WebsocketConnectionDAOSpec
+import Specs.Database.DAO.Websocket.WebsocketOutboxDAOSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
 import Specs.Database.Migration.Production.PermissionMappingSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
@@ -123,6 +128,7 @@ import Specs.Service.User.UserServiceSpec
 import Specs.Service.Workspace.CoordinateResolutionSpec
 import Specs.Service.Workspace.WorkspaceScopeServiceSpec
 import Specs.Util.GettextSpec
+import Specs.Util.HttpSpec
 import Specs.Util.JSON.CanonicalSpec
 import Specs.Util.JinjaSpec
 import Specs.Util.ListSpec
@@ -161,6 +167,8 @@ prepareWebApp runCallback =
       putStrLn "REGISTRY_CLIENT: created"
       cache <- createServerCache serverConfig
       putStrLn "CACHE: created"
+      websocketRegistry <- createWebsocketRegistry
+      nodeUuid <- generateUuid
       let serverContext =
             ServerContext
               { serverConfig = serverConfig
@@ -172,6 +180,8 @@ prepareWebApp runCallback =
               , registryClient = registryClient
               , shutdownFlag = shutdownFlag
               , cache = cache
+              , websocketRegistry = websocketRegistry
+              , nodeUuid = nodeUuid
               }
       withResource dbPool $ \dbConnection -> do
         breadcrumbs <- newIORef []
@@ -195,11 +205,13 @@ prepareWebApp runCallback =
                 , tenantMultiWorkspace = False
                 , workspaceRoles = M.empty
                 , auditLogSource = userAuditLogSource
+                , websocketRegistry = websocketRegistry
+                , nodeUuid = nodeUuid
                 }
         putStrLn "DB: start creating schema"
         buildSchema requestContext
         putStrLn "DB: schema created"
-        runWebserver requestContext (runCallback serverContext requestContext)
+        runWebsocketNode requestContext (runCallback serverContext requestContext)
 
 main :: IO ()
 main =
@@ -254,6 +266,7 @@ main =
               mapSpec
               mathSpec
               listSpec
+              httpSpec
               stringSpec
               tokenSpec
               jinjaSpec
@@ -301,10 +314,12 @@ main =
               roleAPI serverContext requestContext
               userGroupAPI serverContext requestContext
               workspaceAPI serverContext requestContext
-            describe "DATABASE" $
+            describe "DATABASE" $ do
               describe "Migration" $
                 describe "Production" $
                   migration_4_35_2Spec requestContext
+              websocketConnectionDAOSpec requestContext
+              websocketOutboxDAOSpec requestContext
             describe "SERVICE" $ do
               documentServiceSpec requestContext
               documentContextServiceSpec requestContext
@@ -338,4 +353,5 @@ main =
             describe "WEBSOCKET" $ do
               knowledgeModelEditorWebsocketAPI requestContext
               projectWebsocketAPI requestContext
+              multiNodeSpec requestContext
     )

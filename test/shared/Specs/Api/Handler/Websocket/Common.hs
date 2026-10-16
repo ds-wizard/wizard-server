@@ -6,34 +6,44 @@ import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import Network.Socket
 import Network.WebSockets hiding (serverPort)
-import Network.WebSockets.Stream hiding (close)
 
+import Shared.Model.Config.WizardServerConfig
+import Shared.Service.Websocket.WebsocketBusService
+import Shared.Service.Websocket.WebsocketNodeService
+import Shared.Service.Websocket.WebsocketRegistryService
+import Shared.Util.Uuid
+import Shared.Worker.WebsocketWorkers
 import WizardServer.Application
 import WizardServer.Model.Context.ContextMappers
+import WizardServer.Model.Context.RequestContext
 
-runWebserver requestContext = race_ (runWebServer (serverContextFromRequestContext requestContext))
+import SharedTest.Specs.Api.Websocket
 
-createConnection requestContext reqUrl = do
-  let port = read (show requestContext.serverConfig.general.serverPort) :: PortNumber
-  let host =
-        if port == 80
-          then "localhost"
-          else "localhost:" ++ show port
-  let addr =
-        AddrInfo
-          { addrFlags = []
-          , addrFamily = AF_INET
-          , addrSocketType = Stream
-          , addrProtocol = 6
-          , addrAddress = SockAddrInet port (tupleToHostAddress (127, 0, 0, 1))
-          , addrCanonName = Nothing
-          }
-  sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
-  setSocketOption sock NoDelay 1
-  connect sock (addrAddress addr)
-  stream <- makeSocketStream sock
-  connection <- newClientConnection stream host reqUrl defaultConnectionOptions []
-  return (connection, sock)
+runWebserver requestContext action = do
+  result <- race (runWebServer (serverContextFromRequestContext requestContext)) (waitForNode requestContext 1 >> action)
+  either (const (fail "The web server stopped")) return result
+
+runWebsocketNode :: RequestContext -> IO a -> IO a
+runWebsocketNode requestContext action =
+  withAsync (websocketBusListenerJob (runRequestContextWithServerContext runWebsocketBusListener serverContext) serverContext) $ \_ ->
+    withAsync (websocketHeartbeatJob (runRequestContextWithServerContext'' refreshNodeHeartbeat serverContext) serverContext) $ \_ ->
+      runWebserver requestContext action
+  where
+    serverContext = serverContextFromRequestContext requestContext
+
+withSecondNode :: RequestContext -> (RequestContext -> IO a) -> IO a
+withSecondNode requestContext action = do
+  websocketRegistry <- createWebsocketRegistry
+  nodeUuid <- generateUuid
+  let general = requestContext.serverConfig.general
+  let serverConfig = requestContext.serverConfig {general = general {serverPort = general.serverPort + 1}}
+  let requestContextB = requestContext {serverConfig = serverConfig, websocketRegistry = websocketRegistry, nodeUuid = nodeUuid}
+  runWebsocketNode requestContextB (action requestContextB)
+
+waitForNode :: RequestContext -> Int -> IO ()
+waitForNode requestContext = waitForWebsocketNode requestContext.serverConfig.general.serverPort requestContext.websocketRegistry
+
+createConnection requestContext = createConnectionOnPort requestContext.serverConfig.general.serverPort
 
 closeConnection connection = sendClose connection (T.pack "close")
 

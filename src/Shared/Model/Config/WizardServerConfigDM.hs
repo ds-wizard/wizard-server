@@ -21,13 +21,13 @@ defaultConfig =
     , knowledgeModelEditor = defaultKnowledgeModelEditor
     , project = defaultProject
     , temporaryFile = defaultTemporaryFile
+    , websocket = defaultWebsocket
     , userToken = defaultUserToken
     , userRegistration = defaultUserRegistration
     , analyticalMails = defaultAnalyticalMails
     , logging = defaultLogging
     , cloud = defaultCloud
     , persistentCommand = defaultPersistentCommand
-    , signalBridge = defaultSignalBridge
     , admin = defaultAdmin
     , registry = defaultRegistry
     , httpClient = defaultHttpClient
@@ -67,7 +67,6 @@ defaultCache :: ServerConfigCache
 defaultCache =
   ServerConfigCache
     { dataExpiration = 14 * 24
-    , websocketExpiration = 24
     , purgeExpired = defaultCachePurgeExpired
     , dataEnabled = True
     }
@@ -117,6 +116,17 @@ defaultTemporaryFileClean :: ServerConfigCronWorker
 defaultTemporaryFileClean =
   ServerConfigCronWorker {enabled = True, cron = "25 0 * * *"}
 
+defaultWebsocket :: ServerConfigWebsocket
+defaultWebsocket = ServerConfigWebsocket {cleanConnections = defaultWebsocketCleanConnections, cleanOutbox = defaultWebsocketCleanOutbox}
+
+defaultWebsocketCleanConnections :: ServerConfigCronWorker
+defaultWebsocketCleanConnections =
+  ServerConfigCronWorker {enabled = True, cron = "* * * * *"}
+
+defaultWebsocketCleanOutbox :: ServerConfigCronWorker
+defaultWebsocketCleanOutbox =
+  ServerConfigCronWorker {enabled = True, cron = "*/5 * * * *"}
+
 defaultUserToken :: ServerConfigUserToken
 defaultUserToken = ServerConfigUserToken {clean = defaultUserTokenClean, expire = defaultUserTokenExpire}
 
@@ -127,18 +137,6 @@ defaultUserTokenClean =
 defaultUserTokenExpire :: ServerConfigCronWorker
 defaultUserTokenExpire =
   ServerConfigCronWorker {enabled = True, cron = "0 4 * * *"}
-
-defaultSignalBridge :: ServerConfigSignalBridge
-defaultSignalBridge =
-  ServerConfigSignalBridge
-    { enabled = False
-    , updatePermsArn = ""
-    , updateUserGroupArn = ""
-    , setProjectArn = ""
-    , addEventArn = ""
-    , addFileArn = ""
-    , logOutAllArn = ""
-    }
 
 defaultAdmin :: ServerConfigAdmin
 defaultAdmin =

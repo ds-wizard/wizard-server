@@ -29,13 +29,13 @@ instance FromJSON ServerConfig where
     externalLink <- o .:? "externalLink" .!= defaultExternalLink
     project <- o .:? "project" .!= defaultProject
     temporaryFile <- o .:? "temporaryFile" .!= defaultTemporaryFile
+    websocket <- o .:? "websocket" .!= defaultWebsocket
     userToken <- o .:? "userToken" .!= defaultUserToken
     userRegistration <- o .:? "userRegistration" .!= defaultUserRegistration
     analyticalMails <- o .:? "analyticalMails" .!= defaultAnalyticalMails
     logging <- o .:? "logging" .!= defaultLogging
     cloud <- o .:? "cloud" .!= defaultCloud
     persistentCommand <- o .:? "persistentCommand" .!= defaultPersistentCommand
-    signalBridge <- o .:? "signalBridge" .!= defaultSignalBridge
     admin <- o .:? "admin" .!= defaultAdmin
     registry <- o .:? "registry" .!= defaultRegistry
     httpClient <- o .:? "httpClient" .!= defaultHttpClient
@@ -89,7 +89,6 @@ instance FromJSON ServerConfigKnowledgeModelEditor where
 instance FromJSON ServerConfigCache where
   parseJSON (Object o) = do
     dataExpiration <- o .:? "dataExpiration" .!= defaultCache.dataExpiration
-    websocketExpiration <- o .:? "websocketExpiration" .!= defaultCache.websocketExpiration
     purgeExpired <- o .:? "purgeExpired" .!= defaultCache.purgeExpired
     dataEnabled <- o .:? "dataEnabled" .!= defaultCache.dataEnabled
     return ServerConfigCache {..}
@@ -115,23 +114,18 @@ instance FromJSON ServerConfigTemporaryFile where
     return ServerConfigTemporaryFile {..}
   parseJSON _ = mzero
 
+instance FromJSON ServerConfigWebsocket where
+  parseJSON (Object o) = do
+    cleanConnections <- o .:? "cleanConnections" .!= defaultWebsocket.cleanConnections
+    cleanOutbox <- o .:? "cleanOutbox" .!= defaultWebsocket.cleanOutbox
+    return ServerConfigWebsocket {..}
+  parseJSON _ = mzero
+
 instance FromJSON ServerConfigUserToken where
   parseJSON (Object o) = do
     clean <- o .:? "clean" .!= defaultUserToken.clean
     expire <- o .:? "expire" .!= defaultUserToken.expire
     return ServerConfigUserToken {..}
-  parseJSON _ = mzero
-
-instance FromJSON ServerConfigSignalBridge where
-  parseJSON (Object o) = do
-    enabled <- o .:? "enabled" .!= defaultSignalBridge.enabled
-    updatePermsArn <- o .:? "updatePermsArn" .!= defaultSignalBridge.updatePermsArn
-    updateUserGroupArn <- o .:? "updateUserGroupArn" .!= defaultSignalBridge.updateUserGroupArn
-    setProjectArn <- o .:? "setProjectArn" .!= defaultSignalBridge.setProjectArn
-    addEventArn <- o .:? "addEventArn" .!= defaultSignalBridge.addEventArn
-    addFileArn <- o .:? "addFileArn" .!= defaultSignalBridge.addFileArn
-    logOutAllArn <- o .:? "logOutAllArn" .!= defaultSignalBridge.logOutAllArn
-    return ServerConfigSignalBridge {..}
   parseJSON _ = mzero
 
 instance FromJSON ServerConfigAdmin where

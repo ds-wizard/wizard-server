@@ -2,7 +2,6 @@ module Specs.Api.Handler.Project.Detail_WS.SetLabelsSpec where
 
 import Data.Aeson
 import Data.Foldable (traverse_)
-import Network.WebSockets
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
@@ -19,6 +18,8 @@ import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Model.Project.Project
 import Shared.Service.Project.Event.ProjectEventMapper
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.Project.Detail_WS.Common
 import Specs.Api.Handler.Websocket.Common
@@ -62,7 +63,7 @@ write_SetLabels connection replyDto = do
   sendMessage connection reqDto
 
 read_SetLabels connection expReplyDto = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerProjectMessageDTO)
   let (Right (Success_ServerActionDTO (SetContent_ServerProjectMessageDTO replyDto))) = eResult
   expReplyDto `shouldBe` replyDto

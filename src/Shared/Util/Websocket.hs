@@ -1,93 +1,54 @@
 module Shared.Util.Websocket where
 
-import qualified Control.Exception.Base as E
-import Control.Monad (when)
+import Control.Concurrent.STM
+import Control.Monad (unless, void, when)
+import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Aeson (ToJSON, encode)
-import Data.Foldable (traverse_)
+import qualified Data.ByteString.Lazy as BSL
 import qualified Data.UUID as U
-import Network.WebSockets (Connection, sendTextData)
+import Data.Word (Word16)
 
 import Shared.Api.Resource.Websocket.WebsocketActionDTO
 import Shared.Api.Resource.Websocket.WebsocketActionJM ()
+import Shared.Constant.Websocket
+import Shared.Localization.Messages.Public
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
-import Shared.Model.User.OnlineUserInfo
-import Shared.Model.Websocket.WebsocketMessage
-import Shared.Model.Websocket.WebsocketRecord
+import Shared.Model.Websocket.WebsocketRegistry
 import Shared.Util.Logger
 
--- --------------------------------
--- PRIVATE
--- --------------------------------
--- Websocket
-broadcast
-  :: (WizardRequestContextC s m, ToJSON a)
-  => String
-  -> [WebsocketRecord]
-  -> (WebsocketRecord -> WebsocketMessage a)
-  -> (WebsocketMessage a -> m ())
-  -> m ()
-broadcast entityUuid records toMessage disconnectUser =
-  traverse_ (sendMessage disconnectUser . toMessage) (filter (filterByEntityId entityUuid) records)
+createOutbound :: IO WebsocketOutbound
+createOutbound = WebsocketOutbound <$> newTBQueueIO (fromIntegral websocketOutboundQueueSize) <*> newEmptyTMVarIO <*> newEmptyTMVarIO
 
-sendMessage :: (WizardRequestContextC s m, ToJSON a) => (WebsocketMessage a -> m ()) -> WebsocketMessage a -> m ()
-sendMessage disconnectUser msg = do
-  logWS msg.connectionUuid "Sending message..."
-  eResult <- liftIO $ E.try $ sendTextData msg.connection (encode msg.content)
-  case eResult of
-    Right _ -> do
-      logWS msg.connectionUuid "Successfully sent"
-      return ()
-    Left (e :: E.SomeException) -> do
-      logWS msg.connectionUuid "Failed to sent. Start disconnecting"
-      disconnectUser msg
-      logWS msg.connectionUuid "Successfully disconnected"
-      return ()
+enqueueMessage :: (WizardRequestContextC s m, ToJSON a) => LocalWebsocketConnection -> a -> m ()
+enqueueMessage connection content = enqueueOutbound connection.outbound connection.connectionUuid (encode content)
 
-sendError
-  :: WizardRequestContextC s m
-  => U.UUID
-  -> Connection
-  -> String
-  -> (WebsocketMessage Error_ServerActionDTO -> m ())
-  -> AppError
-  -> m ()
-sendError connectionUuid connection entityId disconnectUser error@ForbiddenError {} = do
-  let msg = createErrorWebsocketMessage connectionUuid connection entityId error
-  sendMessage disconnectUser msg
-  disconnectUser msg
-sendError connectionUuid connection entityId disconnectUser error =
-  sendMessage disconnectUser $ createErrorWebsocketMessage connectionUuid connection entityId error
+enqueueOutbound :: WizardRequestContextC s m => WebsocketOutbound -> U.UUID -> BSL.ByteString -> m ()
+enqueueOutbound outbound connectionUuid payload = do
+  accepted <- liftIO . atomically $ do
+    full <- isFullTBQueue outbound.queue
+    unless full (writeTBQueue outbound.queue payload)
+    return (not full)
+  unless accepted $ do
+    logInfoI _CMP_API (f' "[C:%s] Outbound queue is full, closing the connection" [U.toString connectionUuid])
+    closeOutbound outbound 1008 (Just . UserError $ _ERROR_API_WEBSOCKET__QUEUE_OVERFLOW)
 
--- Filter
-exceptMyself :: U.UUID -> WebsocketRecord -> Bool
-exceptMyself myConnectionUuid record = record.connectionUuid /= myConnectionUuid
+closeConnection :: MonadIO m => LocalWebsocketConnection -> Word16 -> Maybe AppError -> m ()
+closeConnection connection = closeOutbound connection.outbound
 
-filterByEntityId :: String -> WebsocketRecord -> Bool
-filterByEntityId projectUuid record = projectUuid == record.entityId
+closeOutbound :: MonadIO m => WebsocketOutbound -> Word16 -> Maybe AppError -> m ()
+closeOutbound outbound code mError =
+  liftIO . atomically . void $ tryPutTMVar outbound.closeSignal (code, fmap encodeError mError)
 
--- Accessors
-getCollaborators :: U.UUID -> String -> [WebsocketRecord] -> [OnlineUserInfo]
-getCollaborators connectionUuid entityId =
-  fmap (.user) . filter (exceptMyself connectionUuid) . filter (filterByEntityId entityId)
+encodeError :: AppError -> BSL.ByteString
+encodeError = encode . Error_ServerActionDTO
 
--- Mapper
-createErrorWebsocketMessage :: U.UUID -> Connection -> String -> AppError -> WebsocketMessage Error_ServerActionDTO
-createErrorWebsocketMessage connectionUuid connection entityId error =
-  WebsocketMessage
-    { connectionUuid = connectionUuid
-    , connection = connection
-    , entityId = entityId
-    , content = Error_ServerActionDTO error
-    }
-
--- Logs
 logWS :: WizardRequestContextC s m => U.UUID -> String -> m ()
 logWS connectionUuid message = do
   serverConfig <- asks (.serverConfig')
   when
     serverConfig.logging.websocketDebug
-    (logInfoI _CMP_SERVICE (f' "[C:%s] %s" [U.toString connectionUuid, message]))
+    (logInfoI _CMP_API (f' "[C:%s] %s" [U.toString connectionUuid, message]))

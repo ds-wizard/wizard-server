@@ -1,12 +1,12 @@
 module Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationAcl where
 
+import qualified Data.UUID as U
+
 import Shared.Model.Context.WizardRequestContext
-import Shared.Model.Websocket.WebsocketRecord
 import Shared.Service.KnowledgeModel.Editor.EditorAcl
-import Shared.Util.Uuid
 
-checkViewPermission :: WizardRequestContextC s m => WebsocketRecord -> m ()
-checkViewPermission record = checkPermissionToEditor (u' record.entityId)
+checkViewPermission :: WizardRequestContextC s m => U.UUID -> m ()
+checkViewPermission = checkPermissionToEditor
 
-checkEditPermission :: WizardRequestContextC s m => WebsocketRecord -> m ()
-checkEditPermission record = checkPermissionToEditor (u' record.entityId)
+checkEditPermission :: WizardRequestContextC s m => U.UUID -> m ()
+checkEditPermission = checkPermissionToEditor

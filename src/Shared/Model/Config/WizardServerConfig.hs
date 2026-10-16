@@ -21,13 +21,13 @@ data ServerConfig = ServerConfig
   , knowledgeModelEditor :: ServerConfigKnowledgeModelEditor
   , project :: ServerConfigProject
   , temporaryFile :: ServerConfigTemporaryFile
+  , websocket :: ServerConfigWebsocket
   , userToken :: ServerConfigUserToken
   , userRegistration :: ServerConfigUserRegistration
   , analyticalMails :: ServerConfigAnalyticalMails
   , logging :: ServerConfigLogging
   , cloud :: ServerConfigCloud
   , persistentCommand :: ServerConfigPersistentCommand
-  , signalBridge :: ServerConfigSignalBridge
   , admin :: ServerConfigAdmin
   , registry :: ServerConfigRegistry
   , httpClient :: ServerConfigHttpClient
@@ -58,7 +58,6 @@ data ServerConfigGeneral = ServerConfigGeneral
 
 data ServerConfigCache = ServerConfigCache
   { dataExpiration :: Integer
-  , websocketExpiration :: Integer
   , purgeExpired :: ServerConfigCronWorker
   , dataEnabled :: Bool
   }
@@ -86,6 +85,12 @@ data ServerConfigTemporaryFile = ServerConfigTemporaryFile
   }
   deriving (Generic, Show)
 
+data ServerConfigWebsocket = ServerConfigWebsocket
+  { cleanConnections :: ServerConfigCronWorker
+  , cleanOutbox :: ServerConfigCronWorker
+  }
+  deriving (Generic, Show)
+
 data ServerConfigUserToken = ServerConfigUserToken
   { clean :: ServerConfigCronWorker
   , expire :: ServerConfigCronWorker
@@ -94,17 +99,6 @@ data ServerConfigUserToken = ServerConfigUserToken
 
 data ServerConfigUserRegistration = ServerConfigUserRegistration
   { clean :: ServerConfigCronWorker
-  }
-  deriving (Generic, Show)
-
-data ServerConfigSignalBridge = ServerConfigSignalBridge
-  { enabled :: Bool
-  , updatePermsArn :: String
-  , updateUserGroupArn :: String
-  , setProjectArn :: String
-  , addEventArn :: String
-  , addFileArn :: String
-  , logOutAllArn :: String
   }
   deriving (Generic, Show)
 

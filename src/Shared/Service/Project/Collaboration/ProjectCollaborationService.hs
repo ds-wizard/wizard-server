@@ -1,214 +1,93 @@
 module Shared.Service.Project.Collaboration.ProjectCollaborationService where
 
 import Control.Monad (when)
-import Control.Monad.Except (catchError)
 import Control.Monad.Reader (asks, liftIO, local)
-import qualified Data.Aeson as A
-import qualified Data.Aeson.KeyMap as AKM
-import qualified Data.ByteString.Lazy.Char8 as BSL
-import Data.Foldable (traverse_)
-import Data.Maybe (isJust)
+import Data.Aeson (ToJSON, toJSON)
 import Data.Time
 import qualified Data.UUID as U
-import Network.WebSockets (Connection)
 
 import Shared.Api.Resource.Project.Detail.ProjectDetailWsDTO
 import Shared.Api.Resource.Project.Event.ProjectEventChangeDTO
 import Shared.Api.Resource.User.UserDTO
-import Shared.Api.Resource.Websocket.ProjectMessageJM ()
-import Shared.Api.Resource.Websocket.WebsocketActionJM ()
-import Shared.Cache.ProjectWebsocketCache
 import Shared.Database.DAO.Project.ProjectCacheDAO
 import Shared.Database.DAO.Project.ProjectCommentDAO
 import Shared.Database.DAO.Project.ProjectCommentThreadDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.User.UserGroupMembershipDAO
-import Shared.Integration.Aws.Lambda
-import Shared.Localization.Messages.WizardPublic
-import Shared.Model.Config.ServerConfig
-import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.WizardRequestContext
-import Shared.Model.Error.Error
-import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.File.ProjectFileSimple
 import Shared.Model.Project.Project
 import Shared.Model.User.OnlineUserInfo
-import Shared.Model.User.RolePermission
 import Shared.Model.User.UserGroupMembership
 import Shared.Model.User.UserSuggestion
-import Shared.Model.Websocket.WebsocketMessage
-import Shared.Model.Websocket.WebsocketRecord
+import Shared.Model.Websocket.WebsocketBusMessage
+import Shared.Model.Websocket.WebsocketPerm
+import Shared.Model.Websocket.WebsocketRegistry
+import Shared.Model.Websocket.WebsocketSubscription
 import Shared.Service.Acl.AclService
 import Shared.Service.Project.Collaboration.ProjectCollaborationAcl
 import Shared.Service.Project.Collaboration.ProjectCollaborationMapper
 import Shared.Service.Project.Comment.ProjectCommentMapper
 import Shared.Service.Project.Event.ProjectEventMapper
+import Shared.Service.Websocket.WebsocketBusService
+import Shared.Service.Websocket.WebsocketRegistryService
 import Shared.Service.Websocket.WebsocketService
 import Shared.Service.Workspace.WorkspaceScopeService
-import Shared.Util.Uuid
 import Shared.Util.Websocket
 
-putUserOnline :: WizardRequestContextC s m => U.UUID -> U.UUID -> Connection -> m ()
-putUserOnline projectUuid connectionUuid connection = do
-  myself <- createProjectRecord connectionUuid connection projectUuid
-  checkViewPermission myself.entityPerm
-  addToCache myself
+putUserOnline :: WizardRequestContextC s m => U.UUID -> U.UUID -> WebsocketOutbound -> m ()
+putUserOnline projectUuid connectionUuid outbound = do
+  (mWorkspaceUser, permission, userGroupUuids) <- resolveProjectPermission projectUuid
+  checkViewPermission permission
+  key <- projectKey projectUuid
+  mCurrentUser <- asks (.currentUser')
+  let tenantRolePermissions = maybe [] (.role.permissions) mCurrentUser
+  local (setCurrentUser mWorkspaceUser) (connectUser key connectionUuid outbound permission userGroupUuids tenantRolePermissions)
   logWS connectionUuid "New user added to the list"
-  setUserList projectUuid connectionUuid
+  publishUserListChanged key
 
 deleteUser :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 deleteUser projectUuid connectionUuid = do
-  deleteFromCache connectionUuid
-  setUserList projectUuid connectionUuid
+  key <- projectKey projectUuid
+  present <- disconnectUser key connectionUuid
+  when present (publishUserListChanged key)
 
-setUserList :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
-setUserList projectUuid connectionUuid = do
-  logWS connectionUuid "Informing other users about user list changes"
-  records <- getAllFromCache
-  broadcast (U.toString projectUuid) records (toSetUserListMessage records) disconnectUser
-  logWS connectionUuid "Informed completed"
+updatePermsForOnlineUsers :: WizardRequestContextC s m => U.UUID -> m ()
+updatePermsForOnlineUsers projectUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  publish ProjectPermissionsChanged {..}
 
-updatePermsForOnlineUsers :: WizardRequestContextC s m => U.UUID -> U.UUID -> ProjectVisibility -> ProjectSharing -> [ProjectPerm] -> m ()
-updatePermsForOnlineUsers projectUuid workspaceUuid visibility sharing permissions = do
-  currentTenantUuid <- asks (.tenantUuid')
-  serverConfig <- asks (.serverConfig')
-  if isJust serverConfig.cloud.signalBridgeUrl
-    then do
-      let dto = AKM.fromList [("projectUuid", U.toString projectUuid), ("tenantUuid", U.toString currentTenantUuid)]
-      invokeLambda serverConfig.signalBridge.updatePermsArn (BSL.toStrict . A.encode $ dto)
-      return ()
-    else do
-      records <- getAllFromCache
-      traverse_ updatePerm records
-  where
-    updatePerm record =
-      when
-        (record.entityId == U.toString projectUuid)
-        ( do
-            permission <-
-              case record.user of
-                user@LoggedOnlineUserInfo {uuid = uuid, role = userRole, groupUuids = groupUuids} -> do
-                  isMember <- isWorkspaceMember workspaceUuid uuid
-                  let reachable = isMember || any (`elem` userRole.permissions) workspaceReachRolePermissions
-                  return $ getPermission visibility sharing permissions (Just uuid) userRole.permissions groupUuids reachable
-                user@AnonymousOnlineUserInfo {..} ->
-                  return $ getPermission visibility sharing permissions Nothing [] [] True
-            let updatedRecord = record {entityPerm = permission}
-            updateCache updatedRecord
-            disconnectUserIfLostPermission updatedRecord
-        )
+updatePermsForWorkspace :: WizardRequestContextC s m => U.UUID -> m ()
+updatePermsForWorkspace workspaceUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  publish WorkspacePermissionsChanged {..}
 
 removeUserGroupFromUsers :: WizardRequestContextC s m => U.UUID -> [U.UUID] -> m ()
 removeUserGroupFromUsers userGroupUuid userUuids = do
-  currentTenantUuid <- asks (.tenantUuid')
-  serverConfig <- asks (.serverConfig')
-  if isJust serverConfig.cloud.signalBridgeUrl
-    then do
-      let dto = AKM.fromList [("userGroupUuid", U.toString userGroupUuid), ("tenantUuid", U.toString currentTenantUuid)]
-      invokeLambda serverConfig.signalBridge.updateUserGroupArn (BSL.toStrict . A.encode $ dto)
-      return ()
-    else do
-      records <- getAllFromCache
-      traverse_ updatePerm records
-  where
-    updatePerm record =
-      case record.user of
-        user@LoggedOnlineUserInfo {uuid = uuid, groupUuids = groupUuids} -> do
-          when
-            (user.uuid `elem` userUuids)
-            ( do
-                let updatedRecord = record {user = user {groupUuids = filter (/= userGroupUuid) user.groupUuids}}
-                updateCache updatedRecord
-            )
-        user@AnonymousOnlineUserInfo {..} -> return ()
+  tenantUuid <- asks (.tenantUuid')
+  publish UserGroupRemoved {..}
 
 setProject :: WizardRequestContextC s m => U.UUID -> ProjectDetailWsDTO -> m ()
-setProject projectUuid reqDto = do
-  currentTenantUuid <- asks (.tenantUuid')
-  serverConfig <- asks (.serverConfig')
-  if isJust serverConfig.cloud.signalBridgeUrl
-    then do
-      let dto =
-            AKM.fromList
-              [ ("projectUuid", A.String . U.toText $ projectUuid)
-              , ("tenantUuid", A.String . U.toText $ currentTenantUuid)
-              , ("message", A.toJSON reqDto)
-              ]
-      invokeLambda serverConfig.signalBridge.setProjectArn (BSL.toStrict . A.encode $ dto)
-      return ()
-    else do
-      logWS U.nil "Informing other users about changed project"
-      records <- getAllFromCache
-      broadcast (U.toString projectUuid) records (toSetProjectMessage reqDto) disconnectUser
-      logWS U.nil "Informed completed"
+setProject projectUuid reqDto = broadcast projectUuid AllRecipients (toSetProjectMessage reqDto)
 
 addEvent :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m ()
-addEvent projectUuid entityPerm mCreatedBy reqDto = do
-  currentTenantUuid <- asks (.tenantUuid')
-  serverConfig <- asks (.serverConfig')
-  if isJust serverConfig.cloud.signalBridgeUrl
-    then do
-      now <- liftIO getCurrentTime
-      let resDto = toEventDTO' reqDto mCreatedBy now
-      let dto =
-            AKM.fromList
-              [ ("projectUuid", A.String . U.toText $ projectUuid)
-              , ("tenantUuid", A.String . U.toText $ currentTenantUuid)
-              , ("message", A.toJSON resDto)
-              ]
-      invokeLambda serverConfig.signalBridge.addEventArn (BSL.toStrict . A.encode $ dto)
-      return ()
-    else do
-      logWS U.nil "Informing other users about new event"
-      processSetContent projectUuid entityPerm mCreatedBy reqDto
-      logWS U.nil "Informed completed"
+addEvent = processSetContent
 
 addFile :: WizardRequestContextC s m => U.UUID -> ProjectFileSimple -> m ()
-addFile projectUuid reqDto = do
-  currentTenantUuid <- asks (.tenantUuid')
-  serverConfig <- asks (.serverConfig')
-  if isJust serverConfig.cloud.signalBridgeUrl
-    then do
-      let dto =
-            AKM.fromList
-              [ ("projectUuid", A.String . U.toText $ projectUuid)
-              , ("tenantUuid", A.String . U.toText $ currentTenantUuid)
-              , ("message", A.toJSON reqDto)
-              ]
-      invokeLambda serverConfig.signalBridge.addFileArn (BSL.toStrict . A.encode $ dto)
-      return ()
-    else do
-      logWS U.nil "Informing other users about added file"
-      records <- getAllFromCache
-      broadcast (U.toString projectUuid) records (toAddFileMessage reqDto) disconnectUser
-      logWS U.nil "Informed completed"
+addFile projectUuid reqDto = broadcast projectUuid AllRecipients (toAddFileMessage reqDto)
 
 logOutOnlineUsersWhenProjectDramaticallyChanged :: WizardRequestContextC s m => U.UUID -> m ()
 logOutOnlineUsersWhenProjectDramaticallyChanged projectUuid = do
-  currentTenantUuid <- asks (.tenantUuid')
-  serverConfig <- asks (.serverConfig')
-  if isJust serverConfig.cloud.signalBridgeUrl
-    then do
-      let dto = AKM.fromList [("projectUuid", U.toString projectUuid), ("tenantUuid", U.toString currentTenantUuid)]
-      invokeLambda serverConfig.signalBridge.logOutAllArn (BSL.toStrict . A.encode $ dto)
-      return ()
-    else do
-      records <- getAllFromCache
-      let error = NotExistsError $ _ERROR_SERVICE_PROJECT_COLLABORATION__FORCE_DISCONNECT (U.toString projectUuid)
-      traverse_ (logOut error) records
-  where
-    logOut error record =
-      when
-        (record.entityId == U.toString projectUuid)
-        (sendError record.connectionUuid record.connection record.entityId disconnectUser error)
+  (tenantUuid, subscription, entityUuid) <- projectKey projectUuid
+  publish LogOutAll {..}
 
 -- --------------------------------
 setContent :: WizardRequestContextC s m => U.UUID -> U.UUID -> ProjectEventChangeDTO -> m ()
 setContent projectUuid connectionUuid reqDto = do
-  myself <- getFromCache' connectionUuid
-  let mCreatedBy = getMaybeCreatedBy myself
-  processSetContent projectUuid myself.entityPerm mCreatedBy reqDto
+  key <- projectKey projectUuid
+  myself <- findLocalConnection' key connectionUuid
+  processSetContent projectUuid myself.websocketPerm (getMaybeCreatedBy myself.onlineUser) reqDto
 
 processSetContent :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m ()
 processSetContent projectUuid perm mCreatedBy reqDto =
@@ -228,110 +107,56 @@ processSetContent projectUuid perm mCreatedBy reqDto =
 setReply :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> SetReplyEventChangeDTO -> m ()
 setReply projectUuid entityPerm mCreatedBy reqDto = do
   checkEditPermission entityPerm
-  now <- liftIO getCurrentTime
-  tenantUuid <- asks (.tenantUuid')
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
-  insertProjectEventWithTimestampUpdate
-    projectUuid
-    (fromEventChangeDTO (SetReplyEventChangeDTO' reqDto) projectUuid tenantUuid mCreatedByUuid now)
-  let resDto = toSetReplyEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  broadcast (U.toString projectUuid) records (toSetReplyMessage resDto) disconnectUser
+  now <- insertEvent projectUuid mCreatedBy (SetReplyEventChangeDTO' reqDto)
+  broadcast projectUuid AllRecipients (toSetReplyMessage (toSetReplyEventDTO' reqDto mCreatedBy now))
 
 clearReply :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ClearReplyEventChangeDTO -> m ()
 clearReply projectUuid entityPerm mCreatedBy reqDto = do
   checkEditPermission entityPerm
-  now <- liftIO getCurrentTime
-  tenantUuid <- asks (.tenantUuid')
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
-  insertProjectEventWithTimestampUpdate
-    projectUuid
-    (fromEventChangeDTO (ClearReplyEventChangeDTO' reqDto) projectUuid tenantUuid mCreatedByUuid now)
-  let resDto = toClearReplyEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  broadcast (U.toString projectUuid) records (toClearReplyMessage resDto) disconnectUser
+  now <- insertEvent projectUuid mCreatedBy (ClearReplyEventChangeDTO' reqDto)
+  broadcast projectUuid AllRecipients (toClearReplyMessage (toClearReplyEventDTO' reqDto mCreatedBy now))
 
 setPhase :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> SetPhaseEventChangeDTO -> m ()
 setPhase projectUuid entityPerm mCreatedBy reqDto = do
   checkEditPermission entityPerm
-  now <- liftIO getCurrentTime
-  tenantUuid <- asks (.tenantUuid')
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
-  insertProjectEventWithTimestampUpdate
-    projectUuid
-    (fromEventChangeDTO (SetPhaseEventChangeDTO' reqDto) projectUuid tenantUuid mCreatedByUuid now)
-  let resDto = toSetPhaseEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  broadcast (U.toString projectUuid) records (toSetPhaseMessage resDto) disconnectUser
+  now <- insertEvent projectUuid mCreatedBy (SetPhaseEventChangeDTO' reqDto)
+  broadcast projectUuid AllRecipients (toSetPhaseMessage (toSetPhaseEventDTO' reqDto mCreatedBy now))
 
 setLabel :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> SetLabelsEventChangeDTO -> m ()
 setLabel projectUuid entityPerm mCreatedBy reqDto = do
   checkEditPermission entityPerm
-  now <- liftIO getCurrentTime
-  tenantUuid <- asks (.tenantUuid')
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
-  insertProjectEventWithTimestampUpdate projectUuid (fromEventChangeDTO (SetLabelsEventChangeDTO' reqDto) projectUuid tenantUuid mCreatedByUuid now)
-  let resDto = toSetLabelsEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  broadcast (U.toString projectUuid) records (toSetLabelMessage resDto) disconnectUser
+  now <- insertEvent projectUuid mCreatedBy (SetLabelsEventChangeDTO' reqDto)
+  broadcast projectUuid AllRecipients (toSetLabelMessage (toSetLabelsEventDTO' reqDto mCreatedBy now))
 
 resolveCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ResolveCommentThreadEventChangeDTO -> m ()
 resolveCommentThread projectUuid entityPerm mCreatedBy reqDto = do
   checkCommentPermission entityPerm
   now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
   updateProjectCommentThreadResolvedById reqDto.threadUuid True
-  let resDto = toResolveCommentThreadEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toResolveCommentThreadMessage resDto) disconnectUser
+  broadcast projectUuid (commentRecipients reqDto.private) (toResolveCommentThreadMessage (toResolveCommentThreadEventDTO' reqDto mCreatedBy now))
 
 reopenCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ReopenCommentThreadEventChangeDTO -> m ()
 reopenCommentThread projectUuid entityPerm mCreatedBy reqDto = do
   checkCommentPermission entityPerm
   now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
   updateProjectCommentThreadResolvedById reqDto.threadUuid False
-  let resDto = toReopenCommentThreadEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toReopenCommentThreadMessage resDto) disconnectUser
+  broadcast projectUuid (commentRecipients reqDto.private) (toReopenCommentThreadMessage (toReopenCommentThreadEventDTO' reqDto mCreatedBy now))
 
 assignCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> AssignCommentThreadEventChangeDTO -> m ()
 assignCommentThread projectUuid entityPerm mCreatedBy reqDto = do
   checkCommentPermission entityPerm
   now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
-  updateProjectCommentThreadAssignee reqDto.threadUuid (fmap (.uuid) reqDto.assignedTo) mCreatedByUuid
-  let resDto = toAssignCommentThreadEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toAssignCommentThreadMessage resDto) disconnectUser
+  updateProjectCommentThreadAssignee reqDto.threadUuid (fmap (.uuid) reqDto.assignedTo) (fmap (.uuid) mCreatedBy)
+  broadcast projectUuid (commentRecipients reqDto.private) (toAssignCommentThreadMessage (toAssignCommentThreadEventDTO' reqDto mCreatedBy now))
 
 deleteCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> DeleteCommentThreadEventChangeDTO -> m ()
 deleteCommentThread projectUuid entityPerm mCreatedBy reqDto = do
   checkCommentPermission entityPerm
   now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
   deleteProjectCommentsByThreadUuid reqDto.threadUuid
   deleteProjectCommentThreadById reqDto.threadUuid
   deleteProjectCacheByProjectUuid projectUuid
-  let resDto = toDeleteCommentThreadEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toDeleteCommentThreadMessage resDto) disconnectUser
+  broadcast projectUuid (commentRecipients reqDto.private) (toDeleteCommentThreadMessage (toDeleteCommentThreadEventDTO' reqDto mCreatedBy now))
 
 addComment :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> AddCommentEventChangeDTO -> m ()
 addComment projectUuid entityPerm mCreatedBy reqDto = do
@@ -341,69 +166,54 @@ addComment projectUuid entityPerm mCreatedBy reqDto = do
   let mCreatedByUuid = fmap (.uuid) mCreatedBy
   let comment = toComment reqDto tenantUuid mCreatedByUuid now
   if reqDto.newThread
-    then do
-      let thread = toCommentThread reqDto projectUuid tenantUuid mCreatedByUuid now
-      insertProjectThreadAndComment thread comment
+    then insertProjectThreadAndComment (toCommentThread reqDto projectUuid tenantUuid mCreatedByUuid now) comment
     else insertProjectComment comment
-  let resDto = toAddCommentEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toAddCommentMessage resDto) disconnectUser
+  broadcast projectUuid (commentRecipients reqDto.private) (toAddCommentMessage (toAddCommentEventDTO' reqDto mCreatedBy now))
 
 editComment :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> EditCommentEventChangeDTO -> m ()
 editComment projectUuid entityPerm mCreatedBy reqDto = do
   checkCommentPermission entityPerm
   now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
   updateProjectCommentTextById reqDto.commentUuid reqDto.text
-  let resDto = toEditCommentEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toEditCommentMessage resDto) disconnectUser
+  broadcast projectUuid (commentRecipients reqDto.private) (toEditCommentMessage (toEditCommentEventDTO' reqDto mCreatedBy now))
 
 deleteComment :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> DeleteCommentEventChangeDTO -> m ()
 deleteComment projectUuid entityPerm mCreatedBy reqDto = do
   checkCommentPermission entityPerm
   now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
   deleteProjectCommentById reqDto.commentUuid
   deleteProjectCacheByProjectUuid projectUuid
-  let resDto = toDeleteCommentEventDTO' reqDto mCreatedBy now
-  records <- getAllFromCache
-  let filteredRecords =
-        if reqDto.private
-          then filterEditors records
-          else filterCommenters records
-  broadcast (U.toString projectUuid) filteredRecords (toDeleteCommentMessage resDto) disconnectUser
+  broadcast projectUuid (commentRecipients reqDto.private) (toDeleteCommentMessage (toDeleteCommentEventDTO' reqDto mCreatedBy now))
 
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
-disconnectUser :: (WizardRequestContextC s m, A.ToJSON resDto) => WebsocketMessage resDto -> m ()
-disconnectUser msg = deleteUser (u' msg.entityId) msg.connectionUuid
+projectKey :: WizardRequestContextC s m => U.UUID -> m WebsocketEntityKey
+projectKey projectUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  return (tenantUuid, ProjectWebsocketSubscription, projectUuid)
 
-disconnectUserIfLostPermission :: WizardRequestContextC s m => WebsocketRecord -> m ()
-disconnectUserIfLostPermission record = catchError (checkViewPermission record.entityPerm) handleError
-  where
-    handleError = sendError record.connectionUuid record.connection record.entityId disconnectUser
+broadcast :: (WizardRequestContextC s m, ToJSON content) => U.UUID -> WebsocketRecipients -> content -> m ()
+broadcast projectUuid recipients content = do
+  (tenantUuid, subscription, entityUuid) <- projectKey projectUuid
+  publish Broadcast {payload = toJSON content, ..}
 
-createProjectRecord :: WizardRequestContextC s m => U.UUID -> Connection -> U.UUID -> m WebsocketRecord
-createProjectRecord connectionUuid connection projectUuid = do
+commentRecipients :: Bool -> WebsocketRecipients
+commentRecipients private = if private then EditorsOnly else CommentersAndEditors
+
+insertEvent :: WizardRequestContextC s m => U.UUID -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m UTCTime
+insertEvent projectUuid mCreatedBy reqDto = do
+  now <- liftIO getCurrentTime
+  tenantUuid <- asks (.tenantUuid')
+  insertProjectEventWithTimestampUpdate projectUuid (fromEventChangeDTO reqDto projectUuid tenantUuid (fmap (.uuid) mCreatedBy) now)
+  return now
+
+resolveProjectPermission :: WizardRequestContextC s m => U.UUID -> m (Maybe UserDTO, WebsocketPerm, [U.UUID])
+resolveProjectPermission projectUuid = do
   mCurrentUser <- asks (.currentUser')
   workspaceRoles <- asks (.workspaceRoles')
   project <- findProjectByUuid projectUuid
-  userGroupUuids <-
-    case mCurrentUser of
-      Just currentUser -> do
-        userGroupMemberships <- findUserGroupMembershipsByUserUuid currentUser.uuid
-        return . fmap (.userGroupUuid) $ userGroupMemberships
-      Nothing -> return []
+  userGroupUuids <- maybe (return []) (fmap (fmap (.userGroupUuid)) . findUserGroupMembershipsByUserUuid . (.uuid)) mCurrentUser
   multiWorkspace <- asks (.tenantMultiWorkspace')
   reachable <- isWorkspaceReachable project.workspaceUuid
   let withWorkspacePermissions currentUser = currentUser {role = currentUser.role {permissions = permissionsInWorkspace currentUser workspaceRoles multiWorkspace (Just project.workspaceUuid)}} :: UserDTO
@@ -417,26 +227,8 @@ createProjectRecord connectionUuid connection projectUuid = do
           (maybe [] (.role.permissions) mWorkspaceUser)
           userGroupUuids
           reachable
-  local (setCurrentUser mWorkspaceUser) (createRecord connectionUuid connection (U.toString projectUuid) permission userGroupUuids)
+  return (mWorkspaceUser, permission, userGroupUuids)
 
-getMaybeCreatedBy :: WebsocketRecord -> Maybe UserSuggestion
-getMaybeCreatedBy myself =
-  case myself.user of
-    u@LoggedOnlineUserInfo
-      { uuid = uuid
-      , firstName = firstName
-      , lastName = lastName
-      , gravatarHash = gravatarHash
-      , imageUrl = imageUrl
-      , affiliation = affiliation
-      } ->
-        Just $
-          UserSuggestion
-            { uuid = uuid
-            , firstName = firstName
-            , lastName = lastName
-            , gravatarHash = gravatarHash
-            , imageUrl = imageUrl
-            , affiliation = affiliation
-            }
-    u@AnonymousOnlineUserInfo {..} -> Nothing
+getMaybeCreatedBy :: OnlineUserInfo -> Maybe UserSuggestion
+getMaybeCreatedBy LoggedOnlineUserInfo {..} = Just UserSuggestion {..}
+getMaybeCreatedBy AnonymousOnlineUserInfo {} = Nothing

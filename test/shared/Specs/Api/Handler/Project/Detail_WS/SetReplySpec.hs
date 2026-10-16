@@ -2,7 +2,6 @@ module Specs.Api.Handler.Project.Detail_WS.SetReplySpec where
 
 import Data.Aeson
 import Data.Foldable (traverse_)
-import Network.WebSockets
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
@@ -23,6 +22,8 @@ import Shared.Model.Error.Error
 import Shared.Model.Project.Project
 import Shared.Service.Project.Event.ProjectEventMapper
 import WizardServer.Model.Context.RequestContext
+
+import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.Project.Detail_WS.Common
@@ -104,7 +105,7 @@ write_SetReply connection replyDto = do
   sendMessage connection reqDto
 
 read_SetReply connection expReplyDto = do
-  resDto <- receiveData connection
+  resDto <- receiveDataWithin connection
   let eResult = eitherDecode resDto :: Either String (Success_ServerActionDTO ServerProjectMessageDTO)
   let (Right (Success_ServerActionDTO (SetContent_ServerProjectMessageDTO replyDto))) = eResult
   expReplyDto `shouldBe` replyDto

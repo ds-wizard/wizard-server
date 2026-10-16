@@ -3,6 +3,7 @@ module WizardServer.Service.User.Role.RoleService where
 import Control.Monad (void, when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
+import Data.Foldable (traverse_)
 import Data.Time
 import qualified Data.UUID as U
 
@@ -28,6 +29,7 @@ import Shared.Model.User.Role
 import Shared.Model.User.RoleList
 import Shared.Model.Workspace.Workspace
 import Shared.Service.Common
+import Shared.Service.Project.Collaboration.ProjectCollaborationService (updatePermsForWorkspace)
 import Shared.Service.Settings.SettingsService
 import Shared.Service.User.RoleAcl
 import qualified Shared.Service.User.RoleMapper as Mapper
@@ -82,6 +84,7 @@ modifyRole uuid reqDto =
     let updated = Mapper.fromChangeDTO role reqDto now
     updateRoleByUuid updated
     void $ updateUsersRoleByRole uuid reqDto.permissions reqDto.name
+    traverse_ updatePermsForWorkspace role.workspaceUuid
     findRoleListByUuid uuid
 
 deleteRole :: WizardRequestContextC s m => U.UUID -> m ()

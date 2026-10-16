@@ -25,7 +25,6 @@ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours boo
     , registry = BootstrapRegistryDTO {enabled = settings.registry.enabled, url = serverConfig.registry.clientUrl}
     , cloud = toCloudDTO serverConfig.cloud tenant
     , admin = BootstrapAdminDTO {enabled = serverConfig.admin.enabled}
-    , signalBridge = toSignalBridgeDTO serverConfig.cloud
     , plugins = bootstrapPlugins.plugins
     , pluginSettings = bootstrapPlugins.pluginSettings
     , multiWorkspace = tenant.multiWorkspace

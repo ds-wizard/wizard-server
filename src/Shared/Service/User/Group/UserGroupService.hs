@@ -21,7 +21,6 @@ import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
-import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.ProjectSimpleWithPerm
 import Shared.Model.User.UserGroup
 import Shared.Model.User.UserGroupList
@@ -89,8 +88,4 @@ deleteUserGroup uuid =
     deleteUserGroupByUuid uuid
     al_deleteUserGroup userGroup
     removeUserGroupFromUsers uuid (fmap (.userUuid) memberships)
-    traverse_ (updatePermsWithoutUserGroup uuid) projects
-
-updatePermsWithoutUserGroup :: WizardRequestContextC s m => U.UUID -> ProjectSimpleWithPerm -> m ()
-updatePermsWithoutUserGroup userGroupUuid project =
-  updatePermsForOnlineUsers project.uuid project.workspaceUuid project.visibility project.sharing (filter ((/= userGroupUuid) . (.memberUuid)) project.permissions)
+    traverse_ (updatePermsForOnlineUsers . (.uuid)) projects

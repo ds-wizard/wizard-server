@@ -9,14 +9,19 @@ import Prelude hiding (log)
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Service.PersistentCommand.WizardPersistentCommandService
+import Shared.Service.Websocket.WebsocketBusService
+import Shared.Service.Websocket.WebsocketNodeService
 import Shared.Util.Logger
+import Shared.Worker.WebsocketWorkers
 import WizardServer.Model.Context.ContextMappers
 import WizardServer.Model.Context.ServerContext
 
 permanentWorker :: ServerContext -> LoggingT IO [ThreadId]
 permanentWorker context = do
   threadId <- liftIO $ forkIO (persistentCommandListenerJob context)
-  return [threadId]
+  websocketBusThreadId <- liftIO $ forkIO (websocketBusListenerJob (runRequestContextWithServerContext runWebsocketBusListener context) context)
+  websocketHeartbeatThreadId <- liftIO $ forkIO (websocketHeartbeatJob (runRequestContextWithServerContext'' refreshNodeHeartbeat context) context)
+  return [threadId, websocketBusThreadId, websocketHeartbeatThreadId]
 
 -- -----------------------------------------------------------------------------
 -- WORKERS

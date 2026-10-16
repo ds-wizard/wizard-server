@@ -26,6 +26,9 @@ _ERROR_API__WEBSOCKET_RECORD_NOT_FOUND connectionUUid =
     "Websocket record (connectionUuid: '%s') does not exist"
     [connectionUUid]
 
+_ERROR_API_WEBSOCKET__QUEUE_OVERFLOW =
+  LocaleRecord "error.api.websocket.queue_overflow" "Client is too slow to receive messages, reconnect" []
+
 -- --------------------------------------
 -- DATABASE
 -- --------------------------------------

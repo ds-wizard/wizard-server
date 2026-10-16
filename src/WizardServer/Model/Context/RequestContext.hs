@@ -31,6 +31,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.Sentry.SentryEvent
 import Shared.Model.User.RoleSimple
+import Shared.Model.Websocket.WebsocketRegistry
 import Shared.Service.Acl.AclService
 import Shared.Service.Tenant.Limit.LimitMapper
 import Shared.Util.Logger
@@ -54,6 +55,8 @@ data RequestContext = RequestContext
   , tenantMultiWorkspace :: Bool
   , workspaceRoles :: M.Map U.UUID RoleSimple
   , auditLogSource :: AuditLogSource
+  , websocketRegistry :: WebsocketRegistry
+  , nodeUuid :: U.UUID
   }
 
 newtype RequestContextM a = RequestContextM
@@ -134,6 +137,12 @@ instance HasField "auditLogEnabled'" RequestContext Bool where
 
 instance HasField "auditLogSource'" RequestContext AuditLogSource where
   getField = (.auditLogSource)
+
+instance HasField "websocketRegistry'" RequestContext WebsocketRegistry where
+  getField = (.websocketRegistry)
+
+instance HasField "nodeUuid'" RequestContext U.UUID where
+  getField = (.nodeUuid)
 
 instance WizardRequestContextC RequestContext RequestContextM where
   runRequestContextWithRequestContext function requestContext = do

@@ -17,7 +17,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Project.Event.ProjectEvent
 import Shared.Model.Project.Project
 import Shared.Model.Project.Version.ProjectVersion
-import Shared.Model.Websocket.WebsocketRecord
+import Shared.Model.Websocket.WebsocketPerm
 import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Project.ProjectAcl
 import Shared.Service.User.WizardUserMapper

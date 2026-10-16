@@ -13,6 +13,8 @@ import Shared.Service.Project.Event.ProjectEventService hiding (squash)
 import Shared.Service.Project.ProjectService
 import Shared.Service.Registry.Synchronization.RegistrySynchronizationService
 import Shared.Service.TemporaryFile.TemporaryFileService
+import Shared.Service.Websocket.WebsocketBusService
+import Shared.Service.Websocket.WebsocketNodeService
 
 workers :: (WizardServerContextType s, WizardRequestContextC r rm) => [CronWorker s rm]
 workers =
@@ -24,6 +26,8 @@ workers =
   , assigneeNotificationWorker
   , registrySyncWorker
   , temporaryFileWorker
+  , websocketConnectionWorker
+  , websocketOutboxWorker
   ]
 
 cacheWorker :: (WizardServerContextType s, WizardRequestContextC r rm) => CronWorker s rm
@@ -104,4 +108,24 @@ temporaryFileWorker =
     , cron = (.serverConfig'.temporaryFile.clean.cron)
     , function = cleanTemporaryFiles
     , wrapInTransaction = True
+    }
+
+websocketConnectionWorker :: (WizardServerContextType s, WizardRequestContextC r rm) => CronWorker s rm
+websocketConnectionWorker =
+  CronWorker
+    { name = "WebsocketConnectionWorker"
+    , condition = (.serverConfig'.websocket.cleanConnections.enabled)
+    , cron = (.serverConfig'.websocket.cleanConnections.cron)
+    , function = purgeStaleWebsocketConnections
+    , wrapInTransaction = False
+    }
+
+websocketOutboxWorker :: (WizardServerContextType s, WizardRequestContextC r rm) => CronWorker s rm
+websocketOutboxWorker =
+  CronWorker
+    { name = "WebsocketOutboxWorker"
+    , condition = (.serverConfig'.websocket.cleanOutbox.enabled)
+    , cron = (.serverConfig'.websocket.cleanOutbox.cron)
+    , function = purgeWebsocketOutbox
+    , wrapInTransaction = False
     }

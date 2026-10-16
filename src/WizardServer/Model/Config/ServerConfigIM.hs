@@ -20,13 +20,13 @@ instance FromEnv ServerConfig where
     knowledgeModelEditor <- applyEnv serverConfig.knowledgeModelEditor
     project <- applyEnv serverConfig.project
     temporaryFile <- applyEnv serverConfig.temporaryFile
+    websocket <- applyEnv serverConfig.websocket
     userToken <- applyEnv serverConfig.userToken
     userRegistration <- applyEnv serverConfig.userRegistration
     analyticalMails <- applyEnv serverConfig.analyticalMails
     logging <- applyEnv serverConfig.logging
     cloud <- applyEnv serverConfig.cloud
     persistentCommand <- applyEnv serverConfig.persistentCommand
-    signalBridge <- applyEnv serverConfig.signalBridge
     admin <- applyEnv serverConfig.admin
     registry <- applyEnv serverConfig.registry
     httpClient <- applyEnv serverConfig.httpClient
@@ -71,7 +71,6 @@ instance FromEnv ServerConfigCache where
     applyEnvVariables
       serverConfig
       [ \c -> applyEnvVariable "CACHE_DATA_EXPIRATION" c.dataExpiration (\x -> c {dataExpiration = x})
-      , \c -> applyEnvVariable "CACHE_WEBSOCKET_EXPIRATION" c.websocketExpiration (\x -> c {websocketExpiration = x})
       , \c -> applyEnvVariable "CACHE_PURGE_EXPIRED_ENABLED" c.purgeExpired.enabled (\x -> c {purgeExpired = c.purgeExpired {enabled = x}} :: ServerConfigCache)
       , \c -> applyStringEnvVariable "CACHE_PURGE_EXPIRED_CRON" c.purgeExpired.cron (\x -> c {purgeExpired = c.purgeExpired {cron = x}} :: ServerConfigCache)
       , \c -> applyEnvVariable "CACHE_DATA_ENABLED" c.dataEnabled (\x -> c {dataEnabled = x} :: ServerConfigCache)
@@ -113,6 +112,16 @@ instance FromEnv ServerConfigTemporaryFile where
       , \c -> applyStringEnvVariable "TEMPORARY_FILE_CLEAN_CRON" c.clean.cron (\x -> c {clean = c.clean {cron = x}} :: ServerConfigTemporaryFile)
       ]
 
+instance FromEnv ServerConfigWebsocket where
+  applyEnv serverConfig =
+    applyEnvVariables
+      serverConfig
+      [ \c -> applyEnvVariable "WEBSOCKET_CLEAN_CONNECTIONS_ENABLED" c.cleanConnections.enabled (\x -> c {cleanConnections = c.cleanConnections {enabled = x}} :: ServerConfigWebsocket)
+      , \c -> applyStringEnvVariable "WEBSOCKET_CLEAN_CONNECTIONS_CRON" c.cleanConnections.cron (\x -> c {cleanConnections = c.cleanConnections {cron = x}} :: ServerConfigWebsocket)
+      , \c -> applyEnvVariable "WEBSOCKET_CLEAN_OUTBOX_ENABLED" c.cleanOutbox.enabled (\x -> c {cleanOutbox = c.cleanOutbox {enabled = x}} :: ServerConfigWebsocket)
+      , \c -> applyStringEnvVariable "WEBSOCKET_CLEAN_OUTBOX_CRON" c.cleanOutbox.cron (\x -> c {cleanOutbox = c.cleanOutbox {cron = x}} :: ServerConfigWebsocket)
+      ]
+
 instance FromEnv ServerConfigUserToken where
   applyEnv serverConfig =
     applyEnvVariables
@@ -121,19 +130,6 @@ instance FromEnv ServerConfigUserToken where
       , \c -> applyStringEnvVariable "USER_TOKEN_CLEAN_CRON" c.clean.cron (\x -> c {clean = c.clean {cron = x}} :: ServerConfigUserToken)
       , \c -> applyEnvVariable "USER_TOKEN_EXPIRE_ENABLED" c.expire.enabled (\x -> c {expire = c.expire {enabled = x}} :: ServerConfigUserToken)
       , \c -> applyStringEnvVariable "USER_TOKEN_EXPIRE_CRON" c.expire.cron (\x -> c {expire = c.expire {cron = x}} :: ServerConfigUserToken)
-      ]
-
-instance FromEnv ServerConfigSignalBridge where
-  applyEnv serverConfig =
-    applyEnvVariables
-      serverConfig
-      [ \c -> applyEnvVariable "SIGNAL_BRIDGE_ENABLED" c.enabled (\x -> c {enabled = x} :: ServerConfigSignalBridge)
-      , \c -> applyStringEnvVariable "SIGNAL_BRIDGE_UPDATE_PERMS_ARN" c.updatePermsArn (\x -> c {updatePermsArn = x} :: ServerConfigSignalBridge)
-      , \c -> applyStringEnvVariable "SIGNAL_BRIDGE_UPDATE_USER_GROUP_ARN" c.updateUserGroupArn (\x -> c {updateUserGroupArn = x} :: ServerConfigSignalBridge)
-      , \c -> applyStringEnvVariable "SIGNAL_BRIDGE_SET_PROJECT_ARN" c.setProjectArn (\x -> c {setProjectArn = x} :: ServerConfigSignalBridge)
-      , \c -> applyStringEnvVariable "SIGNAL_BRIDGE_ADD_EVENT_ARN" c.addEventArn (\x -> c {addEventArn = x} :: ServerConfigSignalBridge)
-      , \c -> applyStringEnvVariable "SIGNAL_BRIDGE_ADD_FILE_ARN" c.addFileArn (\x -> c {addFileArn = x} :: ServerConfigSignalBridge)
-      , \c -> applyStringEnvVariable "SIGNAL_BRIDGE_LOG_OUT_ALL_ARN" c.logOutAllArn (\x -> c {logOutAllArn = x} :: ServerConfigSignalBridge)
       ]
 
 instance FromEnv ServerConfigAdmin where

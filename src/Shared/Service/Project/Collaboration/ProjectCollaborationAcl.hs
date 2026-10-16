@@ -11,7 +11,7 @@ import Shared.Model.Project.Acl.ProjectAclHelpers
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Project
 import Shared.Model.User.RolePermission
-import Shared.Model.Websocket.WebsocketRecord
+import Shared.Model.Websocket.WebsocketPerm
 
 getPermission
   :: ProjectVisibility

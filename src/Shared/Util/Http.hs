@@ -17,7 +17,15 @@ findHeader headerNameToFind headers =
     Nothing -> Nothing
 
 extractPath :: Request -> String
-extractPath request = (BS.unpack . rawPathInfo $ request) ++ (BS.unpack . rawQueryString $ request)
+extractPath request = (BS.unpack . rawPathInfo $ request) ++ (BS.unpack . maskQueryString . rawQueryString $ request)
+
+maskQueryString :: BS.ByteString -> BS.ByteString
+maskQueryString = BS.intercalate "&" . fmap mask . BS.split '&'
+  where
+    mask param =
+      case BS.breakSubstring "=" param of
+        (name, value) | not (BS.null value) && mk (BS.dropWhile (== '?') name) == "Authorization" -> name <> "=***"
+        _ -> param
 
 extractMethod :: Request -> String
 extractMethod = BS.unpack . requestMethod

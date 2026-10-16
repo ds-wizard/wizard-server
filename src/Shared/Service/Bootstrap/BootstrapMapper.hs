@@ -22,9 +22,6 @@ toPrivacyDTO privacyUrl termsOfServiceUrl = BootstrapPrivacyDTO {privacyUrl = pr
 toCloudDTO :: ServerConfigCloud -> Tenant -> BootstrapCloudDTO
 toCloudDTO serverConfig tenant = BootstrapCloudDTO {enabled = serverConfig.enabled, serverUrl = tenantServerUrl tenant}
 
-toSignalBridgeDTO :: ServerConfigCloud -> BootstrapSignalBridgeDTO
-toSignalBridgeDTO serverConfig = BootstrapSignalBridgeDTO {webSocketUrl = serverConfig.signalBridgeUrl}
-
 toBootstrapPlugins :: Bool -> [PluginList] -> M.Map U.UUID A.Value -> BootstrapPlugins
 toBootstrapPlugins signedIn plugins pluginSettings =
   BootstrapPlugins

@@ -6,6 +6,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Logger (LoggingT, MonadLogger)
 import Control.Monad.Reader (MonadReader, ReaderT)
 import Data.Pool (Pool)
+import qualified Data.UUID as U
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Records
 import Network.HTTP.Client (Manager)
@@ -17,6 +18,7 @@ import Shared.Model.Config.BuildInfoConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.ServerContext
 import Shared.Model.Context.WizardServerContext
+import Shared.Model.Websocket.WebsocketRegistry
 
 data ServerContext = ServerContext
   { serverConfig :: ServerConfig
@@ -28,6 +30,8 @@ data ServerContext = ServerContext
   , registryClient :: ClientEnv
   , shutdownFlag :: MVar ()
   , cache :: ServerCache
+  , websocketRegistry :: WebsocketRegistry
+  , nodeUuid :: U.UUID
   }
 
 newtype ServerContextM a = ServerContextM
@@ -69,3 +73,9 @@ instance HasField "registryClient'" ServerContext ClientEnv where
 
 instance HasField "shutdownFlag'" ServerContext (MVar ()) where
   getField = (.shutdownFlag)
+
+instance HasField "websocketRegistry'" ServerContext WebsocketRegistry where
+  getField = (.websocketRegistry)
+
+instance HasField "nodeUuid'" ServerContext U.UUID where
+  getField = (.nodeUuid)

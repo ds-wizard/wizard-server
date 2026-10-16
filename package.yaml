@@ -107,6 +107,7 @@ library:
   - servant-swagger-tags
   - servant-swagger-ui
   - servant-websockets
+  - stm
   - swagger2
   - tagsoup
   - text
@@ -169,6 +170,7 @@ _test-dependencies: &test-dependencies
     - servant
     - servant-server
     - servant-errors
+    - stm
     - swagger2
     - text
     - time
