@@ -389,13 +389,12 @@ findProjectSuggestionByUuid' uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityWithFieldsByFn' "uuid, name, description" entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
-findProjectForSquashing :: WizardRequestContextC s m => m [U.UUID]
+findProjectForSquashing :: WizardRequestContextC s m => m [(U.UUID, U.UUID)]
 findProjectForSquashing = do
-  let sql = "SELECT uuid FROM project WHERE squashed = false"
+  let sql = "SELECT uuid, tenant_uuid FROM project WHERE squashed = false"
   logInfoI _CMP_DATABASE (trim sql)
   let action conn = query_ conn (fromString sql)
-  entities <- runDB action
-  return . concat $ entities
+  runDB action
 
 findProjectDetail :: WizardRequestContextC s m => U.UUID -> m ProjectDetail
 findProjectDetail uuid = do

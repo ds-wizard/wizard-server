@@ -31,4 +31,6 @@ insertKnowledgeModelRawEvent :: WizardRequestContextC s m => KnowledgeModelEdito
 insertKnowledgeModelRawEvent = createInsertFn entityName
 
 deleteKnowledgeModelEventsByEditorUuid :: WizardRequestContextC s m => U.UUID -> m Int64
-deleteKnowledgeModelEventsByEditorUuid kmEditorUuid = createDeleteEntityByFn entityName [("editor_uuid", U.toString kmEditorUuid)]
+deleteKnowledgeModelEventsByEditorUuid kmEditorUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createDeleteEntityByFn entityName [tenantQueryUuid tenantUuid, ("editor_uuid", U.toString kmEditorUuid)]

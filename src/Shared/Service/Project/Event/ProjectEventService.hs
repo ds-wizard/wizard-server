@@ -1,6 +1,6 @@
 module Shared.Service.Project.Event.ProjectEventService where
 
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (asks, local)
 import Data.Foldable (traverse_)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
@@ -35,8 +35,8 @@ addEventToProject projectUuid reqDto =
 
 squashProjectEvents :: WizardRequestContextC s m => m ()
 squashProjectEvents = do
-  projectUuids <- findProjectForSquashing
-  traverse_ squashProjectEventsForProject projectUuids
+  projects <- findProjectForSquashing
+  traverse_ (\(projectUuid, tenantUuid) -> local (setTenantUuid tenantUuid) (squashProjectEventsForProject projectUuid)) projects
 
 squashProjectEventsForProject :: WizardRequestContextC s m => U.UUID -> m ()
 squashProjectEventsForProject projectUuid =

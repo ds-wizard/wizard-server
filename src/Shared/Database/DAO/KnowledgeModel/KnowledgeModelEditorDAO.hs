@@ -108,13 +108,12 @@ findEditorsByUnsupportedMetamodelVersion metamodelVersion = do
   let action conn = query conn sql params
   runDB action
 
-findEditorsForSquashing :: WizardRequestContextC s m => m [U.UUID]
+findEditorsForSquashing :: WizardRequestContextC s m => m [(U.UUID, U.UUID)]
 findEditorsForSquashing = do
-  let sql = "SELECT uuid FROM knowledge_model_editor WHERE squashed = false"
+  let sql = "SELECT uuid, tenant_uuid FROM knowledge_model_editor WHERE squashed = false"
   logInfoI _CMP_DATABASE (trim sql)
   let action conn = query_ conn (fromString sql)
-  entities <- runDB action
-  return . concat $ entities
+  runDB action
 
 findKnowledgeModelEditorByUuidForSquashingLocked :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelEditor
 findKnowledgeModelEditorByUuidForSquashingLocked editorUuid = createFindEntityWithFieldsByFn "*" True entityName [("uuid", U.toString editorUuid)]
@@ -161,6 +160,15 @@ updateKnowledgeModelEditorByUuid kmEditor = do
           "UPDATE knowledge_model_editor SET uuid = ?, name = ?, id = ?, previous_package_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, tenant_uuid = ?, version = ?, description = ?, readme = ?, license = ?, metamodel_version = ?, squashed = ?, language = ?, workspace_uuid = ? WHERE tenant_uuid = ? AND uuid = ?;"
   let params = toRow kmEditor ++ [toField tenantUuid, toField . U.toText $ kmEditor.uuid]
   logInsertAndUpdate sql params
+  let action conn = execute conn sql params
+  runDB action
+
+updateKnowledgeModelEditorSquashedByUuid :: WizardRequestContextC s m => U.UUID -> Bool -> m Int64
+updateKnowledgeModelEditorSquashedByUuid uuid squashed = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString "UPDATE knowledge_model_editor SET squashed = ? WHERE tenant_uuid = ? AND uuid = ?"
+  let params = [toField squashed, toField tenantUuid, toField uuid]
+  logQuery sql params
   let action conn = execute conn sql params
   runDB action
 
