@@ -33,11 +33,12 @@ deleteQuestion km uuid =
   where
     deleteNode km = setQuestionsM km (M.delete uuid (getQuestionsM km))
     deleteChildren :: Question -> KnowledgeModel -> KnowledgeModel
-    deleteChildren entity = deleteItemTemplateQuestions . deleteAnswers . deleteReferences . deleteExperts
+    deleteChildren entity = deleteItemTemplateQuestions . deleteChoices . deleteAnswers . deleteReferences . deleteExperts
       where
         deleteExperts km = foldl deleteExpert km (getExpertUuids entity)
         deleteReferences km = foldl deleteReference km (getReferenceUuids entity)
         deleteAnswers km = foldl deleteAnswer km (getAnswerUuids entity)
+        deleteChoices km = foldl deleteChoice km (getChoiceUuids entity)
         deleteItemTemplateQuestions km = foldl deleteQuestion km (getItemTemplateQuestionUuids entity)
 
 deleteExpert :: KnowledgeModel -> U.UUID -> KnowledgeModel

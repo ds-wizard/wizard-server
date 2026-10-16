@@ -29,10 +29,13 @@ class ApplyEvent a where
 
 applyCreateEventWithParent getEntityCol setEntityCol getParentCol setParentCol getParentUuidCol setParentUuidCol event content km =
   case M.lookup event.parentUuid (getParentCol km) of
-    Nothing -> Right km
-    Just parentEntity -> Right . addEntityReference parentEntity . addEntity $ km
+    Just parentEntity
+      | event.entityUuid `elem` getParentUuidCol (withEntityReference parentEntity) ->
+          Right . addEntityReference parentEntity . addEntity $ km
+    _ -> Right km
   where
-    addEntityReference entity km = setParentCol km $ M.insert (getUuid entity) (setParentUuidCol entity (getParentUuidCol entity ++ [event.entityUuid])) (getParentCol km)
+    withEntityReference entity = setParentUuidCol entity (getParentUuidCol entity ++ [event.entityUuid])
+    addEntityReference entity km = setParentCol km $ M.insert (getUuid entity) (withEntityReference entity) (getParentCol km)
     addEntity km = setEntityCol km $ M.insert event.entityUuid (createEntity event content) (getEntityCol km)
 
 applyEditEvent getEntityCol setEntityCol event content km =

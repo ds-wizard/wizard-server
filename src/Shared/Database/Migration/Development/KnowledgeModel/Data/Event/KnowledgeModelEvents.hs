@@ -261,6 +261,26 @@ a_km1_ch2_q3 =
     , createdAt = dt'' 2018 1 21 39
     }
 
+a_km1_ch1_q1_q4 :: KnowledgeModelEvent
+a_km1_ch1_q1_q4 =
+  KnowledgeModelEvent
+    { uuid = u' "11a0e60c-f636-4938-a0e3-14f5873e7eb7"
+    , parentUuid = question1.uuid
+    , entityUuid = question4.uuid
+    , content = a_km1_ch2_q4.content
+    , createdAt = dt'' 2018 1 21 0
+    }
+
+a_km1_missing_q4 :: KnowledgeModelEvent
+a_km1_missing_q4 =
+  KnowledgeModelEvent
+    { uuid = u' "61a25a61-5574-4a98-a3cb-aaf3993385c6"
+    , parentUuid = u' "9ac0c50b-bb8c-41cf-8039-f650451b63b6"
+    , entityUuid = question4.uuid
+    , content = a_km1_ch2_q4.content
+    , createdAt = dt'' 2018 1 21 0
+    }
+
 a_km1_ch2_q4 :: KnowledgeModelEvent
 a_km1_ch2_q4 =
   KnowledgeModelEvent
@@ -766,6 +786,26 @@ a_km1_ch1_q2_aYes1 =
             , metricMeasures = q2_answerYes.metricMeasures
             }
     , createdAt = dt'' 2018 1 21 27
+    }
+
+d_km1_ch3_q11 :: KnowledgeModelEvent
+d_km1_ch3_q11 =
+  KnowledgeModelEvent
+    { uuid = u' "0478c545-69f8-49b7-964c-bff094c784d1"
+    , parentUuid = chapter3.uuid
+    , entityUuid = question11.uuid
+    , content = DeleteQuestionEvent' DeleteQuestionEvent
+    , createdAt = dt'' 2018 1 21 0
+    }
+
+a_km1_ch3_q11_aMaybe :: KnowledgeModelEvent
+a_km1_ch3_q11_aMaybe =
+  KnowledgeModelEvent
+    { uuid = u' "0fc7e083-0b83-41f7-8c06-cdc984197bd7"
+    , parentUuid = question11.uuid
+    , entityUuid = q2_answerMaybe.uuid
+    , content = a_km1_ch1_q2_aMaybe.content
+    , createdAt = dt'' 2018 1 21 0
     }
 
 a_km1_ch1_q2_aMaybe :: KnowledgeModelEvent
@@ -1358,6 +1398,16 @@ a_km1_ch3_q11_cho2 =
             , annotations = q11_choice2.annotations
             }
     , createdAt = dt'' 2018 1 21 62
+    }
+
+a_km1_ch1_q1_cho3 :: KnowledgeModelEvent
+a_km1_ch1_q1_cho3 =
+  KnowledgeModelEvent
+    { uuid = u' "99496795-02b6-4096-a62a-9e588834ac7f"
+    , parentUuid = question1.uuid
+    , entityUuid = q11_choice3.uuid
+    , content = a_km1_ch3_q11_cho3.content
+    , createdAt = dt'' 2018 1 21 0
     }
 
 a_km1_ch3_q11_cho3 :: KnowledgeModelEvent
@@ -2282,6 +2332,48 @@ m_km1_ch1_q2_aYes__to_ch2_q3 =
         MoveAnswerEvent' $
           MoveAnswerEvent
             { targetUuid = question3.uuid
+            }
+    , createdAt = dt'' 2018 1 21 0
+    }
+
+m_km1_ch1_q1__to_missing :: KnowledgeModelEvent
+m_km1_ch1_q1__to_missing =
+  KnowledgeModelEvent
+    { uuid = u' "293440e7-e044-4665-a8d5-88d1fcd66873"
+    , parentUuid = chapter1.uuid
+    , entityUuid = question1.uuid
+    , content =
+        MoveQuestionEvent' $
+          MoveQuestionEvent
+            { targetUuid = u' "9ac0c50b-bb8c-41cf-8039-f650451b63b6"
+            }
+    , createdAt = dt'' 2018 1 21 0
+    }
+
+m_km1_ch1_q2_aYes__to_ch3_q11 :: KnowledgeModelEvent
+m_km1_ch1_q2_aYes__to_ch3_q11 =
+  KnowledgeModelEvent
+    { uuid = u' "6c0d3f8e-5b1a-4f7e-9c2d-8a4b6e1f3d57"
+    , parentUuid = question2.uuid
+    , entityUuid = q2_answerYes.uuid
+    , content =
+        MoveAnswerEvent' $
+          MoveAnswerEvent
+            { targetUuid = question11.uuid
+            }
+    , createdAt = dt'' 2018 1 21 0
+    }
+
+m_km1_ch3_q11_cho1__to_ch1_q1 :: KnowledgeModelEvent
+m_km1_ch3_q11_cho1__to_ch1_q1 =
+  KnowledgeModelEvent
+    { uuid = u' "d2a9e4b7-1c3f-4e85-b6a0-7f9c2e5d8b14"
+    , parentUuid = question11.uuid
+    , entityUuid = q11_choice1.uuid
+    , content =
+        MoveChoiceEvent' $
+          MoveChoiceEvent
+            { targetUuid = question1.uuid
             }
     , createdAt = dt'' 2018 1 21 0
     }
