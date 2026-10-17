@@ -13,7 +13,6 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetDTO
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateAssets
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
-import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.DocumentTemplate.DocumentTemplate
@@ -23,7 +22,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
-import Specs.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 
 -- ------------------------------------------------------------------------
 -- GET /api/document-template-drafts/{dtUuid}/assets/{assetUuid}
@@ -65,7 +64,7 @@ create_test_200 title requestContext reqAuthHeader =
       let expBody = encode expDto
       let expType (a :: DocumentTemplateAssetDTO) = a
       -- AND: Run migrations
-      runInContextIO TML_Migration.runMigration requestContext
+      runDraftTemplateMigration requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

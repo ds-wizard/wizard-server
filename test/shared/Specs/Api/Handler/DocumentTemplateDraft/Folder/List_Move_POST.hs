@@ -15,15 +15,14 @@ import Shared.Api.Resource.DocumentTemplate.File.DocumentTemplateFileChangeJM ()
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFiles
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFolders
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
-import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 import Specs.Api.Handler.DocumentTemplateDraft.File.Common
-import Specs.Common
 
 -- ------------------------------------------------------------------------
 -- POST /api/document-template-drafts/{dtUuid}/folders/move
@@ -63,7 +62,7 @@ create_test_204 title requestContext reqAuthHeader =
       let expHeaders = resCtHeader : resCorsHeaders
       let expBody = ""
       -- AND: Run migrations
-      runInContextIO TML_Migration.runMigration requestContext
+      runDraftTemplateMigration requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
