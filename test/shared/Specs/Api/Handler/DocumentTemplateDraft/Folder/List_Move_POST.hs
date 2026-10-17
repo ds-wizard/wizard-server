@@ -12,17 +12,20 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.DocumentTemplate.File.DocumentTemplateFileChangeJM ()
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFileDAO
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFiles
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFolders
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 import Specs.Api.Handler.DocumentTemplateDraft.File.Common
+import Specs.Common
 
 -- ------------------------------------------------------------------------
 -- POST /api/document-template-drafts/{dtUuid}/folders/move
@@ -62,7 +65,10 @@ create_test_204 title requestContext reqAuthHeader =
       let expHeaders = resCtHeader : resCorsHeaders
       let expBody = ""
       -- AND: Run migrations
+      -- AND: Prepare sibling folder
+      let siblingFile = fileDefaultCss {uuid = u' "0b4a3f4e-5d0c-4a52-9a43-3f1d7c0b2c11", fileName = "src-other/default.css"} :: DocumentTemplateFile
       runDraftTemplateMigration requestContext
+      runInContextIO (insertFile siblingFile) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -72,6 +78,7 @@ create_test_204 title requestContext reqAuthHeader =
       -- AND: Find result in DB and compare with expectation state
       assertExistenceOfTemplateFileInDB requestContext fileDefaultHtmlMoved
       assertExistenceOfTemplateFileInDB requestContext fileDefaultCss
+      assertExistenceOfTemplateFileInDB requestContext siblingFile
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

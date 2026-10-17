@@ -1,5 +1,6 @@
 module Shared.Service.DocumentTemplate.Folder.DocumentTemplateFolderService where
 
+import Data.Foldable (traverse_)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.Folder.DocumentTemplateFolderDeleteDTO
@@ -9,6 +10,7 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDAO
 import Shared.Database.DAO.DocumentTemplate.WizardDocumentTemplateDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.WizardRequestContext
+import Shared.S3.DocumentTemplate.DocumentTemplateS3
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 
 moveDraftFolder :: WizardRequestContextC s m => U.UUID -> DocumentTemplateFolderMoveDTO -> m ()
@@ -24,7 +26,9 @@ deleteDraftFolder :: WizardRequestContextC s m => U.UUID -> DocumentTemplateFold
 deleteDraftFolder documentTemplateUuid reqDto =
   runInTransaction $ do
     checkEditorPermissionToDocumentTemplate documentTemplateUuid
+    assetUuids <- findAssetUuidsInFolder documentTemplateUuid reqDto.path
     deleteFolder documentTemplateUuid reqDto.path
+    traverse_ (removeAsset documentTemplateUuid) assetUuids
     touchDocumentTemplateByUuid documentTemplateUuid
     deleteTemporalDocumentsByDocumentTemplateUuid documentTemplateUuid
     return ()

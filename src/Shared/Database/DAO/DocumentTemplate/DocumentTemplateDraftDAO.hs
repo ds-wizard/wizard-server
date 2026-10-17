@@ -1,6 +1,7 @@
 module Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDAO where
 
 import Control.Monad.Reader (asks)
+import Data.List (dropWhileEnd)
 import Data.String
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple
@@ -113,16 +114,31 @@ moveFolder documentTemplateUuid currentFolder newFolder = do
           \  AND document_template_uuid = ? \
           \  AND starts_with(file_name, ?);"
   let paramsForOneUpdate =
-        [ toField newFolder
-        , toField currentFolder
+        [ toField (folderPrefix newFolder)
+        , toField (folderPrefix currentFolder)
         , toField tenantUuid
         , toField documentTemplateUuid
-        , toField currentFolder
+        , toField (folderPrefix currentFolder)
         ]
   let params = paramsForOneUpdate ++ paramsForOneUpdate
   logQuery sql params
   let action conn = execute conn sql params
   runDB action
+
+findAssetUuidsInFolder :: WizardRequestContextC s m => U.UUID -> String -> m [U.UUID]
+findAssetUuidsInFolder documentTemplateUuid path = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql =
+        fromString
+          "SELECT uuid \
+          \FROM document_template_asset \
+          \WHERE tenant_uuid = ? \
+          \  AND document_template_uuid = ? \
+          \  AND starts_with(file_name, ?)"
+  let params = [toField tenantUuid, toField documentTemplateUuid, toField (folderPrefix path)]
+  logQuery sql params
+  let action conn = query conn sql params
+  fmap fromOnly <$> runDB action
 
 deleteFolder :: WizardRequestContextC s m => U.UUID -> String -> m Int64
 deleteFolder documentTemplateUuid path = do
@@ -141,7 +157,7 @@ deleteFolder documentTemplateUuid path = do
   let paramsForOneUpdate =
         [ toField tenantUuid
         , toField documentTemplateUuid
-        , toField path
+        , toField (folderPrefix path)
         ]
   let params = paramsForOneUpdate ++ paramsForOneUpdate
   logQuery sql params
@@ -158,3 +174,9 @@ deleteDraftByUuid :: WizardRequestContextC s m => U.UUID -> m Int64
 deleteDraftByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createDeleteEntitiesByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid), ("phase", "DraftDocumentTemplatePhase")]
+
+-- --------------------------------
+-- PRIVATE
+-- --------------------------------
+folderPrefix :: String -> String
+folderPrefix path = dropWhileEnd (== '/') path ++ "/"
