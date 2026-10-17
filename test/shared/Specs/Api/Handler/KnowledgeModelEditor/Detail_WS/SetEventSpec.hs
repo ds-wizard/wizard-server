@@ -6,6 +6,7 @@ import Test.Hspec.Expectations.Pretty
 
 import Shared.Api.Resource.Websocket.KnowledgeModelEditorMessageDTO
 import Shared.Api.Resource.Websocket.WebsocketActionDTO
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditorEvents
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
@@ -15,6 +16,7 @@ import SharedTest.Specs.Api.Websocket
 
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.Common
 import Specs.Api.Handler.Websocket.Common
+import Specs.Common
 
 setEventSpec requestContext = describe "setEvent" $ test200 requestContext
 
@@ -37,6 +39,9 @@ test200 requestContext =
       read_SetReply c2 knowledgeModelEditorWebsocketEvent1'
       nothingWasReceived c3
       nothingWasReceived c4
+      -- AND: Find result in DB and compare with expectation state
+      (Right editorFromDb) <- runInContext (findKnowledgeModelEditorByUuid editor.uuid) requestContext
+      editorFromDb.squashed `shouldBe` False
       -- AND: Close sockets
       closeSockets [s1, s2]
       closeSockets [s1, s2, s3, s4]

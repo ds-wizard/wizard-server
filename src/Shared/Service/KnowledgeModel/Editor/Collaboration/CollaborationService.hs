@@ -56,6 +56,7 @@ addKnowledgeModelEvent kmEditorUuid connectionUuid reqDto = do
   checkEditPermission kmEditorUuid
   tenantUuid <- asks (.tenantUuid')
   insertKnowledgeModelEvent (fromAddKnowledgeModelEditorWebSocketEventDTO reqDto.event kmEditorUuid tenantUuid)
+  updateKnowledgeModelEditorSquashedByUuid kmEditorUuid False
   broadcast kmEditorUuid (toAddKnowledgeModelEditorWebsocketMessage reqDto)
 
 -- --------------------------------
