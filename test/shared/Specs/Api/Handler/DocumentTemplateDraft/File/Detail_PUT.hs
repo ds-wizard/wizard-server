@@ -9,18 +9,24 @@ import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
+import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeJM ()
+import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFiles
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.DocumentTemplate.Data.WizardDocumentTemplateFiles
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import Shared.Localization.Messages.Public
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
+import Shared.Model.Error.Error
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 import Specs.Api.Handler.DocumentTemplateDraft.File.Common
 import Specs.Common
 
@@ -63,7 +69,7 @@ create_test_200 title requestContext reqAuthHeader =
       let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
       let expDto = fileDefaultHtmlEdited
       -- AND: Run migrations
-      runInContextIO TML_Migration.runMigration requestContext
+      runDraftTemplateMigration requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -87,7 +93,7 @@ test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_404 requestContext =
+test_404 requestContext = do
   createNotFoundTest'
     reqMethod
     (BS.pack $ "/api/document-template-drafts/" ++ U.toString wizardDocumentTemplate.uuid ++ "/files/fed88104-7cf1-489a-bfd0-24c120bb1cda")
@@ -95,3 +101,30 @@ test_404 requestContext =
     reqBody
     "document_template_file"
     [("uuid", "fed88104-7cf1-489a-bfd0-24c120bb1cda")]
+  it "HTTP 404 NOT FOUND (released document template)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto =
+            NotExistsError
+              ( _ERROR_DATABASE__ENTITY_NOT_FOUND
+                  "document_template"
+                  [ ("tenant_uuid", U.toString defaultTenantUuid)
+                  , ("uuid", U.toString wizardDocumentTemplate.uuid)
+                  , ("phase", "DraftDocumentTemplatePhase")
+                  ]
+              )
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO TML_Migration.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertExistenceOfTemplateFileInDB requestContext fileDefaultHtml

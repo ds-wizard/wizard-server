@@ -88,5 +88,5 @@ deleteFile fileUuid =
     checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
     deleteFileById file.uuid
     touchDocumentTemplateByUuid file.documentTemplateUuid
-    deleteTemporalDocumentsByFileUuid fileUuid
+    deleteTemporalDocumentsByDocumentTemplateUuid file.documentTemplateUuid
     return ()

@@ -13,9 +13,13 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.Tenant
+import Shared.Database.DAO.Document.DocumentDAO
+import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateAssets
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
+import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Localization.Messages.Public
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
@@ -24,6 +28,7 @@ import WizardServer.Model.Context.RequestContext
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.DocumentTemplateDraft.Asset.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -63,7 +68,10 @@ create_test_204 title requestContext reqAuthHeader =
       let expHeaders = resCorsHeaders
       let expBody = ""
       -- AND: Run migrations
-      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO U_Migration.runMigration requestContext
+      runDraftTemplateMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO (insertDocument tempDocDone) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -72,6 +80,7 @@ create_test_204 title requestContext reqAuthHeader =
       response `shouldRespondWith` responseMatcher
       -- AND: Find result in DB and compare with expectation state
       assertAbsenceOfTemplateAssetInDB requestContext assetLogo
+      assertCountInDB findDocuments requestContext 0
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -93,7 +102,7 @@ test_404 requestContext = do
     (reqHeadersT reqAuthHeader)
     reqBody
     "document_template"
-    [("uuid", U.toString wizardDocumentTemplate.uuid)]
+    [("uuid", U.toString wizardDocumentTemplate.uuid), ("phase", "DraftDocumentTemplatePhase")]
   it "HTTP 404 NOT FOUND (asset of another document template)" $
     -- GIVEN: Prepare request
     do
@@ -109,6 +118,33 @@ test_404 requestContext = do
                   [ ("tenant_uuid", U.toString defaultTenantUuid)
                   , ("document_template_uuid", U.toString wizardDocumentTemplateDraft.uuid)
                   , ("uuid", U.toString assetLogo.uuid)
+                  ]
+              )
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runDraftTemplateMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertExistenceOfTemplateAssetInDB requestContext assetLogo
+  it "HTTP 404 NOT FOUND (released document template)" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto =
+            NotExistsError
+              ( _ERROR_DATABASE__ENTITY_NOT_FOUND
+                  "document_template"
+                  [ ("tenant_uuid", U.toString defaultTenantUuid)
+                  , ("uuid", U.toString wizardDocumentTemplate.uuid)
+                  , ("phase", "DraftDocumentTemplatePhase")
                   ]
               )
       let expBody = encode expDto

@@ -124,5 +124,5 @@ deleteAsset dtUuid assetUuid =
     deleteAssetById asset.uuid
     removeAsset dtUuid assetUuid
     touchDocumentTemplateByUuid dtUuid
-    deleteTemporalDocumentsByAssetUuid assetUuid
+    deleteTemporalDocumentsByDocumentTemplateUuid dtUuid
     return ()

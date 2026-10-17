@@ -10,14 +10,18 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
+import Shared.Database.DAO.Document.DocumentDAO
+import Shared.Database.Migration.Development.Document.Data.Documents
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateFiles
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
-import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ_Migration
+import qualified Shared.Database.Migration.Development.User.UserMigration as U_Migration
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 import Specs.Api.Handler.DocumentTemplateDraft.File.Common
 import Specs.Common
 
@@ -58,7 +62,10 @@ create_test_204 title requestContext reqAuthHeader =
       let expHeaders = resCorsHeaders
       let expBody = ""
       -- AND: Run migrations
-      runInContextIO TML_Migration.runMigration requestContext
+      runInContextIO U_Migration.runMigration requestContext
+      runDraftTemplateMigration requestContext
+      runInContextIO PRJ_Migration.runMigration requestContext
+      runInContextIO (insertDocument tempDocDone) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -67,6 +74,7 @@ create_test_204 title requestContext reqAuthHeader =
       response `shouldRespondWith` responseMatcher
       -- AND: Find result in DB and compare with expectation state
       assertAbsenceOfTemplateFileInDB requestContext fileDefaultHtml
+      assertCountInDB findDocuments requestContext 0
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

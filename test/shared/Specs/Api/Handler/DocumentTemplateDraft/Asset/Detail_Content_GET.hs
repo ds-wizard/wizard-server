@@ -15,7 +15,6 @@ import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateAssets
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
-import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Localization.Messages.Public
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Error.Error
@@ -23,7 +22,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
-import Specs.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 
 -- ------------------------------------------------------------------------
 -- GET /api/document-template-drafts/{dtUuid}/assets/{assetUuid}/content
@@ -80,7 +79,7 @@ test_404 requestContext =
               )
       let expBody = encode expDto
       -- AND: Run migrations
-      runInContextIO TML_Migration.runMigration requestContext
+      runDraftTemplateMigration requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

@@ -14,7 +14,6 @@ import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetChangeJM 
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplateAssets
 import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
 import Shared.Database.Migration.Development.DocumentTemplate.Data.WizardDocumentTemplateAssets
-import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
 import WizardServer.Model.Context.RequestContext
@@ -22,7 +21,7 @@ import WizardServer.Model.Context.RequestContext
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.DocumentTemplateDraft.Asset.Common
-import Specs.Common
+import Specs.Api.Handler.DocumentTemplateDraft.Common (runDraftTemplateMigration)
 
 -- ------------------------------------------------------------------------
 -- PUT /api/document-template-drafts/{dtUuid}/assets/{assetUuid}
@@ -58,7 +57,7 @@ test_200 requestContext =
     let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
     let expDto = assetLogoEdited
     -- AND: Run migrations
-    runInContextIO TML_Migration.runMigration requestContext
+    runDraftTemplateMigration requestContext
     -- WHEN: Call API
     response <- request reqMethod reqUrl reqHeaders reqBody
     -- THEN: Compare response with expectation
