@@ -10,10 +10,12 @@ import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
+import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeJM ()
 import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftChangeDTO
 import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftDetailJM ()
+import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDataDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
@@ -23,8 +25,10 @@ import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTempl
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as DT_Migration
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
+import Shared.Localization.Messages.KnowledgeModel.Public
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftDetail
+import Shared.Model.Error.Error
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -39,6 +43,7 @@ detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
   describe "PUT /api/document-template-drafts/{uuid}" $ do
     test_200 requestContext
+    test_400 requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -98,6 +103,29 @@ create_test_200 title requestContext reqDto expDto =
       compareTemplateDtos resDto expDto
       -- AND: Find result in DB and compare with expectation state
       assertExistenceOfDocumentTemplateInDB requestContext wizardDocumentTemplateDeprecated
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_400 requestContext =
+  it "HTTP 400 BAD REQUEST when released version is not higher than the previous one" $
+    do
+      -- GIVEN: Prepare request
+      let reqDto = wizardDocumentTemplateDraftChangeDTO {version = "0.5.0", phase = ReleasedDocumentTemplatePhase} :: DocumentTemplateDraftChangeDTO
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (UserError _ERROR_SERVICE_PKG__HIGHER_NUMBER_IN_NEW_VERSION)
+      -- AND: Run migrations
+      runInContextIO DT_Migration.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders (reqBodyT reqDto)
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Find result in DB and compare with expectation state
+      assertExistenceOfDocumentTemplateInDB requestContext wizardDocumentTemplateDraft
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
