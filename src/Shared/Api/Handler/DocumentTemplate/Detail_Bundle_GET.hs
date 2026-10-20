@@ -7,6 +7,7 @@ import Shared.Api.Handler.Common
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
 import Shared.Api.Resource.TemporaryFile.TemporaryFileJM ()
+import Shared.Constant.TemporaryFile
 import Shared.Model.Context.TransactionState
 import Shared.Service.DocumentTemplate.Bundle.DocumentTemplateBundleService
 
@@ -26,4 +27,4 @@ detail_bundle_GET
   -> sm (Headers '[Header "x-trace-uuid" String] TemporaryFileDTO)
 detail_bundle_GET mTokenHeader mServerUrl uuid =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
-    runInAuthService Transactional $ addTraceUuidHeader =<< getTemporaryFileWithBundle uuid
+    runInAuthService Transactional $ addTraceUuidHeader =<< getTemporaryFileWithBundle temporaryFileExpiration uuid

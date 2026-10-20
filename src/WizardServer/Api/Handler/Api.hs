@@ -19,6 +19,7 @@ import Shared.Api.Handler.KnowledgeModelPackage.Api
 import Shared.Api.Handler.KnowledgeModelSecret.Api
 import Shared.Api.Handler.Locale.Api
 import Shared.Api.Handler.MailTemplateLocale.Api
+import Shared.Api.Handler.Mcp.Api
 import Shared.Api.Handler.PersistentCommand.Api
 import Shared.Api.Handler.PluginSettings.Api
 import Shared.Api.Handler.Prefab.Api
@@ -41,6 +42,8 @@ import WizardServer.Api.Handler.Settings.Api
 import WizardServer.Api.Handler.Tenant.Api
 import WizardServer.Api.Handler.User.Api
 import WizardServer.Api.Handler.UserEmailLink.Api
+import WizardServer.Constant.Mcp.PluginLogo
+import WizardServer.Service.Mcp.Tool.McpToolRegistry
 
 type ApplicationAPI =
   InfoAPI
@@ -63,6 +66,7 @@ type ApplicationAPI =
     :<|> LocaleRegistryAPI
     :<|> MailTemplateLocaleAPI
     :<|> MailTemplateLocaleRegistryAPI
+    :<|> McpAPI
     :<|> OpenIdClientAPI
     :<|> PersistentCommandAPI
     :<|> PluginSettingsAPI
@@ -109,6 +113,7 @@ applicationServer =
     :<|> localeRegistryServer
     :<|> mailTemplateLocaleServer
     :<|> mailTemplateLocaleRegistryServer
+    :<|> mcpServer mcpTools mcpPluginLogo
     :<|> openIdClientServer
     :<|> persistentCommandServer
     :<|> pluginSettingsServer

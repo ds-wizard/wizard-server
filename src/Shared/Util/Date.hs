@@ -29,3 +29,12 @@ parsePostgresDateTime' :: String -> UTCTime
 parsePostgresDateTime' dateTimeS =
   let (Right dateTime) = parsePostgresDateTime dateTimeS
    in dateTime
+
+batchTimestamps :: UTCTime -> [UTCTime]
+batchTimestamps start = fmap (\index -> addUTCTime (fromIntegral index * 0.000001) start) [0 :: Int ..]
+
+getCurrentTimeInMicroseconds :: IO UTCTime
+getCurrentTimeInMicroseconds = truncateToMicroseconds <$> getCurrentTime
+
+truncateToMicroseconds :: UTCTime -> UTCTime
+truncateToMicroseconds time = time {utctDayTime = picosecondsToDiffTime (diffTimeToPicoseconds (utctDayTime time) `div` 1000000 * 1000000)}

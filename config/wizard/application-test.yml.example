@@ -80,3 +80,6 @@ logging:
 
 cloud:
   publicRegistrationEnabled: true
+
+mcp:
+  documentPreviewWait: 0

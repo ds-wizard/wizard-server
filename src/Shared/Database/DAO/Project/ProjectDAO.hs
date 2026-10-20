@@ -376,6 +376,12 @@ findProjectByUuid projectUuid = do
   entity <- createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString projectUuid)]
   enhance entity
 
+findProjectByUuidLocked :: WizardRequestContextC s m => U.UUID -> m Project
+findProjectByUuidLocked projectUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  entity <- createFindEntityWithFieldsByFn "*" True entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString projectUuid)]
+  enhance entity
+
 findProjectByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe Project)
 findProjectByUuid' projectUuid = do
   tenantUuid <- asks (.tenantUuid')

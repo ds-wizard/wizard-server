@@ -5,6 +5,7 @@ import Data.Aeson
 import Shared.Api.Resource.User.UserSuggestionJM ()
 import Shared.Model.Project.ProjectReply
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON Reply where
   toJSON = genericToJSON jsonOptions
@@ -24,3 +25,12 @@ instance FromJSON IntegrationReplyType where
 
 instance ToJSON IntegrationReplyType where
   toJSON = genericToJSON (jsonOptionsWithTypeField "type")
+
+instance JsonSchema Reply where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema ReplyValue where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "type")
+
+instance JsonSchema IntegrationReplyType where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "type")

@@ -5,6 +5,7 @@ module Specs.Api.Handler.Project.Detail_Content_PUT (
 import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as BS
 import Data.Foldable (traverse_)
+import qualified Data.Map.Strict as M
 import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
@@ -13,19 +14,28 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Api.Resource.Project.Event.ProjectEventChangeDTO
 import Shared.Api.Resource.Project.ProjectContentChangeDTO
+import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Project.ProjectVersionDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Chapters
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Questions
+import Shared.Database.Migration.Development.Project.Data.ProjectEventBatches
 import Shared.Database.Migration.Development.Project.Data.ProjectEvents
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.User.Public
+import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Error.Error
+import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.Project.Project
+import Shared.Model.Project.ProjectUtil
 import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
@@ -85,6 +95,7 @@ create_test_200 title requestContext project projectEventsEdited authHeader =
       -- AND: Run migrations
       runInContextIO TML.runMigration requestContext
       runInContextIO PRJ.runMigration requestContext
+      runInContextIO (traverse_ insertPackageEvent germanyKmPackageEvents) requestContext
       runInContextIO (insertProject project7) requestContext
       runInContextIO (insertProjectEvents project7Events) requestContext
       runInContextIO (traverse_ insertProjectVersion project7Versions) requestContext
@@ -104,7 +115,32 @@ create_test_200 title requestContext project projectEventsEdited authHeader =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_400 requestContext = createInvalidJsonTest reqMethod (reqUrlT project3.uuid) "visibility"
+test_400 requestContext = do
+  createInvalidJsonTest reqMethod (reqUrlT project3.uuid) "visibility"
+  it "HTTP 400 BAD REQUEST if a path doesn't match the knowledge model" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project1.uuid
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      let invalidPath = createReplyKey [chapter1.uuid, question3.uuid]
+      let reqBody = encode (ProjectContentChangeDTO {events = [SetReplyEventChangeDTO' (srche_rQ2 {path = invalidPath} :: SetReplyEventChangeDTO)]})
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = ValidationError [] (M.singleton "events[0].path" [_ERROR_VALIDATION__PROJECT_EVENT_PATH_ABSENCE invalidPath])
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      runInContextIO (traverse_ insertPackageEvent germanyKmPackageEvents) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Compare state in DB with expectation
+      assertExistenceOfProjectContentInDB requestContext project1.uuid project1Events
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

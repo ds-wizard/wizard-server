@@ -74,14 +74,14 @@ cloneProjectFiles oldProjectUuid newProjectUuid = do
       )
       oldFiles
 
-downloadProjectFile :: WizardRequestContextC s m => U.UUID -> U.UUID -> m TemporaryFileDTO
-downloadProjectFile projectUuid fileUuid = do
+downloadProjectFile :: WizardRequestContextC s m => Int -> U.UUID -> U.UUID -> m TemporaryFileDTO
+downloadProjectFile expiration projectUuid fileUuid = do
   runInTransaction $ do
-    projectFile <- findProjectFileByUuid fileUuid
+    projectFile <- findProjectFileByProjectUuidAndUuid projectUuid fileUuid
     checkViewPermissionToFile projectUuid
     contentAction <- retrieveFileConduitAction projectUuid fileUuid
     mCurrentUserUuid <- getCurrentUserUuid
-    url <- createTemporaryFileConduit projectFile.fileName "application/octet-stream" mCurrentUserUuid contentAction
+    url <- createTemporaryFileConduit expiration projectFile.fileName "application/octet-stream" mCurrentUserUuid contentAction
     return $ TemporaryFileMapper.toDTO url projectFile.contentType
 
 deleteProjectFile :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()

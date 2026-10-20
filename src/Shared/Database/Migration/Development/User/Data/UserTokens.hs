@@ -81,3 +81,18 @@ isaacToken =
     , tenantUuid = defaultTenantUuid
     , createdAt = dt' 2022 1 21
     }
+
+albertMcpToken :: UserToken
+albertMcpToken =
+  UserToken
+    { uuid = u' "3b6f2c1a-9d4e-4f7b-8a2c-5e1d7c9b3a60"
+    , name = "MCP Access Token"
+    , tType = McpUserTokenType
+    , userUuid = userAlbert.uuid
+    , value = "eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjI1ODk0MDgwMDAsInRlbmFudFV1aWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAiLCJ0b2tlblV1aWQiOiIzYjZmMmMxYS05ZDRlLTRmN2ItOGEyYy01ZTFkN2M5YjNhNjAiLCJ1c2VyVXVpZCI6ImVjNmY4ZTkwLTJhOTEtNDllYy1hYTNmLTllYWIyMjY3ZmM2NiIsInZlcnNpb24iOjR9.W067jpEplRzqVFMRnf7nxYfzswG2QYizICLsn2Z5bRIMoWcQM-9gx__rXb6fs8_S3LluXn-pHDqTPKCJqYoDjQZyNJWPguoSylsFa5-k3NW1YEUQm0IWTQcWEMe8Odzia2CSnSYFgUULiMEvPDHV2qaxYwH-feE1mySxV41SrjYgI1hdl6wwm-eslL-La9HXyGuyjdaGxPjQTtSudyXuANqPE8BvX1EtF0Yzn8xRwukRWgn3HyiNXDaz79-EzXWxtxsZLqCKCjxSgiuklvLhwNw_S5sLNH3UGX2jtdtgF-Q0kR1Urn-CZPz1RgYDbIEk6tuYcqbu8YsqSSHH_sH3usN1xw3SGsvQ5QsQgTjNe6VDsh5pM1CKQ98WjZv6CU0Aqr9jWo7L1SD15KvbS4zBaCu9hpvMcb-Pne4Im61iF5-Xu5GUwHCHlGuNqa7ai9a3Wnsp844ITjSbaL_9WFcK2J2105iSo2DT2qJh2oI2HqBUliRgVfl4ZW3VwUSqYdSp-6eTPB6I64zCwWLFKvsIQp6zdIB67ap89-ROcpKmBl2SK1GVf7KiPfDiQZQRXadt6RNtGXadqD6NnGmPhHOasI-kYCTokisLKU235cVWroFOgcvFL5rc5YJ9lpoKNB5jm2Lf-TFJABehJxRUwbWEicwATyzZTJWVLG8PqDxgoTI" -- cspell:disable-line
+    , userAgent = "Claude"
+    , sessionState = Nothing
+    , expiresAt = dt' 2052 1 21
+    , tenantUuid = defaultTenantUuid
+    , createdAt = dt' 2026 1 1
+    }

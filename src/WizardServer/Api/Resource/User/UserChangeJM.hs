@@ -4,9 +4,13 @@ import Data.Aeson
 
 import Shared.Api.Resource.User.UserChangeDTO
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON UserChangeDTO where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON UserChangeDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema UserChangeDTO where
+  jsonSchema = genericJsonSchema jsonOptions

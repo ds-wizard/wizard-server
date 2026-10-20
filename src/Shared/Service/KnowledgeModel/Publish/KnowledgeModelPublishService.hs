@@ -1,10 +1,11 @@
 module Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishService (
+  getEditorPublication,
   publishPackageFromKnowledgeModelEditor,
   publishPackageFromMigration,
 ) where
 
 import Control.Monad.Reader (liftIO)
-import Data.Time
+import Data.Foldable (traverse_)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
@@ -12,12 +13,14 @@ import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackageP
 import Shared.Api.Resource.KnowledgeModel.Package.Publish.KnowledgeModelPackagePublishMigrationDTO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelLocaleDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
+import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorPublication
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
@@ -33,7 +36,20 @@ import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishMapper
 import Shared.Service.KnowledgeModel.Publish.KnowledgeModelPublishValidation
 import Shared.Service.KnowledgeModel.Squash.Squasher
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
+
+getEditorPublication :: WizardRequestContextC s m => U.UUID -> Maybe [U.UUID] -> m KnowledgeModelEditorPublication
+getEditorPublication editorUuid mLocaleUuids = do
+  checkPermissionToEditor editorUuid
+  editor <- findKnowledgeModelEditorByUuid editorUuid
+  migration <- findKnowledgeModelMigrationByEditorUuid' editorUuid
+  events <- findKnowledgeModelEventsByEditorUuid editorUuid
+  previousLocales <- maybe (return []) findKnowledgeModelLocalesByPackageUuid editor.previousPackageUuid
+  traverse_ validateMigrationCompleted migration
+  validateNewPackageVersion editor.version editor
+  validateReusableLocales previousLocales mLocaleUuids
+  return KnowledgeModelEditorPublication {..}
 
 publishPackageFromKnowledgeModelEditor :: WizardRequestContextC s m => PackagePublishEditorDTO -> m KnowledgeModelPackageSimpleDTO
 publishPackageFromKnowledgeModelEditor reqDto = do
@@ -97,7 +113,7 @@ doPublishPackage version kmEditor kmEvents description readme mForkOfPkgId mMerg
   let squashedKmEvents = squash kmEvents
   validateNewPackageVersion version kmEditor
   uuid <- liftIO generateUuid
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   workspaceUuid <- ownerWorkspaceUuid kmEditor.workspaceUuid
   let (pkg, pkgEvents) = fromPackage kmEditor uuid workspaceUuid mForkOfPkgId mMergeCheckpointPkgId version description readme squashedKmEvents now
   createdPkg <- createPackage (pkg, pkgEvents)

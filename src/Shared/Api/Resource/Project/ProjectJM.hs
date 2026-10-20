@@ -11,9 +11,13 @@ import Shared.Api.Resource.Project.ProjectStateJM ()
 import Shared.Api.Resource.Project.ProjectVisibilityJM ()
 import Shared.Api.Resource.User.UserJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON ProjectDTO where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON ProjectDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema ProjectDTO where
+  jsonSchema = genericJsonSchema jsonOptions

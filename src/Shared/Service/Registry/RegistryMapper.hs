@@ -5,6 +5,7 @@ import Data.Time
 import RegistryPublic.Api.Resource.DocumentTemplate.DocumentTemplateSimpleDTO
 import RegistryPublic.Api.Resource.Locale.LocaleDTO
 import RegistryPublic.Api.Resource.Package.KnowledgeModelPackageSimpleDTO
+import Shared.Api.Resource.Registry.RegistryCatalogItemDTO
 import Shared.Model.Registry.RegistryLocale
 import Shared.Model.Registry.RegistryMailTemplateLocale
 import Shared.Model.Registry.RegistryPackage
@@ -16,6 +17,8 @@ toRegistryPackage dto now =
     { id = dto.id
     , remoteVersion = dto.version
     , createdAt = now
+    , remoteName = dto.name
+    , remoteDescription = dto.description
     }
 
 toRegistryTemplate :: DocumentTemplateSimpleDTO -> UTCTime -> RegistryTemplate
@@ -24,6 +27,8 @@ toRegistryTemplate dto now =
     { id = dto.id
     , remoteVersion = dto.version
     , createdAt = now
+    , remoteName = dto.name
+    , remoteDescription = dto.description
     }
 
 toRegistryLocale :: LocaleDTO -> UTCTime -> RegistryLocale
@@ -42,4 +47,24 @@ toRegistryMailTemplateLocale dto now =
     , name = dto.name
     , remoteVersion = dto.version
     , createdAt = now
+    }
+
+toPackageCatalogItem :: RegistryPackage -> RegistryCatalogItemDTO
+toPackageCatalogItem package =
+  RegistryCatalogItemDTO
+    { kind = "knowledgeModel"
+    , id = package.id
+    , name = package.remoteName
+    , description = package.remoteDescription
+    , latestVersion = package.remoteVersion
+    }
+
+toTemplateCatalogItem :: RegistryTemplate -> RegistryCatalogItemDTO
+toTemplateCatalogItem template =
+  RegistryCatalogItemDTO
+    { kind = "documentTemplate"
+    , id = template.id
+    , name = template.remoteName
+    , description = template.remoteDescription
+    , latestVersion = template.remoteVersion
     }

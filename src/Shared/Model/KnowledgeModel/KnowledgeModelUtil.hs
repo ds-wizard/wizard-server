@@ -1,13 +1,12 @@
 module Shared.Model.KnowledgeModel.KnowledgeModelUtil where
 
 import qualified Data.Map.Strict as M
+import Data.Maybe (isJust)
 import qualified Data.UUID as U
-import Prelude hiding (id)
-import qualified Prelude
 
 import Shared.Model.KnowledgeModel.KnowledgeModel
+import Shared.Model.KnowledgeModel.KnowledgeModelEntity
 import Shared.Model.KnowledgeModel.KnowledgeModelLenses
-import Shared.Util.Map (insertFlipped)
 
 isItListQuestion :: KnowledgeModel -> U.UUID -> Bool
 isItListQuestion km itemUuid =
@@ -15,22 +14,54 @@ isItListQuestion km itemUuid =
     Just (ListQuestion' _) -> True
     _ -> False
 
-makeParentMap :: KnowledgeModel -> M.Map U.UUID U.UUID
-makeParentMap km = M.union chMap . M.union qMap $ ansMap
+entityExists :: KnowledgeModel -> U.UUID -> Bool
+entityExists km = isJust . findEntity km
+
+getChildLists :: KnowledgeModel -> U.UUID -> [(String, [U.UUID])]
+getChildLists km = maybe [] (entityChildLists km) . findEntity km
+
+entityChildLists :: KnowledgeModel -> KnowledgeModelEntity -> [(String, [U.UUID])]
+entityChildLists km entity =
+  case entity of
+    KnowledgeModelEntity -> knowledgeModelChildLists km
+    ChapterEntity chapter -> [("questionUuids", chapter.questionUuids)]
+    QuestionEntity question -> questionChildLists question
+    AnswerEntity answer -> [("followUpUuids", answer.followUpUuids)]
+    ResourceCollectionEntity collection -> [("resourcePageUuids", collection.resourcePageUuids)]
+    _ -> []
+
+knowledgeModelChildLists :: KnowledgeModel -> [(String, [U.UUID])]
+knowledgeModelChildLists km =
+  [ ("chapterUuids", km.chapterUuids)
+  , ("tagUuids", km.tagUuids)
+  , ("integrationUuids", km.integrationUuids)
+  , ("metricUuids", km.metricUuids)
+  , ("phaseUuids", km.phaseUuids)
+  , ("resourceCollectionUuids", km.resourceCollectionUuids)
+  ]
+
+questionChildLists :: Question -> [(String, [U.UUID])]
+questionChildLists question = typeSpecific question ++ [("expertUuids", getExpertUuids question), ("referenceUuids", getReferenceUuids question)]
   where
-    chMap :: M.Map U.UUID U.UUID
-    chMap = foldr chMapGo M.empty (getChaptersL km)
-    chMapGo :: Chapter -> M.Map U.UUID U.UUID -> M.Map U.UUID U.UUID
-    chMapGo ch = M.union (foldr (insertFlipped ch.uuid) M.empty ch.questionUuids)
-    -- -------
-    qMap :: M.Map U.UUID U.UUID
-    qMap = foldr qMapGo M.empty (getQuestionsL km)
-    qMapGo :: Question -> M.Map U.UUID U.UUID -> M.Map U.UUID U.UUID
-    qMapGo (OptionsQuestion' q) = M.union (foldr (insertFlipped q.uuid) M.empty q.answerUuids)
-    qMapGo (ListQuestion' q) = M.union (foldr (insertFlipped q.uuid) M.empty q.itemTemplateQuestionUuids)
-    qMapGo _ = Prelude.id
-    -- -------
-    ansMap :: M.Map U.UUID U.UUID
-    ansMap = foldr ansMapGo M.empty (getAnswersL km)
-    ansMapGo :: Answer -> M.Map U.UUID U.UUID -> M.Map U.UUID U.UUID
-    ansMapGo ans = M.union (foldr (insertFlipped ans.uuid) M.empty ans.followUpUuids)
+    typeSpecific (OptionsQuestion' q) = [("answerUuids", q.answerUuids)]
+    typeSpecific (MultiChoiceQuestion' q) = [("choiceUuids", q.choiceUuids)]
+    typeSpecific (ListQuestion' q) = [("itemTemplateQuestionUuids", q.itemTemplateQuestionUuids)]
+    typeSpecific _ = []
+
+getChildUuids :: KnowledgeModel -> U.UUID -> [U.UUID]
+getChildUuids km = concatMap snd . getChildLists km
+
+makeParentMap :: KnowledgeModel -> KMParentMap
+makeParentMap km = M.fromList [(child, parent) | parent <- parents, child <- getChildUuids km parent]
+  where
+    parents =
+      km.uuid
+        : M.keys km.entities.chapters
+        ++ M.keys km.entities.questions
+        ++ M.keys km.entities.answers
+        ++ M.keys km.entities.resourceCollections
+
+getAncestorUuids :: KMParentMap -> U.UUID -> [U.UUID]
+getAncestorUuids parentMap = take (M.size parentMap) . go
+  where
+    go uuid = maybe [] (\parent -> parent : go parent) (M.lookup uuid parentMap)

@@ -3,7 +3,6 @@ module Shared.Service.User.Group.UserGroupService where
 import Control.Monad (when)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.Group.UserGroupChangeDTO
@@ -33,6 +32,7 @@ import Shared.Service.User.Group.UserGroupAuditLog
 import Shared.Service.User.Group.UserGroupMapper
 import Shared.Service.User.GroupMembership.UserGroupMembershipService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
 
 getUserGroupsPage :: WizardRequestContextC s m => Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page UserGroupList)
@@ -49,13 +49,17 @@ getUserGroupByUuid uuid = do
   return $ toDetailDTO userGroup users
 
 createUserGroup :: WizardRequestContextC s m => UserGroupChangeDTO -> m UserGroup
-createUserGroup reqDto =
+createUserGroup reqDto = do
+  uuid <- liftIO generateUuid
+  createUserGroupWithUuid uuid reqDto
+
+createUserGroupWithUuid :: WizardRequestContextC s m => U.UUID -> UserGroupChangeDTO -> m UserGroup
+createUserGroupWithUuid uuid reqDto =
   runInTransaction $ do
     workspaceUuid <- requireWorkspaceScope
     checkCreatePermission workspaceUuid
-    uuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let userGroup = fromCreateDTO reqDto uuid tenantUuid workspaceUuid now
     insertUserGroup userGroup
     currentUser <- getCurrentUser
@@ -69,7 +73,7 @@ modifyUserGroup uuid reqDto =
   runInTransaction $ do
     userGroup <- findUserGroupByUuid uuid
     checkEditPermission userGroup
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedUserGroup = fromChangeDTO userGroup reqDto now
     updateUserGroupByUuid updatedUserGroup
     al_updateUserGroup userGroup updatedUserGroup

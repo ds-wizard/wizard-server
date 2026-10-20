@@ -2,11 +2,13 @@ module Shared.Api.Resource.Project.Event.ProjectEventListJM where
 
 import Control.Monad
 import Data.Aeson
+import Data.Proxy
 
 import Shared.Api.Resource.Project.ProjectReplyJM ()
 import Shared.Api.Resource.User.UserSuggestionJM ()
 import Shared.Model.Project.Event.ProjectEventList
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON ProjectEventList where
   toJSON = toSumJSONWithTypeField "type" "List"
@@ -45,3 +47,27 @@ instance FromJSON SetLabelsEventList where
 
 instance ToJSON SetLabelsEventList where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema ProjectEventList where
+  jsonSchema _ =
+    anyOfSchema
+      [ eventSchema "SetReplyEvent" (Proxy :: Proxy SetReplyEventList)
+      , eventSchema "ClearReplyEvent" (Proxy :: Proxy ClearReplyEventList)
+      , eventSchema "SetPhaseEvent" (Proxy :: Proxy SetPhaseEventList)
+      , eventSchema "SetLabelsEvent" (Proxy :: Proxy SetLabelsEventList)
+      ]
+
+eventSchema :: JsonSchema a => String -> Proxy a -> Value
+eventSchema eventType proxy = withConstProperties [("type", eventType)] (jsonSchema proxy)
+
+instance JsonSchema SetReplyEventList where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema ClearReplyEventList where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema SetPhaseEventList where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema SetLabelsEventList where
+  jsonSchema = genericJsonSchema jsonOptions

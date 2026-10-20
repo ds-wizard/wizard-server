@@ -11,6 +11,7 @@ import Specs.Api.Handler.Project.Detail_WS.DeleteCommentSpec
 import Specs.Api.Handler.Project.Detail_WS.DeleteCommentThreadSpec
 import Specs.Api.Handler.Project.Detail_WS.DeliverySpec
 import Specs.Api.Handler.Project.Detail_WS.EditCommentSpec
+import Specs.Api.Handler.Project.Detail_WS.EventBatchSpec
 import Specs.Api.Handler.Project.Detail_WS.GeneralSpec
 import Specs.Api.Handler.Project.Detail_WS.PresenceSpec
 import Specs.Api.Handler.Project.Detail_WS.ReopenCommentThreadSpec
@@ -38,3 +39,4 @@ projectWebsocketAPI requestContext =
     editCommentSpec requestContext
     deleteCommentSpec requestContext
     setProjectSpec requestContext
+    eventBatchSpec requestContext

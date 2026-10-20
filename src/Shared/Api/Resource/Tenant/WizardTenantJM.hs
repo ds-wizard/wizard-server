@@ -5,9 +5,13 @@ import Data.Aeson
 import Shared.Api.Resource.Tenant.TenantDTO
 import Shared.Api.Resource.Tenant.TenantJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON TenantDTO where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON TenantDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema TenantDTO where
+  jsonSchema = genericJsonSchema jsonOptions

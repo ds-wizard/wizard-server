@@ -2,10 +2,12 @@ module Shared.Api.Resource.Report.ReportJM where
 
 import Control.Monad
 import Data.Aeson
+import Data.Proxy
 
 import Shared.Api.Resource.KnowledgeModel.KnowledgeModelJM ()
 import Shared.Model.Report.Report
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 -- --------------------------------------------------------------------
 instance FromJSON Report where
@@ -61,3 +63,23 @@ instance FromJSON PhasesAnsweredIndication where
 
 instance ToJSON PhasesAnsweredIndication where
   toJSON = genericToJSON jsonOptions
+
+-- --------------------------------------------------------------------
+instance JsonSchema TotalReport where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema MetricSummary where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema Indication where
+  jsonSchema _ =
+    anyOfSchema
+      [ withConstProperties [("indicationType", "AnsweredIndication")] (jsonSchema (Proxy :: Proxy AnsweredIndication))
+      , withConstProperties [("indicationType", "PhasesAnsweredIndication")] (jsonSchema (Proxy :: Proxy PhasesAnsweredIndication))
+      ]
+
+instance JsonSchema AnsweredIndication where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema PhasesAnsweredIndication where
+  jsonSchema = genericJsonSchema jsonOptions

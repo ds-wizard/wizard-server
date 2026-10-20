@@ -4,7 +4,9 @@ import Control.Monad (forM_, unless, void, when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
 import qualified Data.Aeson as A
+import Data.List (find)
 import qualified Data.Map.Strict as M
+import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
 
@@ -43,6 +45,18 @@ modifyPluginSettingsList reqDto =
       Nothing -> forM_ (M.toList reqDto) (uncurry modifyOrganizationPlugin)
       Just workspaceUuid -> forM_ (M.toList reqDto) (uncurry (modifyWorkspacePlugin workspaceUuid))
     listPluginSettings mWorkspaceUuid
+
+getPluginSettingsListEntry :: WizardRequestContextC s m => U.UUID -> m PluginSettingsListDTO
+getPluginSettingsListEntry pluginUuid = do
+  entries <- getPluginSettingsList
+  maybe (throwError . NotExistsError $ _ERROR_VALIDATION__ABSENCE "plugin") return (find ((== pluginUuid) . (.pluginUuid)) entries)
+
+modifyPluginSettingsListEntry :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> Maybe Bool -> m ()
+modifyPluginSettingsListEntry pluginUuid mEnabled mWorkspaceOverrideAllowed =
+  runInTransaction $ do
+    current <- getPluginSettingsListEntry pluginUuid
+    let change = PluginSettingsChangeDTO (fromMaybe current.enabled mEnabled) mWorkspaceOverrideAllowed
+    void $ modifyPluginSettingsList (M.singleton pluginUuid change)
 
 getPluginSettings :: WizardRequestContextC s m => U.UUID -> m A.Value
 getPluginSettings pluginUuid = do

@@ -15,6 +15,12 @@ checkEditorPermissionToDocumentTemplate dtUuid = do
   dt <- findDraftByUuid dtUuid
   checkPermissionInWorkspace _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION dt.workspaceUuid
 
+checkEditorPermissionToAnyDocumentTemplate :: WizardRequestContextC s m => U.UUID -> m ()
+checkEditorPermissionToAnyDocumentTemplate dtUuid = do
+  checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
+  dt <- findDocumentTemplateByUuid dtUuid
+  checkPermissionInWorkspace _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION dt.workspaceUuid
+
 checkManagePermissionToDocumentTemplate :: WizardRequestContextC s m => U.UUID -> m ()
 checkManagePermissionToDocumentTemplate dtUuid = do
   checkLibraryPermissionAnywhere _DOCUMENT_TEMPLATES_MANAGE_ROLE_PERMISSION

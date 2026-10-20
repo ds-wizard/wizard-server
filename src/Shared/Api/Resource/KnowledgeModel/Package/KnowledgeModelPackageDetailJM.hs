@@ -7,9 +7,13 @@ import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageDetailDTO
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePhaseJM ()
 import Shared.Api.Resource.Version.VersionJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON KnowledgeModelPackageDetailDTO where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON KnowledgeModelPackageDetailDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema KnowledgeModelPackageDetailDTO where
+  jsonSchema = genericJsonSchema jsonOptions

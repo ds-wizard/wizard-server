@@ -36,6 +36,8 @@ createKnowledgeModelPackageTable = do
         \    id              varchar     NOT NULL, \
         \    remote_version  varchar     NOT NULL, \
         \    created_at      timestamptz NOT NULL, \
+        \    remote_name        varchar     NOT NULL DEFAULT '', \
+        \    remote_description varchar     NOT NULL DEFAULT '', \
         \    CONSTRAINT registry_knowledge_model_package_pk PRIMARY KEY (id) \
         \);"
   let action conn = execute_ conn sql
@@ -50,6 +52,8 @@ createTemplateTable = do
         \    id              varchar     NOT NULL, \
         \    remote_version  varchar     NOT NULL, \
         \    created_at      timestamptz NOT NULL, \
+        \    remote_name        varchar     NOT NULL DEFAULT '', \
+        \    remote_description varchar     NOT NULL DEFAULT '', \
         \    CONSTRAINT registry_document_template_pk PRIMARY KEY (id) \
         \);"
   let action conn = execute_ conn sql

@@ -7,5 +7,7 @@ data RegistryPackage = RegistryPackage
   { id :: String
   , remoteVersion :: String
   , createdAt :: UTCTime
+  , remoteName :: String
+  , remoteDescription :: String
   }
   deriving (Show, Eq, Generic)

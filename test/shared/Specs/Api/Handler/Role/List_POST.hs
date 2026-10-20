@@ -2,6 +2,7 @@ module Specs.Api.Handler.Role.List_POST (
   list_POST,
 ) where
 
+import Control.Monad (forM_)
 import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.UUID as U
@@ -45,6 +46,7 @@ list_POST :: RequestContext -> SpecWith ((), Application)
 list_POST requestContext =
   describe "POST /api/roles" $ do
     test_201 requestContext
+    test_201_mcp requestContext
     test_201_workspace requestContext
     test_400 requestContext
     test_400_workspace requestContext
@@ -101,6 +103,26 @@ test_201 requestContext =
     -- AND: Find result in DB and compare with expectation state
     assertCountInDB findRoles requestContext 6
 
+test_201_mcp requestContext =
+  it "HTTP 201 CREATED (MCP permissions)" $ do
+    -- GIVEN: Prepare request
+    let mcpReqDto = reqDto {permissions = [_MCP_READ_ROLE_PERMISSION, _MCP_WRITE_ROLE_PERMISSION, _MCP_SENSITIVE_ROLE_PERMISSION]} :: RoleChangeDTO
+    -- AND: Prepare expectation
+    let expStatus = 201
+    let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
+    -- AND: Run migrations
+    runInContextIO U_Migration.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl reqHeaders (encode mcpReqDto)
+    -- THEN: Compare response with expectation
+    let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, RoleList)
+    assertResStatus status expStatus
+    assertResHeaders headers expHeaders
+    liftIO $ resDto.permissions `shouldBe` mcpReqDto.permissions
+    -- AND: Find result in DB and compare with expectation state
+    roleFromDb <- getOneFromDB (findRoleByUuid resDto.uuid) requestContext
+    liftIO $ roleFromDb.permissions `shouldBe` mcpReqDto.permissions
+
 test_201_workspace requestContext =
   it "HTTP 201 CREATED (workspace role)" $ do
     -- GIVEN: Prepare expectation
@@ -131,6 +153,13 @@ test_400_workspace requestContext = do
     (reqUrl <> "?w=" <> BS.pack (U.toString defaultWorkspaceUuid))
     (reqDto {permissions = [_USERS_MANAGE_ROLE_PERMISSION]} :: RoleChangeDTO)
     (UserError $ _ERROR_VALIDATION__USER_ROLE_ORGANIZATION_ONLY_PERMISSION _USERS_MANAGE_ROLE_PERMISSION)
+  forM_ [_MCP_READ_ROLE_PERMISSION, _MCP_WRITE_ROLE_PERMISSION, _MCP_SENSITIVE_ROLE_PERMISSION] $ \permission ->
+    createWorkspaceValidationTest
+      requestContext
+      (permission ++ " is granted on a workspace role")
+      (reqUrl <> "?w=" <> BS.pack (U.toString defaultWorkspaceUuid))
+      (reqDto {permissions = [permission]} :: RoleChangeDTO)
+      (UserError $ _ERROR_VALIDATION__USER_ROLE_ORGANIZATION_ONLY_PERMISSION permission)
   createWorkspaceValidationTest
     requestContext
     "no plane is given in a multi-workspace tenant"
@@ -181,7 +210,7 @@ test_403_workspace requestContext =
     -- AND: Prepare expectation
     let expStatus = 403
     let expHeaders = resCtHeader : resCorsHeaders
-    let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _ROLES_MANAGE_ROLE_PERMISSION))
+    let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION _ROLES_MANAGE_ROLE_PERMISSION)
     -- WHEN: Call API
     response <- request reqMethod (reqUrl <> "?tenant=true") reqHeaders reqBody
     -- THEN: Compare response with expectation

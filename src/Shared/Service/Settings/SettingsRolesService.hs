@@ -3,7 +3,6 @@ module Shared.Service.Settings.SettingsRolesService where
 import Control.Monad (unless)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Settings.SettingsDTO
@@ -22,6 +21,7 @@ import Shared.Model.Workspace.Workspace
 import Shared.Service.Settings.SettingsAuditLog
 import Shared.Service.Settings.SettingsService
 import Shared.Service.User.RoleAcl
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 
 getSettingsRoles :: WizardRequestContextC s m => m (SettingsDTO SettingsRoles)
 getSettingsRoles = do
@@ -55,6 +55,6 @@ saveSettingsRolesValue Nothing role = do
 saveSettingsRolesValue (Just workspaceUuid) role = do
   unless (role.workspaceUuid == Just workspaceUuid) (throwError . UserError $ _ERROR_SERVICE_SETTINGS__ROLE_NOT_IN_WORKSPACE)
   workspace <- findWorkspaceByUuid workspaceUuid
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   _ <- updateWorkspaceByUuid (workspace {defaultRoleUuid = Just role.uuid, updatedAt = now} :: Workspace)
   return ()

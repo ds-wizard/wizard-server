@@ -49,6 +49,12 @@ al_deleteDocumentTemplate dt mAllVersions dts dependents =
       , dependents = toDependentsData dependents
       }
 
+al_writeDocumentTemplateFiles :: WizardRequestContextC s m => DocumentTemplate -> [String] -> m ()
+al_writeDocumentTemplateFiles dt paths = logAuditLog documentTemplateEditorsFilesWrite (documentTemplateEntity dt) AuditLogFilesData {paths = paths}
+
+al_deleteDocumentTemplateFiles :: WizardRequestContextC s m => DocumentTemplate -> [String] -> m ()
+al_deleteDocumentTemplateFiles dt paths = logAuditLog documentTemplateEditorsFilesDelete (documentTemplateEntity dt) AuditLogFilesData {paths = paths}
+
 documentTemplateEntity :: DocumentTemplate -> AuditLogEntity
 documentTemplateEntity dt = AuditLogEntity {uuid = dt.uuid, name = dt.name, workspaceUuid = dt.workspaceUuid}
 

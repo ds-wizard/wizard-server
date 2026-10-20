@@ -3,6 +3,7 @@ module Shared.Service.Workspace.WorkspaceMapper where
 import Data.Time
 import qualified Data.UUID as U
 
+import Shared.Api.Resource.Mcp.Workspace.McpWorkspaceMembersDTO
 import Shared.Api.Resource.Workspace.WorkspaceChangeDTO
 import Shared.Model.User.Role
 import Shared.Model.User.RoleSimple
@@ -24,6 +25,14 @@ fromChangeDTO reqDto uuid tenantUuid now =
     , defaultRoleUuid = Nothing
     , logo = Nothing
     , primaryColor = reqDto.primaryColor
+    }
+
+toChangeDTO :: Workspace -> WorkspaceChangeDTO
+toChangeDTO workspace =
+  WorkspaceChangeDTO
+    { name = workspace.name
+    , description = workspace.description
+    , primaryColor = workspace.primaryColor
     }
 
 fromChange :: Workspace -> WorkspaceChangeDTO -> UTCTime -> Workspace
@@ -70,3 +79,6 @@ toMember membership role user =
     , createdAt = membership.createdAt
     , role = role
     }
+
+toMcpMemberDTO :: WorkspaceMembership -> McpWorkspaceMemberDTO
+toMcpMemberDTO membership = McpWorkspaceMemberDTO membership.userUuid (Just membership.roleUuid)

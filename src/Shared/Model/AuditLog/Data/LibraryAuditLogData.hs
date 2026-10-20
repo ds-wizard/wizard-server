@@ -82,6 +82,33 @@ instance ToJSON AuditLogDocumentTemplateEditorData
 
 instance ToSchema AuditLogDocumentTemplateEditorData
 
+data AuditLogEventCountData = AuditLogEventCountData
+  { events :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON AuditLogEventCountData
+
+instance ToSchema AuditLogEventCountData
+
+data AuditLogReplyCountData = AuditLogReplyCountData
+  { replies :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON AuditLogReplyCountData
+
+instance ToSchema AuditLogReplyCountData
+
+data AuditLogFilesData = AuditLogFilesData
+  { paths :: [String]
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON AuditLogFilesData
+
+instance ToSchema AuditLogFilesData
+
 data AuditLogEditorChanges = AuditLogEditorChanges
   { name :: Maybe (Change String)
   , id :: Maybe (Change String)

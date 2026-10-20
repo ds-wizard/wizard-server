@@ -42,14 +42,15 @@ instance WizardHandlerC ServerContext ServerContextM RequestContext RequestConte
           Right result -> return result
           Left error -> throwError =<< sendError error
       else throwError =<< sendError (NotExistsError (_ERROR_VALIDATION__TENANT_OR_ACTIVE_PLAN_ABSENCE (fromMaybe "not-provided" mServerUrl)))
-  getScopedAuthServiceExecutor (Just token) mServerUrl mW mTenant callback = do
+  getAuthServiceExecutorFor tokenTypes (Just token) mServerUrl mW mTenant callback = do
     userTokenClaims <- validateJwtToken token
-    isTokenExistsInDb userTokenClaims mServerUrl
+    userToken <- isTokenExistsInDb userTokenClaims mServerUrl
+    checkUserTokenType tokenTypes userToken
     user <- getCurrentUser userTokenClaims mServerUrl
     if user.active
       then callback (runInScopedAuthService mServerUrl user mW mTenant)
       else throwError =<< (sendError . UnauthorizedError $ _ERROR_SERVICE_TOKEN__ACCOUNT_IS_NOT_ACTIVATED)
-  getScopedAuthServiceExecutor Nothing _ _ _ _ = throwError =<< (sendError . UnauthorizedError $ _ERROR_API_COMMON__UNABLE_TO_GET_TOKEN)
+  getAuthServiceExecutorFor _ Nothing _ _ _ _ = throwError =<< (sendError . UnauthorizedError $ _ERROR_API_COMMON__UNABLE_TO_GET_TOKEN)
 
 withScope :: Maybe U.UUID -> Maybe Bool -> RequestContextM a -> RequestContextM a
 withScope mW mTenant function = do

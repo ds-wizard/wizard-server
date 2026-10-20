@@ -6,6 +6,7 @@ import Shared.Api.Resource.KnowledgeModel.Event.KnowledgeModelEventFieldJM ()
 import Shared.Api.Resource.KnowledgeModel.KnowledgeModelJM ()
 import Shared.Model.KnowledgeModel.Event.Answer.AnswerEvent
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON AddAnswerEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
@@ -13,8 +14,14 @@ instance FromJSON AddAnswerEvent where
 instance ToJSON AddAnswerEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
 
+instance JsonSchema AddAnswerEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")
+
 instance FromJSON EditAnswerEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
 
 instance ToJSON EditAnswerEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
+
+instance JsonSchema EditAnswerEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")

@@ -6,10 +6,11 @@ import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSimpleDTO
+import Shared.Api.Resource.Mcp.Project.McpProjectDetailDTO
+import Shared.Api.Resource.Mcp.Project.McpProjectQuestionnaireDTO
 import Shared.Api.Resource.Project.Detail.ProjectDetailDTO
 import Shared.Api.Resource.Project.Detail.ProjectDetailQuestionnaireDTO
 import Shared.Api.Resource.Project.Event.ProjectEventDTO
@@ -35,6 +36,7 @@ import Shared.Model.Common.Lens
 import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
+import Shared.Model.Common.WizardLens
 import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
@@ -49,6 +51,7 @@ import Shared.Model.Project.Detail.ProjectDetail
 import Shared.Model.Project.Detail.ProjectDetailPreview
 import Shared.Model.Project.Detail.ProjectDetailQuestionnaire
 import Shared.Model.Project.Detail.ProjectDetailSettings
+import Shared.Model.Project.Event.ProjectEventLenses ()
 import Shared.Model.Project.Event.ProjectEventList
 import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.Project
@@ -56,7 +59,6 @@ import Shared.Model.Project.ProjectContent
 import Shared.Model.Project.ProjectReply
 import Shared.Model.Settings.Settings
 import qualified Shared.Service.DocumentTemplate.DocumentTemplateMapper as STM
-import Shared.Service.KnowledgeModel.KnowledgeModelService
 import qualified Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper as KnowledgeModelLocaleMapper
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleService (findLocaleJson)
 import Shared.Service.Mail.Mailer
@@ -64,6 +66,7 @@ import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Project.Comment.ProjectCommentService
 import Shared.Service.Project.Compiler.ProjectCompilerService
 import Shared.Service.Project.Event.ProjectEventMapper
+import Shared.Service.Project.Event.ProjectEventValidation
 import Shared.Service.Project.File.ProjectFileService
 import Shared.Service.Project.ProjectAcl
 import Shared.Service.Project.ProjectAuditLog
@@ -75,6 +78,7 @@ import Shared.Service.Project.Version.ProjectVersionService
 import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
@@ -132,12 +136,12 @@ createProjectWithGivenUuid reqDto projectUuid =
 
 insertNewProject :: WizardRequestContextC s m => ProjectCreateDTO -> U.UUID -> U.UUID -> KnowledgeModelPackage -> [ProjectPerm] -> m Project
 insertNewProject reqDto projectUuid workspaceUuid pkg permissions = do
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   tenantUuid <- asks (.tenantUuid')
   visibility <- extractVisibility workspaceUuid reqDto
   sharing <- extractSharing workspaceUuid reqDto
   mCurrentUser <- asks (.currentUser')
-  knowledgeModel <- compileKnowledgeModel [] (Just pkg.uuid) reqDto.questionTagUuids
+  knowledgeModel <- compileProjectKnowledgeModel pkg.uuid reqDto.questionTagUuids
   phaseEventUuid <- liftIO generateUuid
   let (project, projectEvents) =
         fromProjectCreateDTO
@@ -166,15 +170,18 @@ toCreatedProjectDTO project pkg = do
 
 createProjectFromTemplate :: WizardRequestContextC s m => ProjectCreateFromTemplateDTO -> m ProjectDTO
 createProjectFromTemplate reqDto =
+  liftIO generateUuid >>= createProjectFromTemplateWithUuid reqDto
+
+createProjectFromTemplateWithUuid :: WizardRequestContextC s m => ProjectCreateFromTemplateDTO -> U.UUID -> m ProjectDTO
+createProjectFromTemplateWithUuid reqDto newProjectUuid =
   runInTransaction $ do
     checkProjectLimit
     originProject <- findProjectByUuid reqDto.projectUuid
     checkViewPermissionToProject originProject.workspaceUuid originProject.visibility originProject.sharing originProject.permissions
     checkCreateFromTemplatePermissionToProject originProject.workspaceUuid originProject.isTemplate
     pkg <- findPackageByUuid originProject.knowledgeModelPackageUuid
-    newProjectUuid <- liftIO generateUuid
     currentUser <- getCurrentUser
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     tcProject <- getEffectiveSettingsProjects (Just originProject.workspaceUuid)
     originProjectEvents <- findProjectEventListsByProjectUuid reqDto.projectUuid
     let newVisibility = tcProject.projectVisibility.defaultValue
@@ -207,14 +214,17 @@ createProjectFromTemplate reqDto =
 
 cloneProject :: WizardRequestContextC s m => U.UUID -> m ProjectDTO
 cloneProject cloneUuid =
+  liftIO generateUuid >>= cloneProjectWithUuid cloneUuid
+
+cloneProjectWithUuid :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ProjectDTO
+cloneProjectWithUuid cloneUuid newProjectUuid =
   runInTransaction $ do
     checkProjectLimit
     originProject <- findProjectByUuid cloneUuid
     checkClonePermissionToProject originProject.workspaceUuid originProject.visibility originProject.sharing originProject.permissions
     pkg <- findPackageByUuid originProject.knowledgeModelPackageUuid
-    newProjectUuid <- liftIO generateUuid
     currentUser <- getCurrentUser
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     originProjectEvents <- findProjectEventListsByProjectUuid originProject.uuid
     ownerPerms <- ownerPermissionsIfMember originProject.workspaceUuid newProjectUuid
     let newPermissions = ownerPerms ++ removeUserPermission currentUser.uuid originProject.permissions
@@ -237,6 +247,23 @@ cloneProject cloneUuid =
     duplicateCommentThreads cloneUuid newProjectUuid
     al_cloneProject originProject newProject
     toCreatedProjectDTO newProject pkg
+
+getProjectByUuid :: WizardRequestContextC s m => U.UUID -> m Project
+getProjectByUuid projectUuid = do
+  project <- findProjectByUuid projectUuid
+  checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
+  return project
+
+getMcpProjectDetailByUuid :: WizardRequestContextC s m => U.UUID -> m McpProjectDetailDTO
+getMcpProjectDetailByUuid projectUuid = do
+  project <- getProjectByUuid projectUuid
+  pkg <- findPackageByUuid project.knowledgeModelPackageUuid
+  toMcpProjectDetailDTO project <$> toCreatedProjectDTO project pkg
+
+getMcpProjectQuestionnaireByUuid :: WizardRequestContextC s m => U.UUID -> m McpProjectQuestionnaireDTO
+getMcpProjectQuestionnaireByUuid projectUuid = do
+  project <- getProjectByUuid projectUuid
+  toMcpProjectQuestionnaireDTO project . compileProjectEvents <$> findProjectEventListsByProjectUuid projectUuid
 
 getProjectDetailByUuid :: WizardRequestContextC s m => U.UUID -> m ProjectDetailDTO
 getProjectDetailByUuid projectUuid = do
@@ -263,7 +290,7 @@ compileProjectDetailQuestionnaire project editor commenter = do
     if commenter
       then findProjectCommentThreadsSimple project.uuid True editor
       else return M.empty
-  knowledgeModel <- compileKnowledgeModel [] (Just project.knowledgeModelPackage.uuid) project.selectedQuestionTagUuids
+  knowledgeModel <- compileProjectKnowledgeModel project.knowledgeModelPackage.uuid project.selectedQuestionTagUuids
   mLocale <- findLocaleJson project.knowledgeModelPackage.uuid project.language
   let projectContent = compileProjectEvents projectEvents
   let labels =
@@ -282,7 +309,7 @@ getProjectDetailSettingsById :: WizardRequestContextC s m => U.UUID -> m Project
 getProjectDetailSettingsById projectUuid = do
   project <- findProjectDetailSettings projectUuid
   checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
-  knowledgeModel <- compileKnowledgeModel [] (Just project.knowledgeModelPackage.uuid) project.selectedQuestionTagUuids
+  knowledgeModel <- compileProjectKnowledgeModel project.knowledgeModelPackage.uuid project.selectedQuestionTagUuids
   availableLocales <- findKnowledgeModelLocalesByPackageUuid project.knowledgeModelPackage.uuid
   return $
     project
@@ -307,6 +334,7 @@ getProjectEventForProjectUuid projectUuid eventUuid = do
   checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
   telemetryProjectDetailEvent projectUuid
   event <- findProjectEventByUuid eventUuid
+  when (getProjectUuid event /= projectUuid) (throwError . NotExistsError $ eventNotFound projectUuid eventUuid)
   mUser <-
     case getCreatedBy event of
       Just userUuid -> findUserByUuid' userUuid
@@ -319,7 +347,7 @@ modifyProjectShare projectUuid reqDto =
     project <- findProjectByUuid projectUuid
     skipIfAssigningProject project (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
     validateProjectShareChangeDTO project.workspaceUuid reqDto
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     qVisibility <- extractVisibility project.workspaceUuid reqDto
     qSharing <- extractSharing project.workspaceUuid reqDto
     let updatedProject = fromShareChangeDTO project reqDto qVisibility qSharing now
@@ -355,13 +383,19 @@ modifyProjectShare projectUuid reqDto =
     setProject projectUuid restWsDto
     return reqDto
 
+modifyProjectSettingsIfChanged :: WizardRequestContextC s m => Project -> ProjectSettingsChangeDTO -> m ()
+modifyProjectSettingsIfChanged project reqDto = do
+  let current = toSettingsChangeDTO project
+  when (reqDto.isTemplate /= current.isTemplate) (checkPermissionInWorkspace _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION (Just project.workspaceUuid))
+  when (reqDto /= current) (void $ modifyProjectSettings project.uuid reqDto)
+
 modifyProjectSettings :: WizardRequestContextC s m => U.UUID -> ProjectSettingsChangeDTO -> m ProjectSettingsChangeDTO
 modifyProjectSettings projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     skipIfAssigningProject project (checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions)
     validateProjectSettingsChangeDTO project.workspaceUuid reqDto
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     hasPermission <- hasPermissionInWorkspace _PROJECT_TEMPLATES_MANAGE_ROLE_PERMISSION (Just project.workspaceUuid)
     let updatedProject = fromSettingsChangeDTO project reqDto hasPermission now
     updateProjectByUuid updatedProject
@@ -389,6 +423,11 @@ modifyProjectSettings projectUuid reqDto =
     setProject projectUuid restWsDto
     return reqDto
 
+checkDeletePermissionToProject :: WizardRequestContextC s m => U.UUID -> m ()
+checkDeletePermissionToProject projectUuid = do
+  project <- findProjectByUuid projectUuid
+  checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
+
 deleteProject :: WizardRequestContextC s m => U.UUID -> Bool -> m ()
 deleteProject projectUuid shouldValidatePermission =
   runInTransaction $ do
@@ -403,8 +442,9 @@ modifyContent projectUuid reqDto =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     checkEditPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
+    validateProjectEventChanges project reqDto.events
     mCurrentUser <- asks (.currentUser')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     projectEvents <- findProjectEventsByProjectUuid projectUuid
     let (updatedProject, updatedProjectEvents) = fromContentChangeDTO project projectEvents reqDto mCurrentUser now
     syncProjectEventsWithDb projectEvents updatedProjectEvents

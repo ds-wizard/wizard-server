@@ -1,13 +1,15 @@
 module Shared.Service.DocumentTemplate.Locale.Pot.PotFileService where
 
-import Control.Monad (void)
+import Control.Monad (unless, void)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (liftIO)
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
+import Shared.Constant.TemporaryFile
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.WizardCommon
@@ -32,16 +34,18 @@ cGeneratePotFileName = "generatePotFile"
 getTemporaryFileWithPotFile :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getTemporaryFileWithPotFile dtUuid =
   runInTransaction $ do
-    checkManagePermissionToDocumentTemplate dtUuid
-    dt <- findDocumentTemplateByUuid dtUuid
-    if not dt.potFileReady
-      then throwError . UserError $ _ERROR_SERVICE_DOC_TML__POT_FILE_NOT_READY
-      else do
-        let fileName = potFileName dt.id dt.version
-        content <- retrievePotFile dt.uuid fileName
-        mCurrentUserUuid <- getCurrentUserUuid
-        url <- createTemporaryFile fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict content)
-        return $ TemporaryFileMapper.toDTO url "application/octet-stream"
+    (dt, content) <- getPotFile dtUuid
+    mCurrentUserUuid <- getCurrentUserUuid
+    url <- createTemporaryFile temporaryFileExpiration (potFileName dt.id dt.version) "application/octet-stream" mCurrentUserUuid (BSL.fromStrict content)
+    return $ TemporaryFileMapper.toDTO url "application/octet-stream"
+
+getPotFile :: WizardRequestContextC s m => U.UUID -> m (DocumentTemplate, BS.ByteString)
+getPotFile dtUuid = do
+  checkManagePermissionToDocumentTemplate dtUuid
+  dt <- findDocumentTemplateByUuid dtUuid
+  unless dt.potFileReady (throwError . UserError $ _ERROR_SERVICE_DOC_TML__POT_FILE_NOT_READY)
+  content <- retrievePotFile dt.uuid (potFileName dt.id dt.version)
+  return (dt, content)
 
 publishGeneratePotFileCommand :: WizardRequestContextC s m => DocumentTemplate -> m ()
 publishGeneratePotFileCommand dt = do

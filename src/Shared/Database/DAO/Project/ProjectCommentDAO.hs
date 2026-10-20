@@ -26,21 +26,6 @@ insertProjectThreadAndComment thread comment = do
   let sql =
         fromString $
           f'
-            "BEGIN TRANSACTION; \
-            \INSERT INTO %s VALUES (%s); \
-            \INSERT INTO %s VALUES (%s); \
-            \COMMIT;"
-            ["project_comment_thread", generateQuestionMarks' thread, entityName, generateQuestionMarks' comment]
-  let params = toRow thread ++ toRow comment
-  logInsertAndUpdate sql params
-  let action conn = execute conn sql params
-  runDB action
-
-insertProjectThreadAndComment' :: WizardRequestContextC s m => ProjectCommentThread -> ProjectComment -> m Int64
-insertProjectThreadAndComment' thread comment = do
-  let sql =
-        fromString $
-          f'
             "INSERT INTO %s VALUES (%s); \
             \INSERT INTO %s VALUES (%s); "
             ["project_comment_thread", generateQuestionMarks' thread, entityName, generateQuestionMarks' comment]
@@ -63,11 +48,11 @@ updateProjectCommentById entity = do
   runDB action
   return updatedEntity
 
-updateProjectCommentTextById :: WizardRequestContextC s m => U.UUID -> String -> m Int64
-updateProjectCommentTextById uuid text = do
+updateProjectCommentTextById :: WizardRequestContextC s m => U.UUID -> U.UUID -> String -> m Int64
+updateProjectCommentTextById threadUuid uuid text = do
   tenantUuid <- asks (.tenantUuid')
-  let sql = fromString "UPDATE project_comment SET text = ?, updated_at = now() WHERE uuid = ? AND tenant_uuid = ?"
-  let params = [toField text, toField uuid, toField tenantUuid]
+  let sql = fromString "UPDATE project_comment SET text = ?, updated_at = now() WHERE uuid = ? AND comment_thread_uuid = ? AND tenant_uuid = ?"
+  let params = [toField text, toField uuid, toField threadUuid, toField tenantUuid]
   logQuery sql params
   let action conn = execute conn sql params
   runDB action
@@ -80,7 +65,7 @@ deleteProjectCommentsByThreadUuid threadUuid = do
   tenantUuid <- asks (.tenantUuid')
   createDeleteEntityByFn entityName [("comment_thread_uuid", U.toString threadUuid), ("tenant_uuid", U.toString tenantUuid)]
 
-deleteProjectCommentById :: WizardRequestContextC s m => U.UUID -> m Int64
-deleteProjectCommentById uuid = do
+deleteProjectCommentById :: WizardRequestContextC s m => U.UUID -> U.UUID -> m Int64
+deleteProjectCommentById threadUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
-  createDeleteEntityByFn entityName [("uuid", U.toString uuid), ("tenant_uuid", U.toString tenantUuid)]
+  createDeleteEntityByFn entityName [("uuid", U.toString uuid), ("comment_thread_uuid", U.toString threadUuid), ("tenant_uuid", U.toString tenantUuid)]

@@ -7,9 +7,13 @@ import Shared.Api.Resource.Tenant.TenantSuggestionJM ()
 import Shared.Api.Resource.User.UserSuggestionJM ()
 import Shared.Model.PersistentCommand.PersistentCommandList
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON PersistentCommandList where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON PersistentCommandList where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema PersistentCommandList where
+  jsonSchema = genericJsonSchema jsonOptions

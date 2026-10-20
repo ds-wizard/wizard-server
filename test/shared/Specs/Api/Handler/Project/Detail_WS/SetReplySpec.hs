@@ -2,24 +2,32 @@ module Specs.Api.Handler.Project.Detail_WS.SetReplySpec where
 
 import Data.Aeson
 import Data.Foldable (traverse_)
+import qualified Data.Map.Strict as M
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.Expectations.Pretty
 
+import Shared.Api.Resource.Project.Event.ProjectEventChangeDTO
 import Shared.Api.Resource.Websocket.ProjectMessageDTO
 import Shared.Api.Resource.Websocket.WebsocketActionDTO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageEventDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML_Migration
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Chapters
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Questions
+import Shared.Database.Migration.Development.Project.Data.ProjectEventBatches
 import Shared.Database.Migration.Development.Project.Data.ProjectEvents
 import Shared.Database.Migration.Development.Project.Data.Projects
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
 import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Error.Error
+import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.Project.Project
+import Shared.Model.Project.ProjectUtil
 import Shared.Service.Project.Event.ProjectEventMapper
 import WizardServer.Model.Context.RequestContext
 
@@ -33,6 +41,7 @@ import Specs.Common
 setReplySpec requestContext =
   describe "setReply" $ do
     test200 requestContext
+    test400 requestContext
     test403 requestContext
 
 -- ----------------------------------------------------
@@ -62,6 +71,28 @@ test200 requestContext =
       nothingWasReceived c6
       -- AND: Close sockets
       closeSockets [s1, s2, s3, s4, s5, s6]
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test400 requestContext =
+  it "WS 400 BAD REQUEST - path doesn't match the knowledge model" $
+    -- GIVEN: Prepare database
+    do
+      insertProjectAndUsers requestContext project10
+      -- AND: Prepare expectation
+      let invalidPath = createReplyKey [chapter1.uuid, question3.uuid]
+      let expError = ValidationError [] (M.singleton "path" [_ERROR_VALIDATION__PROJECT_EVENT_PATH_ABSENCE invalidPath])
+      -- AND: Connect to websocket
+      ((c1, s1), (c2, s2), (c3, s3)) <- connectTestWebsocketUsers requestContext project10.uuid
+      -- WHEN: Send setReply
+      write_SetReply c1 (SetReplyEventChangeDTO' (srche_rQ2 {path = invalidPath} :: SetReplyEventChangeDTO))
+      -- THEN: Read response
+      read_Error c1 expError
+      nothingWasReceived c2
+      nothingWasReceived c3
+      -- AND: Close sockets
+      closeSockets [s1, s2, s3]
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

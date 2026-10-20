@@ -4,9 +4,13 @@ import Data.Aeson
 
 import Shared.Model.Workspace.Workspace
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON Workspace where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON Workspace where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema Workspace where
+  jsonSchema = genericJsonSchema jsonOptions

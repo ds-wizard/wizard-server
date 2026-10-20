@@ -6,6 +6,7 @@ import Shared.Api.Resource.User.RoleSimpleJM ()
 import Shared.Api.Resource.User.UserDTO
 import Shared.Model.User.User
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON User where
   toJSON = genericToJSON jsonOptions
@@ -15,3 +16,6 @@ instance FromJSON UserDTO where
 
 instance ToJSON UserDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema UserDTO where
+  jsonSchema = genericJsonSchema jsonOptions

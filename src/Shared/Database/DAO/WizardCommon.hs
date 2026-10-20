@@ -1,22 +1,26 @@
 module Shared.Database.DAO.WizardCommon (
   module Shared.Database.DAO.Common,
   runInTransaction,
+  runInPooledTransaction,
   createFindEntitiesGroupByCoordinatePageableQuerySortFn,
   createCountGroupByCoordinateFn,
   WorkspaceAccess (..),
   workspaceAccess,
+  isWorkspaceAccessible,
   workspaceAccessSql,
   workspaceScopeCondition,
   workspaceOnlyCondition,
   tenantOrWorkspaceCondition,
 ) where
 
+import Control.Exception (finally)
 import Control.Monad (when)
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (ask, asks, liftIO)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
 import Data.Maybe (maybeToList)
+import Data.Pool (withResource)
 import Data.String (fromString)
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple
@@ -34,11 +38,23 @@ import Shared.Model.Error.Error
 import Shared.Model.User.RolePermission
 import Shared.Model.User.RoleSimple
 import Shared.Service.Acl.AclService (permissionsInWorkspace)
+import Shared.Util.Error (tryError)
 import Shared.Util.Logger
 import Shared.Util.String
 
 runInTransaction :: WizardRequestContextC s m => m a -> m a
 runInTransaction = S.runInTransaction logInfoI logWarnI
+
+runInPooledTransaction :: WizardRequestContextC s m => m a -> m a
+runInPooledTransaction action = do
+  context <- ask
+  eResult <- liftIO . withResource context.dbPool' $ \connection ->
+    runRequestContextWithRequestContext (tryError (runInTransaction action)) (setDbConnection (Just connection) context)
+      `finally` rollbackOpenTransaction connection
+  case eResult of
+    Right (Right result) -> return result
+    Right (Left error) -> throwError error
+    Left message -> throwError (GeneralServerError message)
 
 workspaceGroupSql :: String -> Bool -> (String, String)
 workspaceGroupSql entityName True = (f' ", ':', %s.workspace_uuid" [entityName], f' ", %s.workspace_uuid" [entityName])

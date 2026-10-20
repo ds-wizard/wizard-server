@@ -6,6 +6,7 @@ import Shared.Api.Resource.Common.MapEntryJM ()
 import Shared.Api.Resource.KnowledgeModel.Event.KnowledgeModelEventFieldJM ()
 import Shared.Model.KnowledgeModel.Event.Resource.ResourceEvent
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON AddResourceCollectionEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
@@ -13,12 +14,18 @@ instance FromJSON AddResourceCollectionEvent where
 instance ToJSON AddResourceCollectionEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
 
+instance JsonSchema AddResourceCollectionEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")
+
 -- --------------------------------------------
 instance FromJSON EditResourceCollectionEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
 
 instance ToJSON EditResourceCollectionEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
+
+instance JsonSchema EditResourceCollectionEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")
 
 -- --------------------------------------------
 instance FromJSON DeleteResourceCollectionEvent where
@@ -35,9 +42,15 @@ instance FromJSON AddResourcePageEvent where
 instance ToJSON AddResourcePageEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
 
+instance JsonSchema AddResourcePageEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")
+
 -- --------------------------------------------
 instance FromJSON EditResourcePageEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
 
 instance ToJSON EditResourcePageEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
+
+instance JsonSchema EditResourcePageEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")

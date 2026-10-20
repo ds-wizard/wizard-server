@@ -54,8 +54,13 @@ _ERROR_VALIDATION__FIELDS_ABSENCE =
 
 _ERROR_VALIDATION__ABSENCE value = LocaleRecord "error.validation.absence" "No matching data found: %s" [value]
 
+_ERROR_VALIDATION__EVENT_BATCH_SIZE limit =
+  LocaleRecord "error.validation.event_batch_size" "A batch can contain at most %s events" [show limit]
+
 -- Security
 _ERROR_VALIDATION__FORBIDDEN action = LocaleRecord "error.validation.forbidden" "Forbidden to perform '%s'" [action]
+
+_ERROR_VALIDATION__MISSING_PERMISSION permission = _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ permission)
 
 -- --------------------------------------
 -- SERVICE

@@ -41,6 +41,11 @@ findKnowledgeModelSecretByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
+findKnowledgeModelSecretByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe KnowledgeModelSecret)
+findKnowledgeModelSecretByUuid' uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+
 insertKnowledgeModelSecret :: WizardRequestContextC s m => KnowledgeModelSecret -> m Int64
 insertKnowledgeModelSecret = createInsertFn entityName
 

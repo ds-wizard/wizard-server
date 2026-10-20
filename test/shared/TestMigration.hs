@@ -40,6 +40,7 @@ import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as
 import qualified Shared.Database.Migration.Development.Locale.LocaleSchemaMigration as Locale
 import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleMigration as MailTemplateLocaleMigration
 import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleSchemaMigration as MailTemplateLocale
+import qualified Shared.Database.Migration.Development.Mcp.McpSchemaMigration as Mcp
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientSchemaMigration as OpenIdClient
 import qualified Shared.Database.Migration.Development.PersistentCommand.PersistentCommandSchemaMigration as PersistentCommand
 import Shared.Database.Migration.Development.Plugin.Data.Plugins
@@ -99,6 +100,7 @@ buildSchema requestContext = do
   runInContext PersistentCommand.dropTables requestContext
   runInContext Submission.dropTables requestContext
   runInContext UserEmailLink.dropTables requestContext
+  runInContext Mcp.dropTables requestContext
   runInContext KnowledgeModelMigration.dropTables requestContext
   runInContext KnowledgeModelCache.dropTables requestContext
   runInContext KnowledgeModelEditor.dropTables requestContext
@@ -139,6 +141,7 @@ buildSchema requestContext = do
   runInContext Role.createTables requestContext
   runInContext User.createTables requestContext
   runInContext Workspace.createMembershipTable requestContext
+  runInContext Mcp.createTables requestContext
   runInContext UserOpenIdIdentity.createTables requestContext
   runInContext UserRegistrationPending.createTables requestContext
   runInContext TemporaryFile.createTables requestContext
@@ -280,6 +283,9 @@ deleteAllEntitiesSql =
     , "knowledge_model_secret"
     , "knowledge_model_locale"
     , "knowledge_model_package"
+    , "mcp_refresh_token"
+    , "mcp_authorization_code"
+    , "mcp_client"
     , "user_token"
     , "user_group_membership"
     , "workspace_membership"

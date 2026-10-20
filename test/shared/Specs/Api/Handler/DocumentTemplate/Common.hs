@@ -18,6 +18,7 @@ import Shared.Model.Document.Document
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.Project.Project
 
+import Specs.Api.Handler.Common
 import Specs.Common
 
 -- --------------------------------
@@ -40,6 +41,10 @@ assertExistenceOfDocumentTemplateInDB requestContext dt = do
   liftIO $ isRight eTemplate `shouldBe` True
   let (Right templateFromDB) = eTemplate
   compareTemplateDtos templateFromDB dt
+
+assertDocumentTemplatePhaseInDB requestContext documentTemplateUuid expPhase = do
+  documentTemplate <- getOneFromDB (findDocumentTemplateByUuid documentTemplateUuid) requestContext
+  liftIO $ documentTemplate.phase `shouldBe` expPhase
 
 -- --------------------------------
 -- COMPARATORS

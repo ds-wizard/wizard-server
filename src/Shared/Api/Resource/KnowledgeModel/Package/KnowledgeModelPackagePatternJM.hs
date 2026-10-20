@@ -5,6 +5,7 @@ import Data.Aeson
 
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackagePattern
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 import Shared.Util.Reference
 
 instance FromJSON KnowledgeModelPackagePattern where
@@ -20,3 +21,6 @@ instance FromJSON KnowledgeModelPackagePattern where
 
 instance ToJSON KnowledgeModelPackagePattern where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema KnowledgeModelPackagePattern where
+  jsonSchema = genericJsonSchema jsonOptions

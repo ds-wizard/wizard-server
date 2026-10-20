@@ -6,10 +6,14 @@ import Servant.API
 import Text.Read (readMaybe)
 
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Util.JsonSchema
 
 instance ToJSON KnowledgeModelPackagePhase
 
 instance FromJSON KnowledgeModelPackagePhase
+
+instance JsonSchema KnowledgeModelPackagePhase where
+  jsonSchema = genericJsonSchema defaultOptions
 
 instance FromHttpApiData KnowledgeModelPackagePhase where
   parseQueryParam a =

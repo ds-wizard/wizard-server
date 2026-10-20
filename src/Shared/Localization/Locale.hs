@@ -10,3 +10,6 @@ locale ls (LocaleRecord key defaultValue variables) =
   case M.lookup key ls of
     Just value -> f' value variables
     Nothing -> f' defaultValue variables
+
+toLocaleMessage :: LocaleRecord -> String
+toLocaleMessage = locale M.empty

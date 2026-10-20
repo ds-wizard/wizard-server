@@ -1,5 +1,7 @@
 module Shared.Api.Handler.Project.Detail_WS where
 
+import Control.Monad.Reader (liftIO)
+import Data.IORef
 import qualified Data.UUID as U
 import Network.WebSockets
 import Servant
@@ -24,9 +26,10 @@ type Detail_WS =
 detail_WS :: WizardHandlerC s sm r rm => Maybe String -> U.UUID -> Maybe String -> PendingConnection -> sm ()
 detail_WS mServerUrl projectUuid mTokenHeader pendingConnection =
   rejectOnError pendingConnection . getMaybeAuthServiceExecutor mTokenHeader mServerUrl $ \runInMaybeAuthService ->
-    runInMaybeAuthService NoTransaction $
-      runWebsocket pendingConnection (putUserOnline projectUuid) (deleteUser projectUuid) handleAction
+    runInMaybeAuthService NoTransaction $ do
+      knowledgeModelRef <- liftIO (newIORef Nothing)
+      runWebsocket pendingConnection (putUserOnline projectUuid) (deleteUser projectUuid) (handleAction knowledgeModelRef)
   where
-    handleAction connectionUuid (SetContent_ClientProjectMessageDTO reqDto) = do
+    handleAction knowledgeModelRef connectionUuid (SetContent_ClientProjectMessageDTO reqDto) = do
       logWS connectionUuid "SetContent"
-      setContent projectUuid connectionUuid reqDto
+      setContent projectUuid knowledgeModelRef connectionUuid reqDto

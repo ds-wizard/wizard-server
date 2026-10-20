@@ -1,8 +1,11 @@
 module Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleService where
 
+import Control.Applicative ((<|>))
 import Control.Monad (void)
 import Control.Monad.Reader (asks, liftIO)
 import qualified Data.ByteString.Char8 as BS
+import Data.Foldable (traverse_)
+import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
 
@@ -18,6 +21,7 @@ import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleMapper
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleUtil
 import Shared.Service.DocumentTemplate.Locale.DocumentTemplateLocaleValidation
+import Shared.Util.Gettext
 import Shared.Util.Uuid
 
 getLocalesForDocumentTemplate :: WizardRequestContextC s m => U.UUID -> m [DocumentTemplateLocaleList]
@@ -48,6 +52,17 @@ createLocale dtUuid reqDto =
     insertDocumentTemplateLocale locale
     void $ putDocumentTemplateLocale uuid translationPoFileName reqDto.poContent
     return . toList $ locale
+
+saveLocaleFromPo :: WizardRequestContextC s m => U.UUID -> Maybe String -> BS.ByteString -> m DocumentTemplateLocaleList
+saveLocaleFromPo dtUuid mName poContent =
+  runInTransaction $ do
+    code <- extractLanguageCode poContent
+    traverse_ (deleteLocale dtUuid . (.uuid)) =<< findDocumentTemplateLocaleByDocumentTemplateUuidAndCode' dtUuid code
+    let name = fromMaybe code (mName <|> displayName poContent)
+    createLocale dtUuid (DocumentTemplateLocaleCreateDTO name poContent)
+
+displayName :: BS.ByteString -> Maybe String
+displayName = either (const Nothing) (getPoHeaderField "X-Display-Name") . parsePoHeaderFields . BS.unpack
 
 getLocaleContent :: WizardRequestContextC s m => U.UUID -> U.UUID -> m BS.ByteString
 getLocaleContent dtUuid localeUuid = do

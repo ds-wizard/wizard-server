@@ -6,9 +6,13 @@ import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorStateJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSuggestionJM ()
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON KnowledgeModelEditorList where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON KnowledgeModelEditorList where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema KnowledgeModelEditorList where
+  jsonSchema = genericJsonSchema jsonOptions

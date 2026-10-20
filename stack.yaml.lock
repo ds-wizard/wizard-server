@@ -196,6 +196,13 @@ packages:
   original:
     hackage: http-client-restricted-0.1.1
 - completed:
+    hackage: jsonschema-0.3.0.1@sha256:144fb29a02feeebe1cdfab2179ea44c983bda267fc420dda9127392a39c5e8bf,2025
+    pantry-tree:
+      sha256: 2d2bf8cb72fa9ecd8b127fd5a786a69f871b579959b9b601bab3cea4f400b36e
+      size: 671
+  original:
+    hackage: jsonschema-0.3.0.1@sha256:144fb29a02feeebe1cdfab2179ea44c983bda267fc420dda9127392a39c5e8bf,2025
+- completed:
     hackage: jwt-0.11.0@sha256:0602735ee4093c6c5bc918461855bcd55499099363bad34eb7a227aeef3cde29,4265
     pantry-tree:
       sha256: 0b3155d79cc7d44285762b2012debe8ec70ac377163a8e5f29581bacaf50179e

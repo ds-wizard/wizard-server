@@ -67,6 +67,21 @@ deleteMailTemplateLocale uuid =
     void $ deleteMailTemplateLocaleByUuid locale.uuid
     al_deleteMailTemplateLocale locale
 
+modifyMailTemplateLocaleFlags :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> Maybe Bool -> m MailTemplateLocaleDTO
+modifyMailTemplateLocaleFlags uuid mEnabled mDefaultLocale = do
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  locale <- findMailTemplateLocaleByUuid uuid
+  modifyMailTemplateLocale uuid (toLocaleChange locale.enabled locale.defaultLocale mEnabled mDefaultLocale)
+
+getMailTemplateLocalePoContent :: WizardRequestContextC s m => U.UUID -> m BS.ByteString
+getMailTemplateLocalePoContent uuid =
+  runInTransaction $ do
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    locale <- findMailTemplateLocaleByUuid uuid
+    content <- retrieveMailTemplateLocalePo locale.uuid
+    al_exportMailTemplateLocale locale
+    return content
+
 getMailTemplateLocalePo :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getMailTemplateLocalePo uuid =
   runInTransaction $ do
@@ -85,6 +100,11 @@ getMailTemplatePot =
     case mPot of
       Just (_, pot) -> createTemporaryFileWithContent "mail.pot" potContentType pot
       Nothing -> throwError . NotExistsError $ _ERROR_SERVICE_MAIL_TEMPLATE_LOCALE__POT_NOT_AVAILABLE
+
+getMailTemplatePotContent :: WizardRequestContextC s m => m BS.ByteString
+getMailTemplatePotContent = do
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  maybe (throwError . NotExistsError $ _ERROR_SERVICE_MAIL_TEMPLATE_LOCALE__POT_NOT_AVAILABLE) (return . snd) =<< findMailTemplatePot
 
 getMailTemplatePotInfo :: WizardRequestContextC s m => m MailTemplatePotInfoDTO
 getMailTemplatePotInfo = do

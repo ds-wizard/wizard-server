@@ -1,7 +1,6 @@
 module Shared.Service.DocumentTemplate.File.DocumentTemplateFileService where
 
 import Control.Monad.Reader (asks, liftIO)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.File.DocumentTemplateFileChangeDTO
@@ -16,12 +15,23 @@ import Shared.Model.DocumentTemplate.DocumentTemplateFileList
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.DocumentTemplate.File.DocumentTemplateFileMapper
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
 
 getFiles :: WizardRequestContextC s m => U.UUID -> m [DocumentTemplateFileList]
 getFiles dtUuid = do
   checkEditorPermissionToDocumentTemplate dtUuid
   findFileListsByDocumentTemplateUuid dtUuid
+
+getTemplateFiles :: WizardRequestContextC s m => U.UUID -> m [DocumentTemplateFileList]
+getTemplateFiles dtUuid = do
+  checkEditorPermissionToAnyDocumentTemplate dtUuid
+  findFileListsByDocumentTemplateUuid dtUuid
+
+getTemplateFilesByPaths :: WizardRequestContextC s m => U.UUID -> [String] -> m [DocumentTemplateFile]
+getTemplateFilesByPaths dtUuid paths = do
+  checkEditorPermissionToAnyDocumentTemplate dtUuid
+  concat <$> traverse (findFilesByDocumentTemplateUuidAndFileName dtUuid) paths
 
 getFile :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateFile
 getFile fileUuid = do
@@ -37,7 +47,7 @@ createFile dtUuid reqDto =
     validateFileAndAssetUniqueness Nothing dtUuid reqDto.fileName
     fUuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let newFile = fromChangeDTO reqDto dtUuid fUuid tenantUuid now now
     insertFile newFile
     touchDocumentTemplateByUuid newFile.documentTemplateUuid
@@ -51,7 +61,7 @@ modifyFile fileUuid reqDto =
     file <- findFileByUuid fileUuid
     checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
     validateFileAndAssetUniqueness (Just file.uuid) file.documentTemplateUuid reqDto.fileName
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedFile = fromChangeDTO reqDto file.documentTemplateUuid file.uuid file.tenantUuid file.createdAt now
     updateFileByUuid updatedFile
     touchDocumentTemplateByUuid updatedFile.documentTemplateUuid
@@ -64,7 +74,7 @@ modifyFileContent fileUuid content =
     checkPermission _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION
     file <- findFileByUuid fileUuid
     checkEditorPermissionToDocumentTemplate file.documentTemplateUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedFile = fromContentChangeDTO file content now
     updateFileByUuid updatedFile
     touchDocumentTemplateByUuid updatedFile.documentTemplateUuid
@@ -74,7 +84,7 @@ modifyFileContent fileUuid content =
 duplicateFile :: WizardRequestContextC s m => U.UUID -> DocumentTemplateFile -> m DocumentTemplateFile
 duplicateFile newDtUuid file = do
   aUuid <- liftIO generateUuid
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let updatedFile = fromDuplicateDTO file newDtUuid aUuid now
   insertFile updatedFile
   touchDocumentTemplateByUuid updatedFile.documentTemplateUuid

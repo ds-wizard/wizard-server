@@ -5,7 +5,6 @@ import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
 import qualified Data.List as L
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.GroupMembership.UserGroupMembershipChangeDTO
@@ -27,13 +26,14 @@ import Shared.Service.User.Group.UserGroupAcl
 import Shared.Service.User.Group.UserGroupAuditLog
 import Shared.Service.User.GroupMembership.UserGroupMembershipMapper
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.List
 
 createDefaultOwnerMembership :: WizardRequestContextC s m => U.UUID -> m ()
 createDefaultOwnerMembership userGroupUuid = do
   user <- getCurrentUser
   tenantUuid <- asks (.tenantUuid')
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   void $ insertUserGroupMembership (fromDefaultOwner userGroupUuid user tenantUuid now)
 
 modifyUserGroupMembership :: WizardRequestContextC s m => U.UUID -> [UserGroupMembershipChangeDTO] -> m [UserGroupMembershipChangeDTO]
@@ -48,7 +48,7 @@ modifyUserGroupMembership userGroupUuid members =
     applyMembershipChanges userGroup memberships members
     unless (null userUuidsToDelete) (deleteUserGroupMembershipsByUserGroupUuidAndUserUuids userGroupUuid userUuidsToDelete)
     newMembers <- findUsersByUserGroupUuid userGroupUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     updateUserGroupByUuid $ userGroup {updatedAt = now}
     al_updateMembers userGroup oldMembers newMembers
     unless (null userUuidsToDelete) (removeUserGroupMembersFromOnlineUsers userGroupUuid userUuidsToDelete)
@@ -57,7 +57,7 @@ modifyUserGroupMembership userGroupUuid members =
 applyMembershipChanges :: WizardRequestContextC s m => UserGroup -> [UserGroupMembership] -> [UserGroupMembershipChangeDTO] -> m ()
 applyMembershipChanges userGroup memberships members = do
   tenantUuid <- asks (.tenantUuid')
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let membershipsToAdd = filter ((`notElem` fmap (.userUuid) memberships) . (.userUuid)) members
   let membershipsToEdit = filter (\(membership, dto) -> membership.mType /= dto.mType) (groupBy' (.userUuid) (.userUuid) memberships members)
   traverse_ (checkWorkspaceMembershipOfMember userGroup.workspaceUuid . (.userUuid)) membershipsToAdd

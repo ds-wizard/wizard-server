@@ -77,10 +77,14 @@ registerTenant reqDto = do
 
 createTenantByAdmin :: WizardRequestContextC s m => TenantCreateDTO -> m TenantDTO
 createTenantByAdmin reqDto = do
+  uuid <- liftIO generateUuid
+  createTenantByAdminWithUuid uuid reqDto
+
+createTenantByAdminWithUuid :: WizardRequestContextC s m => U.UUID -> TenantCreateDTO -> m TenantDTO
+createTenantByAdminWithUuid uuid reqDto = do
   runInTransaction $ do
     checkPermission _TENANTS_MANAGE_ROLE_PERMISSION
     validateTenantCreateDTO reqDto True
-    uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     serverConfig <- asks (.serverConfig')
     let tenant = fromAdminCreateDTO reqDto uuid serverConfig now

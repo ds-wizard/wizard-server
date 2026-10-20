@@ -3,6 +3,7 @@ module Shared.Api.Resource.KnowledgeModel.Event.KnowledgeModelEventJM where
 import Control.Monad
 import Data.Aeson
 import qualified Data.Aeson.KeyMap as KM
+import Data.Proxy
 
 import Shared.Api.Resource.KnowledgeModel.Event.Answer.AnswerEventJM ()
 import Shared.Api.Resource.KnowledgeModel.Event.Chapter.ChapterEventJM ()
@@ -23,14 +24,17 @@ import Shared.Model.KnowledgeModel.Event.Chapter.ChapterEvent
 import Shared.Model.KnowledgeModel.Event.Choice.ChoiceEvent
 import Shared.Model.KnowledgeModel.Event.Expert.ExpertEvent
 import Shared.Model.KnowledgeModel.Event.Integration.IntegrationEvent
+import Shared.Model.KnowledgeModel.Event.KnowledgeModel.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Event.Metric.MetricEvent
+import Shared.Model.KnowledgeModel.Event.Move.MoveEvent
 import Shared.Model.KnowledgeModel.Event.Phase.PhaseEvent
 import Shared.Model.KnowledgeModel.Event.Question.QuestionEvent
 import Shared.Model.KnowledgeModel.Event.Reference.ReferenceEvent
 import Shared.Model.KnowledgeModel.Event.Resource.ResourceEvent
 import Shared.Model.KnowledgeModel.Event.Tag.TagEvent
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON KnowledgeModelEvent where
   toJSON = genericToJSON jsonOptions
@@ -132,3 +136,62 @@ instance FromJSON KnowledgeModelEventData where
       "MoveReferenceEvent" -> parseJSON (Object o) >>= \event -> return (MoveReferenceEvent' event)
       unsupportedEventType -> fail ("One of the events has unsupported eventType: " ++ unsupportedEventType)
   parseJSON _ = mzero
+
+instance JsonSchema KnowledgeModelEventData where
+  jsonSchema _ = oneOfSchema (fmap snd knowledgeModelEventSchemas)
+
+knowledgeModelEventTypes :: [String]
+knowledgeModelEventTypes = fmap fst knowledgeModelEventSchemas
+
+knowledgeModelEventSchemas :: [(String, Value)]
+knowledgeModelEventSchemas =
+  [ eventSchema "AddKnowledgeModelEvent" (Proxy :: Proxy AddKnowledgeModelEvent)
+  , eventSchema "EditKnowledgeModelEvent" (Proxy :: Proxy EditKnowledgeModelEvent)
+  , eventSchema "AddChapterEvent" (Proxy :: Proxy AddChapterEvent)
+  , eventSchema "EditChapterEvent" (Proxy :: Proxy EditChapterEvent)
+  , deleteEventSchema "DeleteChapterEvent"
+  , eventSchema "AddQuestionEvent" (Proxy :: Proxy AddQuestionEvent)
+  , eventSchema "EditQuestionEvent" (Proxy :: Proxy EditQuestionEvent)
+  , deleteEventSchema "DeleteQuestionEvent"
+  , eventSchema "AddAnswerEvent" (Proxy :: Proxy AddAnswerEvent)
+  , eventSchema "EditAnswerEvent" (Proxy :: Proxy EditAnswerEvent)
+  , deleteEventSchema "DeleteAnswerEvent"
+  , eventSchema "AddChoiceEvent" (Proxy :: Proxy AddChoiceEvent)
+  , eventSchema "EditChoiceEvent" (Proxy :: Proxy EditChoiceEvent)
+  , deleteEventSchema "DeleteChoiceEvent"
+  , eventSchema "AddExpertEvent" (Proxy :: Proxy AddExpertEvent)
+  , eventSchema "EditExpertEvent" (Proxy :: Proxy EditExpertEvent)
+  , deleteEventSchema "DeleteExpertEvent"
+  , eventSchema "AddReferenceEvent" (Proxy :: Proxy AddReferenceEvent)
+  , eventSchema "EditReferenceEvent" (Proxy :: Proxy EditReferenceEvent)
+  , deleteEventSchema "DeleteReferenceEvent"
+  , eventSchema "AddTagEvent" (Proxy :: Proxy AddTagEvent)
+  , eventSchema "EditTagEvent" (Proxy :: Proxy EditTagEvent)
+  , deleteEventSchema "DeleteTagEvent"
+  , eventSchema "AddIntegrationEvent" (Proxy :: Proxy AddIntegrationEvent)
+  , eventSchema "EditIntegrationEvent" (Proxy :: Proxy EditIntegrationEvent)
+  , deleteEventSchema "DeleteIntegrationEvent"
+  , eventSchema "AddMetricEvent" (Proxy :: Proxy AddMetricEvent)
+  , eventSchema "EditMetricEvent" (Proxy :: Proxy EditMetricEvent)
+  , deleteEventSchema "DeleteMetricEvent"
+  , eventSchema "AddPhaseEvent" (Proxy :: Proxy AddPhaseEvent)
+  , eventSchema "EditPhaseEvent" (Proxy :: Proxy EditPhaseEvent)
+  , deleteEventSchema "DeletePhaseEvent"
+  , eventSchema "AddResourceCollectionEvent" (Proxy :: Proxy AddResourceCollectionEvent)
+  , eventSchema "EditResourceCollectionEvent" (Proxy :: Proxy EditResourceCollectionEvent)
+  , deleteEventSchema "DeleteResourceCollectionEvent"
+  , eventSchema "AddResourcePageEvent" (Proxy :: Proxy AddResourcePageEvent)
+  , eventSchema "EditResourcePageEvent" (Proxy :: Proxy EditResourcePageEvent)
+  , deleteEventSchema "DeleteResourcePageEvent"
+  , eventSchema "MoveQuestionEvent" (Proxy :: Proxy MoveQuestionEvent)
+  , eventSchema "MoveAnswerEvent" (Proxy :: Proxy MoveAnswerEvent)
+  , eventSchema "MoveChoiceEvent" (Proxy :: Proxy MoveChoiceEvent)
+  , eventSchema "MoveExpertEvent" (Proxy :: Proxy MoveExpertEvent)
+  , eventSchema "MoveReferenceEvent" (Proxy :: Proxy MoveReferenceEvent)
+  ]
+
+eventSchema :: JsonSchema a => String -> Proxy a -> (String, Value)
+eventSchema eventType proxy = (eventType, withConstProperties [("eventType", eventType)] (jsonSchema proxy))
+
+deleteEventSchema :: String -> (String, Value)
+deleteEventSchema eventType = (eventType, withConstProperties [("eventType", eventType)] (objectSchema [] []))

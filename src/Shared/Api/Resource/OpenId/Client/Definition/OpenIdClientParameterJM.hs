@@ -4,9 +4,13 @@ import Data.Aeson
 
 import Shared.Model.OpenId.OpenIdClientParameter
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON OpenIdClientParameter where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON OpenIdClientParameter where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema OpenIdClientParameter where
+  jsonSchema = genericJsonSchema jsonOptions

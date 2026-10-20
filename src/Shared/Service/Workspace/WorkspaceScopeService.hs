@@ -2,7 +2,7 @@ module Shared.Service.Workspace.WorkspaceScopeService where
 
 import Control.Monad (unless)
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (asks, local)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, isNothing)
 import qualified Data.UUID as U
@@ -25,6 +25,11 @@ resolveScope (Just _) (Just True) = throwError $ UserError _ERROR_SERVICE_WORKSP
 resolveScope _ (Just True) = return TenantScope
 resolveScope (Just workspaceUuid) _ = return $ WorkspaceScope workspaceUuid
 resolveScope _ _ = return NoScope
+
+localScope :: WizardRequestContextC s m => Maybe U.UUID -> Maybe Bool -> m a -> m a
+localScope mWorkspaceUuid mTenant action = do
+  scope <- resolveScope mWorkspaceUuid mTenant
+  local (setScope scope) action
 
 requireWorkspaceScope :: WizardRequestContextC s m => m U.UUID
 requireWorkspaceScope = do

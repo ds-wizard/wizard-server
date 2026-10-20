@@ -4,6 +4,7 @@ import Crypto.Cipher.AES (AES256)
 import Crypto.Cipher.Types (BlockCipher (..), Cipher (..), nullIV)
 import Crypto.Error (throwCryptoError)
 import Crypto.Hash (Digest, MD5 (..), SHA256 (..), hash, hashlazy)
+import Crypto.MAC.HMAC (HMAC, hmac, hmacGetDigest)
 import qualified Crypto.PubKey.RSA.Types as RSA
 import Crypto.Random (getRandomBytes)
 import qualified Data.Base64.Types as B64_Types
@@ -54,6 +55,12 @@ hashSHA256 text =
   let digest :: Digest SHA256
       digest = hash . TE.encodeUtf8 . T.pack $ text
    in show digest
+
+hmacSHA256 :: String -> String -> String
+hmacSHA256 key message =
+  let mac :: HMAC SHA256
+      mac = hmac (TE.encodeUtf8 . T.pack $ key) (TE.encodeUtf8 . T.pack $ message)
+   in show (hmacGetDigest mac)
 
 sha256Hex :: BSL.ByteString -> String
 sha256Hex bytes =

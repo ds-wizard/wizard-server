@@ -5,6 +5,7 @@ import GHC.Generics
 import GHC.Int
 
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 data TenantLimitBundleChange = TenantLimitBundleChange
   { users :: Int
@@ -24,3 +25,6 @@ instance FromJSON TenantLimitBundleChange where
 
 instance ToJSON TenantLimitBundleChange where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema TenantLimitBundleChange where
+  jsonSchema = genericJsonSchema jsonOptions

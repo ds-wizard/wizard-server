@@ -10,4 +10,6 @@ commonWizardRegistryTemplate =
     { id = wizardDocumentTemplate.id
     , remoteVersion = wizardDocumentTemplate.version
     , createdAt = wizardDocumentTemplate.createdAt
+    , remoteName = wizardDocumentTemplate.name
+    , remoteDescription = wizardDocumentTemplate.description
     }

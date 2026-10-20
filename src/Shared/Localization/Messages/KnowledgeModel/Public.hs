@@ -29,6 +29,55 @@ _ERROR_VALIDATION__KM_LOCALE_CODE_UNIQUENESS code =
 _ERROR_VALIDATION__KM_LOCALE_NOT_REUSABLE =
   LocaleRecord "error.validation.km_locale_not_reusable" "Selected locales cannot be reused from the previous package version" []
 
+-- Knowledge Model Event
+_ERROR_VALIDATION__KM_EVENT_ENTITY_ABSENCE uuid entityKind =
+  LocaleRecord "error.validation.km_event_entity_absence" "'%s' is not an existing %s" [uuid, entityKind]
+
+_ERROR_VALIDATION__KM_EVENT_INVALID_UUID value =
+  LocaleRecord "error.validation.km_event_invalid_uuid" "'%s' is neither a UUID nor a symbolic name" [value]
+
+_ERROR_VALIDATION__KM_EVENT_UNDEFINED_NAME name =
+  LocaleRecord "error.validation.km_event_undefined_name" "'%s' is not defined by the entity UUID of a preceding Add event" [name]
+
+_ERROR_VALIDATION__KM_EVENT_INVALID_CONTENT reason =
+  LocaleRecord "error.validation.km_event_invalid_content" "The event content cannot be read: %s" [reason]
+
+_ERROR_VALIDATION__KM_EVENT_ENTITY_UNIQUENESS uuid =
+  LocaleRecord "error.validation.km_event_entity_uniqueness" "Entity '%s' already exists" [uuid]
+
+_ERROR_VALIDATION__KM_EVENT_PARENT_MISMATCH uuid parentUuid =
+  LocaleRecord "error.validation.km_event_parent_mismatch" "The parent of '%s' is '%s'" [uuid, parentUuid]
+
+_ERROR_VALIDATION__KM_EVENT_MOVE_CYCLE uuid targetUuid =
+  LocaleRecord "error.validation.km_event_move_cycle" "'%s' cannot be moved under '%s', which is the entity itself or its descendant" [uuid, targetUuid]
+
+_ERROR_VALIDATION__KM_EVENT_CHILDREN_PERMUTATION childUuids =
+  LocaleRecord "error.validation.km_event_children_permutation" "The list has to be a reordering of the current children: [%s]" [childUuids]
+
+_ERROR_VALIDATION__KM_EVENT_EMPTY_TEXT =
+  LocaleRecord "error.validation.km_event_empty_text" "The text must not be empty" []
+
+_ERROR_VALIDATION__KM_EVENT_INVALID_URL url =
+  LocaleRecord "error.validation.km_event_invalid_url" "'%s' is not a valid URL" [url]
+
+_ERROR_VALIDATION__KM_EVENT_INVALID_EMAIL email =
+  LocaleRecord "error.validation.km_event_invalid_email" "'%s' is not a valid e-mail address" [email]
+
+_ERROR_VALIDATION__KM_EVENT_INVALID_REGEX regex =
+  LocaleRecord "error.validation.km_event_invalid_regex" "'%s' is not a valid regular expression" [regex]
+
+_ERROR_VALIDATION__KM_EVENT_INVERTED_RANGE lowerLimit upperLimit =
+  LocaleRecord "error.validation.km_event_inverted_range" "The lower limit '%s' is greater than the upper limit '%s'" [lowerLimit, upperLimit]
+
+_ERROR_VALIDATION__KM_EVENT_OUT_OF_UNIT_RANGE value =
+  LocaleRecord "error.validation.km_event_out_of_unit_range" "'%s' is not between 0 and 1" [value]
+
+_ERROR_VALIDATION__KM_EVENT_VALIDATION_VALUE_TYPE validation valueType =
+  LocaleRecord "error.validation.km_event_validation_value_type" "'%s' cannot be used for a question of value type '%s'" [validation, valueType]
+
+_ERROR_VALIDATION__KM_EVENT_REJECTED eventUuid =
+  LocaleRecord "error.validation.km_event_rejected" "The event '%s' was rejected; reload the editor" [eventUuid]
+
 -- --------------------------------------
 -- SERVICE
 -- --------------------------------------
@@ -37,6 +86,25 @@ _ERROR_SERVICE_DOC_TML__NON_EDITABLE_DOC_TML =
   LocaleRecord
     "error.service.doc_tml.non_editable_doc_tml"
     "Unable to export / edit non editable document template"
+    []
+
+-- Knowledge Model Editor
+_ERROR_SERVICE_KNOWLEDGE_MODEL_EDITOR__OUTDATED_BASE_REVISION baseRevision =
+  LocaleRecord
+    "error.service.knowledge_model_editor.outdated_base_revision"
+    "The editor has changed since revision '%s'"
+    [baseRevision]
+
+_ERROR_SERVICE_KNOWLEDGE_MODEL_EDITOR__UNKNOWN_BASE_REVISION baseRevision =
+  LocaleRecord
+    "error.service.knowledge_model_editor.unknown_base_revision"
+    "The revision '%s' is not an event of the editor (it may have been squashed); read the current state of the editor and send the events again"
+    [baseRevision]
+
+_ERROR_SERVICE_KNOWLEDGE_MODEL_EDITOR__MIGRATION_IN_PROGRESS =
+  LocaleRecord
+    "error.service.knowledge_model_editor.migration_in_progress"
+    "The editor has a knowledge model migration in progress; finish or cancel the migration before changing the editor"
     []
 
 -- Package

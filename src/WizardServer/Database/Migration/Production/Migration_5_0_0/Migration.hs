@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -53,6 +53,8 @@ migrateShared dbPool = do
   replaceKnowledgeModelEditorKmId dbPool
   replaceRegistryOrganizationId dbPool "registry_knowledge_model_package" "km_id"
   replaceRegistryOrganizationId dbPool "registry_document_template" "template_id"
+  addRegistryCatalogNames dbPool "registry_knowledge_model_package"
+  addRegistryCatalogNames dbPool "registry_document_template"
   reworkRegistryLocales dbPool
   dropConfigOrganizationId dbPool
   createUniqueConstraints dbPool
@@ -76,6 +78,8 @@ migrateShared dbPool = do
   dropProjectCommands dbPool
   dropTenantModule dbPool
   createWebsocketTables dbPool
+  createMcpTables dbPool
+  addMcpPermissionsToAdminRoles dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -262,6 +266,13 @@ createMailTemplateLocales dbPool =
     \    FOR EACH ROW \
     \EXECUTE FUNCTION create_persistent_command_from_entity_uuid('mail_template_locale', 'deleteFromS3');"
 
+addRegistryCatalogNames :: Pool Connection -> String -> LoggingT IO ()
+addRegistryCatalogNames dbPool table =
+  runSql dbPool . fromString $
+    f''
+      "ALTER TABLE ${table} ADD COLUMN remote_name varchar NOT NULL DEFAULT '', ADD COLUMN remote_description varchar NOT NULL DEFAULT '';"
+      [("table", table)]
+
 reworkRegistryLocales :: Pool Connection -> LoggingT IO ()
 reworkRegistryLocales dbPool =
   runSql
@@ -431,7 +442,7 @@ permissionMapping =
   , ("AuditLogUseRolePermission", ["auditLog.use"])
   , ("AutomationsManageRolePermission", ["automations.manage"])
   , ("IntegrationHubUseRolePermission", ["knowledgeModels.manage"])
-  , ("McpUseRolePermission", ["mcp.connect"])
+  , ("McpUseRolePermission", ["mcp.read"])
   ]
 
 seedWorkspaceRoles :: Pool Connection -> LoggingT IO ()
@@ -820,6 +831,8 @@ createAuditLog dbPool =
     \    source_uuid           uuid, \
     \    tenant_uuid           uuid        NOT NULL, \
     \    created_at            timestamptz NOT NULL, \
+    \    source_client_name    varchar, \
+    \    source_tool_name      varchar, \
     \    CONSTRAINT audit_log_pk PRIMARY KEY (uuid), \
     \    CONSTRAINT audit_log_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
     \); \
@@ -864,6 +877,101 @@ createWebsocketTables dbPool =
     \); \
     \ \
     \CREATE INDEX websocket_outbox_created_at_idx ON websocket_outbox (created_at);"
+
+createMcpTables :: Pool Connection -> LoggingT IO ()
+createMcpTables dbPool = do
+  createMcpClientTable dbPool
+  createMcpAuthorizationCodeTable dbPool
+  createMcpRefreshTokenTable dbPool
+  createMcpUsedConfirmationTokenTable dbPool
+
+createMcpClientTable :: Pool Connection -> LoggingT IO ()
+createMcpClientTable dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE IF NOT EXISTS mcp_client \
+    \( \
+    \    uuid          uuid        NOT NULL, \
+    \    client_id     varchar     NOT NULL, \
+    \    client_secret varchar     NOT NULL, \
+    \    client_name   varchar, \
+    \    redirect_uris jsonb       NOT NULL DEFAULT '[]'::jsonb, \
+    \    tenant_uuid   uuid        NOT NULL, \
+    \    created_at    timestamptz NOT NULL, \
+    \    updated_at    timestamptz NOT NULL, \
+    \    CONSTRAINT mcp_client_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT mcp_client_client_id_uq UNIQUE (client_id), \
+    \    CONSTRAINT mcp_client_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \); \
+    \CREATE INDEX IF NOT EXISTS mcp_client_client_id_idx ON mcp_client (client_id); \
+    \ALTER TABLE mcp_client ADD COLUMN IF NOT EXISTS token_endpoint_auth_method varchar NOT NULL DEFAULT 'client_secret_post';"
+
+createMcpAuthorizationCodeTable :: Pool Connection -> LoggingT IO ()
+createMcpAuthorizationCodeTable dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE IF NOT EXISTS mcp_authorization_code \
+    \( \
+    \    uuid         uuid        NOT NULL, \
+    \    code         varchar     NOT NULL, \
+    \    client_id    varchar     NOT NULL, \
+    \    user_uuid    uuid        NOT NULL, \
+    \    redirect_uri varchar     NOT NULL, \
+    \    expires_at   timestamptz NOT NULL, \
+    \    tenant_uuid  uuid        NOT NULL, \
+    \    created_at   timestamptz NOT NULL, \
+    \    CONSTRAINT mcp_authorization_code_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT mcp_authorization_code_code_uq UNIQUE (code), \
+    \    CONSTRAINT mcp_authorization_code_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT mcp_authorization_code_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \); \
+    \CREATE INDEX IF NOT EXISTS mcp_authorization_code_code_idx ON mcp_authorization_code (code); \
+    \ALTER TABLE mcp_authorization_code ADD COLUMN IF NOT EXISTS code_challenge varchar, ADD COLUMN IF NOT EXISTS code_challenge_method varchar; \
+    \ALTER TABLE mcp_authorization_code ADD COLUMN IF NOT EXISTS toolsets varchar[] NOT NULL DEFAULT ARRAY ['km', 'dt', 'projects', 'admin', 'analytics'];"
+
+createMcpRefreshTokenTable :: Pool Connection -> LoggingT IO ()
+createMcpRefreshTokenTable dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE IF NOT EXISTS mcp_refresh_token \
+    \( \
+    \    uuid                uuid        NOT NULL, \
+    \    token_hash          varchar     NOT NULL, \
+    \    previous_token_hash varchar, \
+    \    user_token_uuid     uuid        NOT NULL, \
+    \    client_id           varchar     NOT NULL, \
+    \    tenant_uuid         uuid        NOT NULL, \
+    \    expires_at          timestamptz NOT NULL, \
+    \    created_at          timestamptz NOT NULL, \
+    \    toolsets            varchar[]   NOT NULL, \
+    \    CONSTRAINT mcp_refresh_token_pk PRIMARY KEY (uuid), \
+    \    CONSTRAINT mcp_refresh_token_token_hash_uq UNIQUE (token_hash), \
+    \    CONSTRAINT mcp_refresh_token_previous_token_hash_uq UNIQUE (previous_token_hash), \
+    \    CONSTRAINT mcp_refresh_token_user_token_uuid_fk FOREIGN KEY (user_token_uuid) REFERENCES user_token (uuid) ON DELETE CASCADE, \
+    \    CONSTRAINT mcp_refresh_token_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \); \
+    \CREATE INDEX IF NOT EXISTS mcp_refresh_token_user_token_uuid_idx ON mcp_refresh_token (user_token_uuid);"
+
+createMcpUsedConfirmationTokenTable :: Pool Connection -> LoggingT IO ()
+createMcpUsedConfirmationTokenTable dbPool =
+  runSql
+    dbPool
+    "CREATE TABLE IF NOT EXISTS mcp_used_confirmation_token \
+    \( \
+    \    token_hash  varchar     NOT NULL, \
+    \    tenant_uuid uuid        NOT NULL, \
+    \    expires_at  timestamptz NOT NULL, \
+    \    created_at  timestamptz NOT NULL, \
+    \    CONSTRAINT mcp_used_confirmation_token_pk PRIMARY KEY (token_hash), \
+    \    CONSTRAINT mcp_used_confirmation_token_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
+    \);"
+
+addMcpPermissionsToAdminRoles :: Pool Connection -> LoggingT IO ()
+addMcpPermissionsToAdminRoles dbPool =
+  runSql
+    dbPool
+    "UPDATE role SET permissions = ARRAY(SELECT DISTINCT unnest(permissions || ARRAY['mcp.read', 'mcp.write', 'mcp.sensitive']))::varchar[] WHERE is_admin = true; \
+    \UPDATE user_entity SET role_permissions = ARRAY(SELECT DISTINCT unnest(role_permissions || ARRAY['mcp.read', 'mcp.write', 'mcp.sensitive']))::varchar[] WHERE role_uuid IN (SELECT uuid FROM role WHERE is_admin = true);"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

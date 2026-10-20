@@ -4,6 +4,7 @@ import Data.Aeson
 
 import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON PersistentCommandState
 
@@ -14,3 +15,6 @@ instance FromJSON identity => FromJSON (PersistentCommand identity) where
 
 instance ToJSON identity => ToJSON (PersistentCommand identity) where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema PersistentCommandState where
+  jsonSchema = genericJsonSchema defaultOptions

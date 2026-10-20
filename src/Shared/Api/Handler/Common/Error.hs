@@ -5,7 +5,7 @@ import Data.Aeson (encode)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import Network.HTTP.Types.Status
-import Servant (ServerError (..), err302, err400, err401, err403, err404, err500, errBody, errHeaders)
+import Servant (ServerError (..), err302, err400, err401, err403, err404, err409, err500, errBody, errHeaders)
 import Prelude hiding (log)
 
 import Shared.Api.Resource.Error.ErrorJM ()
@@ -47,6 +47,8 @@ sendError (ForbiddenError message) =
   return $ err403 {errBody = encode $ ForbiddenError message, errHeaders = [contentTypeHeaderJSON]}
 sendError (NotExistsError message) =
   return $ err404 {errBody = encode $ NotExistsError message, errHeaders = [contentTypeHeaderJSON]}
+sendError (ConflictError message payload) =
+  return $ err409 {errBody = encode $ ConflictError message payload, errHeaders = [contentTypeHeaderJSON]}
 sendError LockedError =
   return $
     ServerError

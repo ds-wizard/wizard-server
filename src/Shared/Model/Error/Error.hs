@@ -1,5 +1,6 @@
 module Shared.Model.Error.Error where
 
+import Data.Aeson (Value)
 import qualified Data.Map.Strict as M
 import Network.HTTP.Types.Status
 
@@ -15,6 +16,7 @@ data AppError
   | UnauthorizedError LocaleRecord
   | ForbiddenError LocaleRecord
   | NotExistsError LocaleRecord
+  | ConflictError LocaleRecord Value
   | LockedError
   | GeneralServerError String
   | HttpClientError Status String

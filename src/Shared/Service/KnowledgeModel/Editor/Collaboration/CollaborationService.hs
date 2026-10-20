@@ -3,6 +3,7 @@ module Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationService w
 import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Data.Aeson (ToJSON, toJSON)
+import Data.Foldable (traverse_)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.KnowledgeModel.Editor.Event.KnowledgeModelEditorWebSocketEventDTO
@@ -12,13 +13,16 @@ import Shared.Api.Resource.Websocket.WebsocketActionJM ()
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO (insertKnowledgeModelEvent)
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorReplyDAO
+import Shared.Database.DAO.WizardCommon (runInPooledTransaction)
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.Websocket.WebsocketBusMessage
 import Shared.Model.Websocket.WebsocketPerm
 import Shared.Model.Websocket.WebsocketRegistry
 import Shared.Model.Websocket.WebsocketSubscription
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationAcl
 import Shared.Service.KnowledgeModel.Editor.Collaboration.CollaborationMapper
+import Shared.Service.KnowledgeModel.Editor.Event.EditorEventValidation
 import Shared.Service.Websocket.WebsocketBusService
 import Shared.Service.Websocket.WebsocketRegistryService
 import Shared.Service.Websocket.WebsocketService
@@ -54,10 +58,20 @@ addKnowledgeModelEvent :: WizardRequestContextC s m => U.UUID -> U.UUID -> AddKn
 addKnowledgeModelEvent kmEditorUuid connectionUuid reqDto = do
   checkConnection kmEditorUuid connectionUuid
   checkEditPermission kmEditorUuid
-  tenantUuid <- asks (.tenantUuid')
-  insertKnowledgeModelEvent (fromAddKnowledgeModelEditorWebSocketEventDTO reqDto.event kmEditorUuid tenantUuid)
-  updateKnowledgeModelEditorSquashedByUuid kmEditorUuid False
+  runInPooledTransaction (storeKnowledgeModelEvent kmEditorUuid reqDto.event)
   broadcast kmEditorUuid (toAddKnowledgeModelEditorWebsocketMessage reqDto)
+
+storeKnowledgeModelEvent :: WizardRequestContextC s m => U.UUID -> KnowledgeModelEvent -> m ()
+storeKnowledgeModelEvent kmEditorUuid event = do
+  _ <- findKnowledgeModelEditorByUuidLocked kmEditorUuid
+  validateWebsocketEditorEvent kmEditorUuid event
+  tenantUuid <- asks (.tenantUuid')
+  insertKnowledgeModelEvent (fromAddKnowledgeModelEditorWebSocketEventDTO event kmEditorUuid tenantUuid)
+  void $ updateKnowledgeModelEditorSquashedByUuid kmEditorUuid False
+
+broadcastKnowledgeModelEvents :: WizardRequestContextC s m => U.UUID -> [KnowledgeModelEvent] -> m ()
+broadcastKnowledgeModelEvents kmEditorUuid =
+  traverse_ (broadcast kmEditorUuid . toAddKnowledgeModelEditorWebsocketMessage . toAddKnowledgeModelEditorWebSocketEventDTO)
 
 -- --------------------------------
 setReplies :: WizardRequestContextC s m => U.UUID -> U.UUID -> SetRepliesDTO -> m ()
@@ -66,7 +80,10 @@ setReplies kmEditorUuid connectionUuid reqDto = do
   checkEditPermission kmEditorUuid
   tenantUuid <- asks (.tenantUuid')
   updateKnowledgeModelRepliesByEditorUuid kmEditorUuid (fromSetRepliesEventDTO kmEditorUuid tenantUuid reqDto.replies)
-  broadcast kmEditorUuid (toSetRepliesMessage reqDto)
+  broadcastReplies kmEditorUuid reqDto
+
+broadcastReplies :: WizardRequestContextC s m => U.UUID -> SetRepliesDTO -> m ()
+broadcastReplies kmEditorUuid reqDto = broadcast kmEditorUuid (toSetRepliesMessage reqDto)
 
 -- --------------------------------
 -- PRIVATE

@@ -1,5 +1,7 @@
 module Shared.Model.AuditLog.AuditLogCatalog where
 
+import qualified Data.UUID as U
+
 import Shared.Model.AuditLog.AuditLogEntityType
 import Shared.Model.AuditLog.AuditLogEvent
 import Shared.Model.AuditLog.AuditLogEventDefinition
@@ -29,6 +31,9 @@ sharedAuditLogCatalog =
   , SomeAuditLogEventDefinition workspacesMemberRemove
   , SomeAuditLogEventDefinition workspacesMemberRoleChange
   , SomeAuditLogEventDefinition usersCreateByAdmin
+  , SomeAuditLogEventDefinition mcpConnect
+  , SomeAuditLogEventDefinition mcpTokenDelete
+  , SomeAuditLogEventDefinition mcpTokenExpire
   , SomeAuditLogEventDefinition userGroupsCreate
   , SomeAuditLogEventDefinition userGroupsUpdate
   , SomeAuditLogEventDefinition userGroupsDelete
@@ -65,6 +70,8 @@ sharedAuditLogCatalog =
   , SomeAuditLogEventDefinition knowledgeModelEditorsCreate
   , SomeAuditLogEventDefinition knowledgeModelEditorsUpdate
   , SomeAuditLogEventDefinition knowledgeModelEditorsDelete
+  , SomeAuditLogEventDefinition knowledgeModelEditorsEventsAdd
+  , SomeAuditLogEventDefinition knowledgeModelEditorsRepliesSet
   , SomeAuditLogEventDefinition knowledgeModelEditorsMigrationStart
   , SomeAuditLogEventDefinition knowledgeModelEditorsMigrationFinish
   , SomeAuditLogEventDefinition knowledgeModelEditorsMigrationCancel
@@ -81,10 +88,13 @@ sharedAuditLogCatalog =
   , SomeAuditLogEventDefinition documentTemplateEditorsCreate
   , SomeAuditLogEventDefinition documentTemplateEditorsUpdate
   , SomeAuditLogEventDefinition documentTemplateEditorsDelete
+  , SomeAuditLogEventDefinition documentTemplateEditorsFilesWrite
+  , SomeAuditLogEventDefinition documentTemplateEditorsFilesDelete
   , SomeAuditLogEventDefinition projectsCreate
   , SomeAuditLogEventDefinition projectsClone
   , SomeAuditLogEventDefinition projectsImport
   , SomeAuditLogEventDefinition projectsUpdate
+  , SomeAuditLogEventDefinition projectsEventsAdd
   , SomeAuditLogEventDefinition projectsPermissionsUpdate
   , SomeAuditLogEventDefinition projectsVersionCreate
   , SomeAuditLogEventDefinition projectsVersionUpdate
@@ -149,6 +159,31 @@ exampleUserData = AuditLogUserData {firstName = "Sofia", lastName = "Novak", aff
 
 exampleRole :: AuditLogRef
 exampleRole = AuditLogRef {uuid = u' "c4d2e8a1-7b35-4f90-a6e3-1d8f2c5b7a09", name = "Researcher"}
+
+-- ---------------------------------------------------------------------------------------------------------------------
+mcpConnect :: AuditLogEventDefinition () AuditLogMcpConnectData
+mcpConnect =
+  mcpEvent
+    "connect"
+    "An MCP client exchanged an authorization code for a token of a user."
+    True
+    AuditLogMcpConnectData {tokenUuid = exampleTokenUuid, clientName = Just "Claude"}
+
+mcpTokenDelete :: AuditLogEventDefinition () AuditLogSessionData
+mcpTokenDelete = mcpEvent "tokenDelete" "An MCP token of a user was deleted." True exampleSessionData
+
+mcpTokenExpire :: AuditLogEventDefinition () AuditLogSessionData
+mcpTokenExpire = mcpEvent "tokenExpire" "An MCP token of a user expired." False exampleSessionData
+
+mcpEvent :: String -> String -> Bool -> d -> AuditLogEventDefinition c d
+mcpEvent action description eventBridge =
+  auditLogEvent "mcp" action description OrganizationAuditLogScope eventBridge UserAuditLogEntityType "The user the token belongs to; entity.name is the email."
+
+exampleTokenUuid :: U.UUID
+exampleTokenUuid = u' "e1a9f3c7-2d48-4b6e-9f05-8c3b7a2d1e46"
+
+exampleSessionData :: AuditLogSessionData
+exampleSessionData = AuditLogSessionData {tokenUuid = exampleTokenUuid, name = "Login", userAgent = "Mozilla/5.0", expiresAt = dt' 2026 11 20, createdAt = dt' 2026 11 6}
 
 -- ---------------------------------------------------------------------------------------------------------------------
 userGroupsCreate :: AuditLogEventDefinition () AuditLogUserGroupData
@@ -427,6 +462,22 @@ knowledgeModelEditorsUpdate =
 knowledgeModelEditorsDelete :: AuditLogEventDefinition () AuditLogKnowledgeModelEditorData
 knowledgeModelEditorsDelete = knowledgeModelEditorEvent "delete" "A knowledge model editor was deleted." "The deleted editor." exampleKnowledgeModelEditorData
 
+knowledgeModelEditorsEventsAdd :: AuditLogEventDefinition () AuditLogEventCountData
+knowledgeModelEditorsEventsAdd =
+  knowledgeModelEditorEvent
+    "eventsAdd"
+    "A batch of events changed the knowledge model of an editor through the API or MCP; changes made in the browser editor are not recorded."
+    "The changed editor."
+    AuditLogEventCountData {events = 12}
+
+knowledgeModelEditorsRepliesSet :: AuditLogEventDefinition () AuditLogReplyCountData
+knowledgeModelEditorsRepliesSet =
+  knowledgeModelEditorEvent
+    "repliesSet"
+    "The preview replies of a knowledge model editor were replaced through MCP; replies set in the browser editor are not recorded."
+    "The editor of the replies."
+    AuditLogReplyCountData {replies = 8}
+
 knowledgeModelEditorsMigrationStart :: AuditLogEventDefinition () AuditLogKnowledgeModelMigrationData
 knowledgeModelEditorsMigrationStart =
   knowledgeModelEditorEvent "migrationStart" "A migration of a knowledge model editor to a newer version of its parent package was started." "The migrated editor." exampleMigrationData
@@ -550,6 +601,22 @@ documentTemplateEditorsDelete :: AuditLogEventDefinition () AuditLogLibraryData
 documentTemplateEditorsDelete =
   documentTemplateEditorEvent "delete" "A document template editor was deleted." "The deleted editor (draft template)." AuditLogLibraryData {id = "myorg:questionnaire-report", version = "2.1.0"}
 
+documentTemplateEditorsFilesWrite :: AuditLogEventDefinition () AuditLogFilesData
+documentTemplateEditorsFilesWrite =
+  documentTemplateEditorEvent
+    "filesWrite"
+    "Files of a document template editor were created, changed or renamed, or its folders moved, in one batch through MCP; edits in the browser editor are not recorded."
+    "The changed editor (draft template)."
+    AuditLogFilesData {paths = ["src/default.html.j2"]}
+
+documentTemplateEditorsFilesDelete :: AuditLogEventDefinition () AuditLogFilesData
+documentTemplateEditorsFilesDelete =
+  documentTemplateEditorEvent
+    "filesDelete"
+    "Files and assets of a document template editor were deleted in one batch through MCP; deletions in the browser editor are not recorded."
+    "The changed editor (draft template)."
+    AuditLogFilesData {paths = ["src/old.html.j2", "src/logo.png"]}
+
 documentTemplateEditorEvent :: String -> String -> String -> d -> AuditLogEventDefinition c d
 documentTemplateEditorEvent action description =
   auditLogEvent "documentTemplateEditors" action description OrganizationOrWorkspaceAuditLogScope True DocumentTemplateEditorAuditLogEntityType
@@ -590,6 +657,14 @@ projectsUpdate =
       "Project settings or sharing changed. The changed fields are in changes; a save that changes nothing writes no row."
       "The changed project; entity.name is the name after the change."
       NoData
+
+projectsEventsAdd :: AuditLogEventDefinition () AuditLogEventCountData
+projectsEventsAdd =
+  projectEvent
+    "eventsAdd"
+    "A batch of replies, labels, phase changes or comments was added to a project through the API or MCP; changes made in the questionnaire are not recorded."
+    "The changed project."
+    AuditLogEventCountData {events = 25}
 
 projectsPermissionsUpdate :: AuditLogEventDefinition () AuditLogProjectPermissionsData
 projectsPermissionsUpdate =

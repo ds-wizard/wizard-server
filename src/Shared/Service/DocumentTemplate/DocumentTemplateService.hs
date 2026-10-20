@@ -5,7 +5,6 @@ import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
 import qualified Data.List as L
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateChangeDTO
@@ -48,6 +47,7 @@ import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateUtil
 import Shared.Service.Library.LibraryDependentMapper
 import Shared.Service.Settings.OrganizationSettingsService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 
 getDocumentTemplatesPage :: WizardRequestContextC s m => Maybe String -> Maybe String -> Maybe Bool -> Pageable -> [Sort] -> m (Page DocumentTemplateSimpleDTO)
 getDocumentTemplatesPage mId mQuery mOutdated pageable sort = do
@@ -156,7 +156,7 @@ getDocumentTemplatesToDelete uuid mAllVersions = do
 deleteDocumentTemplateWithAssets :: WizardRequestContextC s m => U.UUID -> m ()
 deleteDocumentTemplateWithAssets uuid = do
   assets <- findAssetsByDocumentTemplateUuid uuid
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   cleanTemporallyDocumentsForTemplate uuid
   void $ unsetDocumentTemplateInProjects uuid now
   void $ deleteDocumentTemplateByUuid uuid

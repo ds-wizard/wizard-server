@@ -4,6 +4,7 @@ import Servant
 import Servant.Swagger.Tags
 
 import Shared.Api.Handler.Project.Event.Detail_GET
+import Shared.Api.Handler.Project.Event.List_Batch_POST
 import Shared.Api.Handler.Project.Event.List_GET
 import Shared.Api.Handler.Project.Event.List_POST
 import Shared.Api.Handler.WizardCommon
@@ -12,6 +13,7 @@ type EventAPI =
   Tags "Project Event"
     :> ( List_GET
            :<|> List_POST
+           :<|> List_Batch_POST
            :<|> Detail_GET
        )
 
@@ -22,4 +24,5 @@ eventServer :: WizardHandlerC s sm r rm => ServerT EventAPI sm
 eventServer =
   list_GET
     :<|> list_POST
+    :<|> list_batch_POST
     :<|> detail_GET

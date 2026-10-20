@@ -10,6 +10,8 @@ globalRegistryPackage =
     { id = globalKmPackage.id
     , remoteVersion = globalKmPackage.version
     , createdAt = globalKmPackage.createdAt
+    , remoteName = globalKmPackage.name
+    , remoteDescription = globalKmPackage.description
     }
 
 nlRegistryPackage :: RegistryPackage
@@ -18,4 +20,6 @@ nlRegistryPackage =
     { id = netherlandsKmPackageV2.id
     , remoteVersion = netherlandsKmPackageV2.version
     , createdAt = netherlandsKmPackageV2.createdAt
+    , remoteName = netherlandsKmPackageV2.name
+    , remoteDescription = netherlandsKmPackageV2.description
     }

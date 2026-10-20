@@ -9,6 +9,8 @@ import Shared.Model.Localization.LocaleRecord
 _ERROR_VALIDATION__OPENID_WRONG_RESPONSE error =
   LocaleRecord "error.validation.openid_wrong_response" "There was a wrong response from OpenID (error: '%s')" [error]
 
+_ERROR_VALIDATION__OPENID_CLIENT_ABSENCE clientId = LocaleRecord "error.validation.openid_client_absence" "ClientId ('%s') doesn't exist" [clientId]
+
 _ERROR_VALIDATION__OPENID_CODE_ABSENCE =
   LocaleRecord "error.validation.openid_code_absence" "Auth Code is not provided" []
 

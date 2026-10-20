@@ -12,6 +12,7 @@ import Servant
 
 import Shared.Api.Middleware.CORSMiddleware
 import Shared.Api.Middleware.ContentTypeMiddleware
+import Shared.Api.Middleware.McpRequestSizeMiddleware
 import Shared.Api.Middleware.OptionsMiddleware
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Context.ServerContext
@@ -63,6 +64,7 @@ runMiddleware env loggingMiddleware =
     . errorMw @JSON @'["message", "status"]
     . loggingMiddleware env
     . optionsMiddleware
+    . mcpRequestSizeMiddleware
 
 createSentryHandler :: ServerContextType context sc => context -> (Maybe String -> [(String, Value)]) -> IO (Maybe WAI.Request -> SomeException -> IO ())
 createSentryHandler context getSentryIdentity = return $ sentryOnException (toSentryTarget context) getSentryIdentity

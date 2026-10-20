@@ -1,11 +1,11 @@
 module Shared.Service.Document.DocumentService where
 
-import Control.Monad (void)
+import Control.Monad (join, void)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import Data.Maybe (fromMaybe)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Document.DocumentCreateDTO
@@ -13,6 +13,7 @@ import Shared.Api.Resource.Document.DocumentDTO
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
 import Shared.Constant.Component
 import Shared.Database.DAO.Document.DocumentDAO
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDraftDataDAO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateFormatDAO
@@ -20,8 +21,10 @@ import Shared.Database.DAO.DocumentTemplate.DocumentTemplateLocaleDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Project.ProjectDAO
+import Shared.Database.DAO.Project.ProjectVersionDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.WizardCommon
+import Shared.Localization.Messages.Public (_ERROR_VALIDATION__FORBIDDEN)
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
@@ -38,6 +41,7 @@ import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.Project.Project
+import Shared.Model.Project.Version.ProjectVersion
 import Shared.S3.Document.DocumentS3
 import Shared.Service.Document.Context.DocumentContextService
 import Shared.Service.Document.DocumentAcl
@@ -52,6 +56,7 @@ import Shared.Service.Project.ProjectAcl
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Logger
 import Shared.Util.Uuid
 
@@ -68,6 +73,17 @@ getDocumentsForProject projectUuid mQuery pageable sort = do
   docPage <- findDocumentsPage False (Just projectUuid) (Just project.name) Nothing mQuery pageable sort
   enhanceDocuments docPage
 
+getDocumentByUuid :: WizardRequestContextC s m => U.UUID -> m DocumentDTO
+getDocumentByUuid docUuid = do
+  doc <- findDocumentByUuid docUuid
+  project <- maybe (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN "Read Document") findProjectByUuid doc.projectUuid
+  checkViewPermissionToDoc' project
+  tml <- findDocumentTemplateByUuid doc.documentTemplateUuid
+  format <- findDocumentTemplateFormatByDocumentTemplateIdAndUuid doc.documentTemplateUuid doc.formatUuid
+  mVersion <- traverse (findProjectVersionByEventUuid' project.uuid) doc.projectEventUuid
+  submissions <- findDocumentSubmissions doc
+  return $ toDTOWithDocTemplate doc project (fmap (.name) (join mVersion)) submissions tml format
+
 createDocument :: WizardRequestContextC s m => DocumentCreateDTO -> m DocumentDTO
 createDocument reqDto =
   runInTransaction $ do
@@ -82,7 +98,7 @@ createDocument reqDto =
     (ctx, mCutOffEventUuid) <- createProjectDocumentContext project reqDto.projectEventUuid
     uuid <- liftIO generateUuid
     mCurrentUser <- asks (.currentUser')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let doc = fromCreateDTO reqDto uuid (Just ctx.hash) mCutOffEventUuid mCurrentUser project.tenantUuid project.workspaceUuid now
     insertDocument doc
     al_createDocument doc project tml format
@@ -97,8 +113,11 @@ deleteDocument docUuid =
     al_deleteDocument doc
     void $ deleteDocumentByUuid docUuid
 
-downloadDocument :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
-downloadDocument docUuid = do
+downloadDocument :: WizardRequestContextC s m => Int -> U.UUID -> m TemporaryFileDTO
+downloadDocument expiration docUuid = fst <$> downloadDocumentWithContent expiration docUuid
+
+downloadDocumentWithContent :: WizardRequestContextC s m => Int -> U.UUID -> m (TemporaryFileDTO, BS.ByteString)
+downloadDocumentWithContent expiration docUuid = do
   runInTransaction $ do
     doc <- findDocumentByUuid docUuid
     checkViewPermissionToDoc doc.projectUuid
@@ -106,8 +125,8 @@ downloadDocument docUuid = do
     let fileName = fromMaybe "export" doc.fileName
     let contentType = fromMaybe "text/plain" doc.contentType
     mCurrentUserUuid <- getCurrentUserUuid
-    url <- createTemporaryFile fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict content)
-    return $ TemporaryFileMapper.toDTO url contentType
+    url <- createTemporaryFile expiration fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict content)
+    return (TemporaryFileMapper.toDTO url contentType, content)
 
 createDocumentPreviewForProject :: WizardRequestContextC s m => U.UUID -> Maybe U.UUID -> m (Document, TemporaryFileDTO)
 createDocumentPreviewForProject projectUuid mDocumentUuid =
@@ -165,7 +184,7 @@ createDocumentPreview source dt format mLanguage mEventUuid ctx = do
           validateMetamodelVersion dt
           dUuid <- liftIO generateUuid
           mCurrentUser <- asks (.currentUser')
-          now <- liftIO getCurrentTime
+          now <- liftIO getCurrentTimeInMicroseconds
           let doc = fromTemporallyCreateDTO dUuid source mEventUuid dt.uuid format.uuid mLanguage (Just ctx.hash) mCurrentUser now
           insertDocument doc
           publishToPersistentCommandQueue doc dt format ctx

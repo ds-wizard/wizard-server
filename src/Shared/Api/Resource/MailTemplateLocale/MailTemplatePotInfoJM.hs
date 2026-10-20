@@ -4,6 +4,7 @@ import Data.Aeson
 
 import Shared.Api.Resource.MailTemplateLocale.MailTemplatePotInfoDTO
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 import Shared.Util.String (lowerFirst, stripSuffixIfExists)
 
 instance FromJSON MailTemplatePotInfoDTO where
@@ -17,6 +18,12 @@ instance FromJSON MailTemplatePotSource where
 
 instance ToJSON MailTemplatePotSource where
   toJSON = genericToJSON mailTemplatePotSourceOptions
+
+instance JsonSchema MailTemplatePotInfoDTO where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema MailTemplatePotSource where
+  jsonSchema = genericJsonSchema mailTemplatePotSourceOptions
 
 mailTemplatePotSourceOptions :: Options
 mailTemplatePotSourceOptions = jsonOptions {constructorTagModifier = lowerFirst . stripSuffixIfExists "MailTemplatePotSource"}

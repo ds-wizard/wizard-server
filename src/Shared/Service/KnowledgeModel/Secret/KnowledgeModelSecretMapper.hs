@@ -19,6 +19,9 @@ fromCreateDTO dto uuid tenantUuid workspaceUuid now =
     , workspaceUuid = workspaceUuid
     }
 
+toChangeDTO :: KnowledgeModelSecret -> KnowledgeModelSecretChangeDTO
+toChangeDTO secret = KnowledgeModelSecretChangeDTO secret.name secret.value
+
 fromChangeDTO :: KnowledgeModelSecret -> KnowledgeModelSecretChangeDTO -> UTCTime -> KnowledgeModelSecret
 fromChangeDTO kmSecret dto now =
   KnowledgeModelSecret

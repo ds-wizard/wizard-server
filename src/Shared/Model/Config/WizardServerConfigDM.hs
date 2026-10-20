@@ -31,7 +31,11 @@ defaultConfig =
     , admin = defaultAdmin
     , registry = defaultRegistry
     , httpClient = defaultHttpClient
+    , mcp = defaultMcp
     }
+
+defaultMcp :: ServerConfigMcp
+defaultMcp = ServerConfigMcp {documentPreviewWait = 20, documentPreviewLimit = 5}
 
 defaultHttpClient :: ServerConfigHttpClient
 defaultHttpClient =

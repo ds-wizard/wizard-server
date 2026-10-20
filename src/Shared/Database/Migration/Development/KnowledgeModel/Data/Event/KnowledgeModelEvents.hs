@@ -448,21 +448,22 @@ e_km1_ch1_q1 =
     { uuid = u' "de86f82b-aaaf-482e-97c7-c7e93d834cd9"
     , parentUuid = chapter1.uuid
     , entityUuid = question1Edited.uuid
-    , content =
-        EditQuestionEvent' $
-          EditValueQuestionEvent' $
-            EditValueQuestionEvent
-              { title = ChangedValue question1Edited.title
-              , text = NothingChanged
-              , requiredPhaseUuid = NothingChanged
-              , annotations = ChangedValue question1Edited.annotations
-              , tagUuids = NothingChanged
-              , expertUuids = NothingChanged
-              , referenceUuids = NothingChanged
-              , valueType = NothingChanged
-              , validations = ChangedValue question1Edited.validations
-              }
+    , content = EditQuestionEvent' $ EditValueQuestionEvent' e_km1_ch1_q1__content
     , createdAt = dt'' 2018 1 21 0
+    }
+
+e_km1_ch1_q1__content :: EditValueQuestionEvent
+e_km1_ch1_q1__content =
+  EditValueQuestionEvent
+    { title = ChangedValue question1Edited.title
+    , text = NothingChanged
+    , requiredPhaseUuid = NothingChanged
+    , annotations = ChangedValue question1Edited.annotations
+    , tagUuids = NothingChanged
+    , expertUuids = NothingChanged
+    , referenceUuids = NothingChanged
+    , valueType = NothingChanged
+    , validations = ChangedValue question1Edited.validations
     }
 
 e_km1_ch1_q1_type :: KnowledgeModelEvent
@@ -1538,14 +1539,16 @@ e_km1_ch1_q2_eAlbert =
     { uuid = u' "01686131-2423-4d97-a949-4fea2c9ce3b7"
     , parentUuid = question2.uuid
     , entityUuid = km1_ch1_q2_eAlbertEdited.uuid
-    , content =
-        EditExpertEvent' $
-          EditExpertEvent
-            { name = ChangedValue km1_ch1_q2_eAlbertEdited.name
-            , email = ChangedValue km1_ch1_q2_eAlbertEdited.email
-            , annotations = ChangedValue km1_ch1_q2_eAlbertEdited.annotations
-            }
+    , content = EditExpertEvent' e_km1_ch1_q2_eAlbert__content
     , createdAt = dt'' 2018 1 21 0
+    }
+
+e_km1_ch1_q2_eAlbert__content :: EditExpertEvent
+e_km1_ch1_q2_eAlbert__content =
+  EditExpertEvent
+    { name = ChangedValue km1_ch1_q2_eAlbertEdited.name
+    , email = ChangedValue km1_ch1_q2_eAlbertEdited.email
+    , annotations = ChangedValue km1_ch1_q2_eAlbertEdited.annotations
     }
 
 d_km1_ch1_q2_eNikola :: KnowledgeModelEvent
@@ -1682,15 +1685,16 @@ e_km1_ch1_q2_rCh2 =
     { uuid = u' "f96588ae-1657-406e-9810-1d00f5e24a96"
     , parentUuid = question2.uuid
     , entityUuid = km1_ch1_q2_r2Edited.uuid
-    , content =
-        EditReferenceEvent' $
-          EditURLReferenceEvent' $
-            EditURLReferenceEvent
-              { url = ChangedValue km1_ch1_q2_r2Edited.url
-              , aLabel = ChangedValue km1_ch1_q2_r2Edited.aLabel
-              , annotations = ChangedValue km1_ch1_q2_r2Edited.annotations
-              }
+    , content = EditReferenceEvent' $ EditURLReferenceEvent' e_km1_ch1_q2_rCh2__content
     , createdAt = dt'' 2018 1 21 0
+    }
+
+e_km1_ch1_q2_rCh2__content :: EditURLReferenceEvent
+e_km1_ch1_q2_rCh2__content =
+  EditURLReferenceEvent
+    { url = ChangedValue km1_ch1_q2_r2Edited.url
+    , aLabel = ChangedValue km1_ch1_q2_r2Edited.aLabel
+    , annotations = ChangedValue km1_ch1_q2_r2Edited.annotations
     }
 
 e_km1_ch1_q2_rCh2_type :: KnowledgeModelEvent

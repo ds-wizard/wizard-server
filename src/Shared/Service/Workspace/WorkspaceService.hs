@@ -42,6 +42,7 @@ import Shared.Service.Workspace.WorkspaceAuditLog
 import Shared.Service.Workspace.WorkspaceMapper
 import Shared.Service.Workspace.WorkspaceMembershipService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.String (trim)
 import Shared.Util.Uuid
 
@@ -52,8 +53,19 @@ getWorkspacesPage mQuery pageable sort = do
   accessCondition <- if managesWorkspaces then return "" else workspaceOnlyCondition Nothing "uuid"
   findWorkspacesPage accessCondition mQuery pageable sort
 
+getAccessibleWorkspaces :: WizardRequestContextC s m => m [Workspace]
+getAccessibleWorkspaces = do
+  managesWorkspaces <- hasPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
+  access <- if managesWorkspaces then return UnrestrictedWorkspaceAccess else workspaceAccess Nothing
+  filter (isWorkspaceAccessible access . (.uuid)) <$> findWorkspaces
+
 createWorkspace :: WizardRequestContextC s m => WorkspaceChangeDTO -> m Workspace
-createWorkspace reqDto =
+createWorkspace reqDto = do
+  uuid <- liftIO generateUuid
+  createWorkspaceWithUuid uuid reqDto
+
+createWorkspaceWithUuid :: WizardRequestContextC s m => U.UUID -> WorkspaceChangeDTO -> m Workspace
+createWorkspaceWithUuid uuid reqDto =
   runInTransaction $ do
     checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
     validateChangeDto reqDto
@@ -62,8 +74,7 @@ createWorkspace reqDto =
     tenant <- findTenantByUuid tenantUuid
     unless tenant.multiWorkspace (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SINGLE_WORKSPACE_TENANT)
     currentUser <- getCurrentUser
-    uuid <- liftIO generateUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     (workspace, adminRole) <- createWorkspaceWithRoles (fromChangeDTO reqDto uuid tenantUuid now)
     addWorkspaceMembership workspace currentUser.uuid (Just adminRole.uuid) now
     al_createWorkspace workspace
@@ -87,7 +98,7 @@ modifyWorkspace uuid reqDto =
     checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
     validateChangeDto reqDto
     workspace <- findWorkspaceByUuid uuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedWorkspace = fromChange workspace reqDto now
     updateWorkspaceByUuid updatedWorkspace
     al_updateWorkspace workspace updatedWorkspace
@@ -102,13 +113,24 @@ deleteWorkspace uuid =
     when (length workspaceUuids < 2) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__LAST_WORKSPACE)
     projectUuids <- findProjectUuidsByWorkspaceUuid uuid
     editorUuids <- findKnowledgeModelEditorUuidsByWorkspaceUuid uuid
-    whenAuditLogEnabled $ do
-      (documents, documentTemplateEditors, userGroups) <- countWorkspaceDependents uuid
-      al_deleteWorkspace workspace (AuditLogWorkspaceDeleteData (length projectUuids) documents (length editorUuids) documentTemplateEditors userGroups)
+    whenAuditLogEnabled $ al_deleteWorkspace workspace =<< countWorkspaceDeletion uuid projectUuids editorUuids
     void $ deleteWorkspaceByUuid uuid
     traverse_ (removeWorkspaceLogo uuid) workspace.logo
     traverse_ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuids
     traverse_ logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged editorUuids
+
+getWorkspaceDeletion :: WizardRequestContextC s m => U.UUID -> m (Workspace, AuditLogWorkspaceDeleteData)
+getWorkspaceDeletion uuid = do
+  checkPermissionInWorkspace _WORKSPACES_MANAGE_ROLE_PERMISSION Nothing
+  workspace <- findWorkspaceByUuid uuid
+  projectUuids <- findProjectUuidsByWorkspaceUuid uuid
+  editorUuids <- findKnowledgeModelEditorUuidsByWorkspaceUuid uuid
+  (,) workspace <$> countWorkspaceDeletion uuid projectUuids editorUuids
+
+countWorkspaceDeletion :: WizardRequestContextC s m => U.UUID -> [U.UUID] -> [U.UUID] -> m AuditLogWorkspaceDeleteData
+countWorkspaceDeletion uuid projectUuids editorUuids = do
+  (documents, documentTemplateEditors, userGroups) <- countWorkspaceDependents uuid
+  return $ AuditLogWorkspaceDeleteData (length projectUuids) documents (length editorUuids) documentTemplateEditors userGroups
 
 getWorkspaceMembersPage :: WizardRequestContextC s m => U.UUID -> Maybe String -> Pageable -> [Sort] -> m (Page WorkspaceMember)
 getWorkspaceMembersPage uuid mQuery pageable sort = do
@@ -123,7 +145,7 @@ addWorkspaceMember uuid userUuid reqDto =
     workspace <- findWorkspaceByUuid uuid
     _ <- findUserByUuid userUuid
     checkWorkspacePlaneAvailable
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     saveWorkspaceMembership workspace userUuid reqDto.roleUuid now
 
 removeWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
