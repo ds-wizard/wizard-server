@@ -9,6 +9,7 @@ import Data.Time
 import qualified Data.UUID as U
 import Shared.Constant.Tenant
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.Context.ProgressReporter
 import Shared.Model.Context.Scope
 import Shared.Model.Context.TransactionState
 import Shared.Model.Context.WizardRequestContext
@@ -66,6 +67,7 @@ requestContextFromServerContext tenantUuid mUser transactionState serverContext 
           , auditLogSource = toAuditLogSource mUser
           , websocketRegistry = serverContext.websocketRegistry
           , nodeUuid = serverContext.nodeUuid
+          , progressReporter = noProgressReporter
           }
   case transactionState of
     Transactional -> do

@@ -6,6 +6,7 @@ import qualified Data.Map.Strict as M
 import Data.Time
 import qualified Data.UUID as U
 
+import Shared.Api.Resource.Mcp.User.McpUserInviteDTO
 import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.User.UserChangeDTO
 import Shared.Api.Resource.User.UserCreateDTO
@@ -190,6 +191,17 @@ fromUserExternalDTO userUuid firstName lastName email passwordHash roleUuid perm
     , emailPending = if active then Nothing else Just (fmap toLower email)
     }
 
+toUserChangeDTO :: UserDTO -> UserChangeDTO
+toUserChangeDTO user =
+  UserChangeDTO
+    { firstName = user.firstName
+    , lastName = user.lastName
+    , email = user.email
+    , affiliation = user.affiliation
+    , roleUuid = user.role.uuid
+    , active = user.active
+    }
+
 fromUserChangeDTO :: UserChangeDTO -> User -> [String] -> String -> User
 fromUserChangeDTO dto oldUser permissions roleName =
   User
@@ -211,6 +223,17 @@ fromUserChangeDTO dto oldUser permissions roleName =
     , updatedAt = oldUser.updatedAt
     , emailVerifiedAt = oldUser.emailVerifiedAt
     , emailPending = oldUser.emailPending
+    }
+
+fromMcpUserInviteDTO :: McpUserInviteDTO -> String -> UserCreateDTO
+fromMcpUserInviteDTO dto password =
+  UserCreateDTO
+    { firstName = dto.firstName
+    , lastName = dto.lastName
+    , email = dto.email
+    , affiliation = dto.affiliation
+    , roleUuid = dto.roleUuid
+    , password = password
     }
 
 fromTenantCreateToUserCreateDTO :: TenantCreateDTO -> U.UUID -> UserCreateDTO

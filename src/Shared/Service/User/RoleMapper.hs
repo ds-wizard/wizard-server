@@ -40,6 +40,9 @@ fromCreateDTO dto uuid tenantUuid workspaceUuid now =
     , updatedAt = now
     }
 
+toChangeDTO :: Role -> RoleChangeDTO
+toChangeDTO role = RoleChangeDTO role.name role.permissions
+
 fromChangeDTO :: Role -> RoleChangeDTO -> UTCTime -> Role
 fromChangeDTO role dto now =
   Role

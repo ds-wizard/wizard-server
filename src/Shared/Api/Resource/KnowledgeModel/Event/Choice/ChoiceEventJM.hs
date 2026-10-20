@@ -6,6 +6,7 @@ import Shared.Api.Resource.KnowledgeModel.Event.KnowledgeModelEventFieldJM ()
 import Shared.Api.Resource.KnowledgeModel.KnowledgeModelJM ()
 import Shared.Model.KnowledgeModel.Event.Choice.ChoiceEvent
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON AddChoiceEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
@@ -13,8 +14,14 @@ instance FromJSON AddChoiceEvent where
 instance ToJSON AddChoiceEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
 
+instance JsonSchema AddChoiceEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")
+
 instance FromJSON EditChoiceEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
 
 instance ToJSON EditChoiceEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
+
+instance JsonSchema EditChoiceEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")

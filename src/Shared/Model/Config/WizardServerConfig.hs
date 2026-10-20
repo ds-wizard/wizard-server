@@ -31,6 +31,13 @@ data ServerConfig = ServerConfig
   , admin :: ServerConfigAdmin
   , registry :: ServerConfigRegistry
   , httpClient :: ServerConfigHttpClient
+  , mcp :: ServerConfigMcp
+  }
+  deriving (Generic, Show)
+
+data ServerConfigMcp = ServerConfigMcp
+  { documentPreviewWait :: Int
+  , documentPreviewLimit :: Int
   }
   deriving (Generic, Show)
 

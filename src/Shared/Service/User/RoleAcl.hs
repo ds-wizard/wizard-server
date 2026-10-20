@@ -48,7 +48,7 @@ checkRoleManagePermission mWorkspaceUuid = do
       currentUser <- getCurrentUser
       unless
         (_ROLES_MANAGE_ROLE_PERMISSION `elem` currentUser.role.permissions)
-        (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _ROLES_MANAGE_ROLE_PERMISSION))
+        (throwError . ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION _ROLES_MANAGE_ROLE_PERMISSION)
 
 validateRoleWorkspacePermissions :: WizardRequestContextC s m => [String] -> Maybe U.UUID -> RoleChangeDTO -> m ()
 validateRoleWorkspacePermissions organizationOnly mWorkspaceUuid dto =

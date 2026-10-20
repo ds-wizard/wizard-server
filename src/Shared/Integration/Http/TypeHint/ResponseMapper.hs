@@ -3,6 +3,7 @@ module Shared.Integration.Http.TypeHint.ResponseMapper (
   toTypeHintTestResponse,
   toTypeHintTestResponseError,
   toResponseErrorMessage,
+  maskSecretsInResponse,
 ) where
 
 import Control.Exception (SomeException, displayException, fromException)
@@ -11,6 +12,7 @@ import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.Either (rights)
 import Data.List (lookup)
+import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
@@ -24,6 +26,7 @@ import Shared.Integration.Http.Common.ResponseMapper
 import Shared.Integration.Resource.TypeHint.TypeHintIDTO
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Util.Jinja (renderJinjaBatch)
+import Shared.Util.Secret (redactSecretValues)
 import Shared.Util.String (splitOn)
 
 toRetrieveTypeHintsResponse :: ApiIntegration -> Response BSL.ByteString -> IO (Either String [TypeHintIDTO])
@@ -147,3 +150,10 @@ toResponseErrorMessage e =
       "Invalid proxy settings: " ++ T.unpack txt ++ "."
     describeContent TooManyHeaderFields =
       "Too many header fields: the server returned too many header fields in the response."
+
+maskSecretsInResponse :: M.Map String String -> TypeHintExchange -> TypeHintExchange
+maskSecretsInResponse secrets exchange = exchange {response = maskResponse exchange.response}
+  where
+    maskResponse (SuccessTypeHintResponse' response) = SuccessTypeHintResponse' response {body = redactSecretValues secrets response.body}
+    maskResponse (RemoteErrorTypeHintResponse' response) = RemoteErrorTypeHintResponse' response {body = redactSecretValues secrets response.body}
+    maskResponse (RequestFailedTypeHintResponse' response) = RequestFailedTypeHintResponse' response {message = redactSecretValues secrets response.message}

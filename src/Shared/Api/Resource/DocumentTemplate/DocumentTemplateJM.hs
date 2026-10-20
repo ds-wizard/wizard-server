@@ -6,6 +6,7 @@ import Shared.Api.Resource.DocumentTemplate.DocumentTemplateDTO
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateFormatSimpleJM ()
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON DocumentTemplateDTO where
   parseJSON = genericParseJSON jsonOptions
@@ -36,3 +37,9 @@ instance FromJSON DocumentTemplateAssetDTO where
 
 instance ToJSON DocumentTemplateAssetDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema DocumentTemplateFormatDTO where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema DocumentTemplateFormatStepDTO where
+  jsonSchema = genericJsonSchema jsonOptions

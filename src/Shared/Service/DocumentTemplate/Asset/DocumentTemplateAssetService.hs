@@ -20,16 +20,16 @@ import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetMapper
 import Shared.Service.DocumentTemplate.DocumentTemplateAcl
 import Shared.Service.DocumentTemplate.DocumentTemplateValidation
 import Shared.Service.Tenant.Limit.WizardLimitService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
 
-getAssets :: WizardRequestContextC s m => U.UUID -> m [DocumentTemplateAssetDTO]
-getAssets dtUuid = do
+getAssets :: WizardRequestContextC s m => Int -> U.UUID -> m [DocumentTemplateAssetDTO]
+getAssets expirationInSeconds dtUuid = do
   checkEditorPermissionToDocumentTemplate dtUuid
   assets <- findAssetsByDocumentTemplateUuid dtUuid
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   traverse
     ( \asset -> do
-        let expirationInSeconds = 60
         let urlExpiration = addUTCTime (realToFrac expirationInSeconds) now
         url <- presignGetAssetUrl asset.documentTemplateUuid asset.uuid expirationInSeconds
         return $ toDTO asset url urlExpiration
@@ -42,7 +42,7 @@ getAsset assetUuid = do
   asset <- findAssetById assetUuid
   checkEditorPermissionToDocumentTemplate asset.documentTemplateUuid
   let expirationInSeconds = 60
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let urlExpiration = addUTCTime (realToFrac expirationInSeconds) now
   url <- presignGetAssetUrl asset.documentTemplateUuid asset.uuid expirationInSeconds
   return $ toDTO asset url urlExpiration
@@ -62,7 +62,7 @@ createAsset dtUuid reqDto =
     validateFileAndAssetUniqueness Nothing dtUuid reqDto.fileName
     aUuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let fileSize = fromIntegral . BS.length $ reqDto.content
     let newAsset = fromCreateDTO dtUuid aUuid reqDto.fileName reqDto.contentType fileSize tenantUuid now now
     insertAsset newAsset
@@ -70,7 +70,7 @@ createAsset dtUuid reqDto =
     putAsset dtUuid aUuid reqDto.contentType reqDto.content
     deleteTemporalDocumentsByAssetUuid aUuid
     let expirationInSeconds = 60
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let urlExpiration = addUTCTime (realToFrac expirationInSeconds) now
     url <- presignGetAssetUrl newAsset.documentTemplateUuid aUuid expirationInSeconds
     return $ toDTO newAsset url urlExpiration
@@ -82,7 +82,7 @@ modifyAsset assetUuid reqDto =
     asset <- findAssetById assetUuid
     checkEditorPermissionToDocumentTemplate asset.documentTemplateUuid
     validateFileAndAssetUniqueness (Just asset.uuid) asset.documentTemplateUuid reqDto.fileName
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedAsset = fromChangeDTO asset reqDto now
     updateAssetById updatedAsset
     touchDocumentTemplateByUuid asset.documentTemplateUuid
@@ -96,7 +96,7 @@ modifyAssetContent assetUuid reqDto =
     asset <- findAssetById assetUuid
     checkEditorPermissionToDocumentTemplate asset.documentTemplateUuid
     checkStorageSize (fromIntegral . BS.length $ reqDto.content)
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let fileSize = fromIntegral . BS.length $ reqDto.content
     let updatedAsset = fromChangeContentDTO asset reqDto.fileName reqDto.contentType fileSize now
     updateAssetById updatedAsset
@@ -109,7 +109,7 @@ duplicateAsset :: WizardRequestContextC s m => U.UUID -> DocumentTemplateAsset -
 duplicateAsset newDtUuid asset = do
   content <- retrieveAsset asset.documentTemplateUuid asset.uuid
   aUuid <- liftIO generateUuid
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let updatedAsset = fromDuplicateDTO asset newDtUuid aUuid now
   insertAsset updatedAsset
   touchDocumentTemplateByUuid asset.documentTemplateUuid

@@ -6,6 +6,7 @@ import Shared.Api.Resource.Common.MapEntryJM ()
 import Shared.Api.Resource.KnowledgeModel.Event.KnowledgeModelEventFieldJM ()
 import Shared.Model.KnowledgeModel.Event.Tag.TagEvent
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON AddTagEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
@@ -13,9 +14,15 @@ instance FromJSON AddTagEvent where
 instance ToJSON AddTagEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
 
+instance JsonSchema AddTagEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")
+
 -- --------------------------------------------
 instance FromJSON EditTagEvent where
   parseJSON = genericParseJSON (jsonOptionsWithTypeField "eventType")
 
 instance ToJSON EditTagEvent where
   toJSON = genericToJSON (jsonOptionsWithTypeField "eventType")
+
+instance JsonSchema EditTagEvent where
+  jsonSchema = genericJsonSchema (jsonOptionsWithTypeField "eventType")

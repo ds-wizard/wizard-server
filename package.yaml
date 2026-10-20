@@ -58,6 +58,7 @@ library:
   - data-default-class
   - directory
   - exceptions
+  - file-embed
   - fsutils
   - hashable
   - hspec
@@ -166,6 +167,8 @@ _test-dependencies: &test-dependencies
     - random
     - regex-compat
     - insert-ordered-containers
+    - jsonschema
+    - memory
     - resource-pool
     - servant
     - servant-server

@@ -17,6 +17,8 @@ permissionMappingSpec =
       renamePermissionsSql "c" `shouldContain` "ARRAY['users.manage', 'members.manage', 'userGroups.manage']"
     it "renamePermissionsSql grants projects.create and userGroups.create to everyone" $
       renamePermissionsSql "c" `shouldContain` "ARRAY['projects.create', 'userGroups.create']"
+    it "renamePermissionsSql maps the MCP permission to mcp.read only" $
+      renamePermissionsSql "c" `shouldContain` "WHEN 'McpUseRolePermission' THEN ARRAY['mcp.read']"
     it "renamePermissionsSql produces known permissions only" $ do
       newPermissions (renamePermissionsSql "c") `shouldSatisfy` (not . null)
       filter (`notElem` knownPermissions) (newPermissions (renamePermissionsSql "c")) `shouldBe` []
@@ -24,7 +26,7 @@ permissionMappingSpec =
 knownPermissions :: [String]
 knownPermissions =
   allRolePermissions
-    ++ ["hubspot.use", "analytics.use", "auditLog.use", "automations.manage", "mcp.connect", "dev.use", "tenants.manage"]
+    ++ ["hubspot.use", "analytics.use", "auditLog.use", "automations.manage", "dev.use", "tenants.manage"]
 
 newPermissions :: String -> [String]
 newPermissions = filter (not . L.isSuffixOf "RolePermission") . filter isPermissionLike . quoted

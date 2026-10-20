@@ -13,6 +13,7 @@ import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Model.AuditLog.AuditLogCatalog
 import Shared.Model.AuditLog.AuditLogEvent
 import Shared.Model.AuditLog.Data.AuditLogRef
+import Shared.Model.AuditLog.Data.LibraryAuditLogData
 import Shared.Model.AuditLog.Data.ProjectAuditLogData
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplateFormatSimple
@@ -104,6 +105,9 @@ al_migrateProject project targetPkg = whenAuditLogEnabled $ do
 
 al_deleteProject :: WizardRequestContextC s m => Project -> m ()
 al_deleteProject project = logAuditLogNoData projectsDelete (projectEntity project)
+
+al_addProjectEvents :: WizardRequestContextC s m => Project -> Int -> m ()
+al_addProjectEvents project count = logAuditLog projectsEventsAdd (projectEntity project) AuditLogEventCountData {events = count}
 
 projectEntity :: Project -> AuditLogEntity
 projectEntity project = entityInWorkspace project.workspaceUuid project.uuid project.name

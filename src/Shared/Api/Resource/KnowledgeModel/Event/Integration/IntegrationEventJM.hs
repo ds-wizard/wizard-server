@@ -2,15 +2,24 @@ module Shared.Api.Resource.KnowledgeModel.Event.Integration.IntegrationEventJM w
 
 import Control.Monad
 import Data.Aeson
+import Data.Proxy
 
 import Shared.Api.Resource.Common.MapEntryJM ()
 import Shared.Api.Resource.KnowledgeModel.Event.KnowledgeModelEventFieldJM ()
 import Shared.Api.Resource.KnowledgeModel.KnowledgeModelJM ()
 import Shared.Model.KnowledgeModel.Event.Integration.IntegrationEvent
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON AddIntegrationEvent where
   toJSON = toSumJSON
+
+instance JsonSchema AddIntegrationEvent where
+  jsonSchema _ =
+    oneOfSchema
+      [ jsonSchema (Proxy :: Proxy AddApiIntegrationEvent)
+      , jsonSchema (Proxy :: Proxy AddPluginIntegrationEvent)
+      ]
 
 instance FromJSON AddIntegrationEvent where
   parseJSON (Object o) = do
@@ -28,6 +37,9 @@ instance FromJSON AddApiIntegrationEvent where
 instance ToJSON AddApiIntegrationEvent where
   toJSON = toJSONWithAdditionalData [("integrationType", "ApiIntegration")]
 
+instance JsonSchema AddApiIntegrationEvent where
+  jsonSchema = withConstProperties [("integrationType", "ApiIntegration")] . genericJsonSchema jsonOptions
+
 -- --------------------------------------------
 instance FromJSON AddPluginIntegrationEvent where
   parseJSON = genericParseJSON jsonOptions
@@ -35,10 +47,20 @@ instance FromJSON AddPluginIntegrationEvent where
 instance ToJSON AddPluginIntegrationEvent where
   toJSON = toJSONWithAdditionalData [("integrationType", "PluginIntegration")]
 
+instance JsonSchema AddPluginIntegrationEvent where
+  jsonSchema = withConstProperties [("integrationType", "PluginIntegration")] . genericJsonSchema jsonOptions
+
 -- --------------------------------------------
 -- --------------------------------------------
 instance ToJSON EditIntegrationEvent where
   toJSON = toSumJSON
+
+instance JsonSchema EditIntegrationEvent where
+  jsonSchema _ =
+    oneOfSchema
+      [ jsonSchema (Proxy :: Proxy EditApiIntegrationEvent)
+      , jsonSchema (Proxy :: Proxy EditPluginIntegrationEvent)
+      ]
 
 instance FromJSON EditIntegrationEvent where
   parseJSON (Object o) = do
@@ -56,9 +78,15 @@ instance FromJSON EditApiIntegrationEvent where
 instance ToJSON EditApiIntegrationEvent where
   toJSON = toJSONWithAdditionalData [("integrationType", "ApiIntegration")]
 
+instance JsonSchema EditApiIntegrationEvent where
+  jsonSchema = withConstProperties [("integrationType", "ApiIntegration")] . genericJsonSchema jsonOptions
+
 -- --------------------------------------------
 instance FromJSON EditPluginIntegrationEvent where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON EditPluginIntegrationEvent where
   toJSON = toJSONWithAdditionalData [("integrationType", "PluginIntegration")]
+
+instance JsonSchema EditPluginIntegrationEvent where
+  jsonSchema = withConstProperties [("integrationType", "PluginIntegration")] . genericJsonSchema jsonOptions

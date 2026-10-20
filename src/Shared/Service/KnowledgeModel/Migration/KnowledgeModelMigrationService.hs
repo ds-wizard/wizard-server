@@ -3,12 +3,12 @@ module Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationService wh
 import Control.Monad (when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationCreateDTO
 import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationDTO
 import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationResolutionDTO
+import Shared.Api.Resource.KnowledgeModel.Migration.KnowledgeModelMigrationViewDTO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
@@ -36,6 +36,7 @@ import Shared.Service.KnowledgeModel.Migration.KnowledgeModelMigrationValidation
 import Shared.Service.KnowledgeModel.Migration.Migrator.Migrator
 import Shared.Service.KnowledgeModel.Package.Event.KnowledgeModelPackageEventService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 
 getCurrentMigrationDto :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelMigrationDTO
 getCurrentMigrationDto editorUuid = do
@@ -46,6 +47,22 @@ getCurrentMigrationDto editorUuid = do
   previousPackage <- findPackageSuggestionByUuid ms.editorPreviousPackageUuid
   targetPackage <- findPackageSuggestionByUuid ms.targetPackageUuid
   return $ toDTO ms previousPackage targetPackage editor
+
+getCurrentMigrationView :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelMigrationViewDTO
+getCurrentMigrationView editorUuid = do
+  checkPermissionToEditor editorUuid
+  ms <- getCurrentMigration editorUuid
+  editor <- findKnowledgeModelEditorByUuid editorUuid
+  upstreamEvents <- findUpstreamEvents editor ms.targetPackageUuid
+  previousPackage <- findPackageSuggestionByUuid ms.editorPreviousPackageUuid
+  targetPackage <- findPackageSuggestionByUuid ms.targetPackageUuid
+  return $ toViewDTO ms previousPackage targetPackage (length upstreamEvents)
+
+findUpstreamEvents :: WizardRequestContextC s m => KnowledgeModelEditor -> U.UUID -> m [KnowledgeModelEvent]
+findUpstreamEvents editor targetPkgUuid = do
+  mForkOfPkgId <- getEditorForkOfPackageId editor
+  mForkOfPkg <- traverse (`findPackageByCoordinate` Just editor.workspaceUuid) mForkOfPkgId
+  maybe (return []) (getAllPreviousEventsSincePackageIdAndUntilPackageId targetPkgUuid . (.uuid)) mForkOfPkg
 
 getCurrentMigration :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelMigration
 getCurrentMigration editorUuid = do
@@ -79,7 +96,7 @@ createMigration kmEditorUuid reqDto =
     let kmEvents = fmap EditorMapper.toKnowledgeModelEvent kmEditorEvents
     km <- compileKnowledgeModel kmEvents editor.previousPackageUuid []
     tenantUuid <- asks (.tenantUuid')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let ms = fromCreateDTO editor previousPkg editorEvents targetPkgUuid targetPkgEvents km tenantUuid now
     insertKnowledgeModelMigration ms
     migratedMs <- migrateState ms

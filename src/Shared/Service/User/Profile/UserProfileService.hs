@@ -5,7 +5,6 @@ import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Char (toLower)
 import Data.Foldable (traverse_)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserDTO
@@ -37,6 +36,7 @@ import Shared.Service.User.Profile.UserProfileValidation
 import Shared.Service.User.UserValidation
 import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Password
 
 getUserProfile :: WizardRequestContextC s m => m UserDTO
@@ -50,7 +50,7 @@ modifyUserProfile reqDto = do
   let emailChanged = newEmail /= user.email
   let revertPending = not emailChanged && maybe False (/= user.email) user.emailPending
   when emailChanged $ validateUserChangedEmailUniqueness reqDto.email user.email
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let updatedUser = fromUserProfileChangeDTO reqDto user revertPending now
   updateUserByUuid updatedUser
   when revertPending $ do
@@ -71,7 +71,7 @@ changeUserProfilePassword userUuid reqDto = do
     throwError . UserError $
       _ERROR_SERVICE_TOKEN__INCORRECT_EMAIL_OR_PASSWORD
   passwordHash <- generatePasswordHash reqDto.password
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   updateUserPasswordByUuid userUuid passwordHash now
   return ()
 
@@ -88,7 +88,7 @@ modifyUserProfileSubmissionProps reqDto = do
   serverConfig <- asks (.serverConfig')
   submissionPropsEncrypted <- findUserSubmissionProps currentUser.uuid
   let submissionProps = fmap (process serverConfig.general.secret) submissionPropsEncrypted
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let submissionPropsUpdated = fromUserSubmissionPropsDTO currentUser.uuid tenantUuid submissionProps reqDto now
   let submissionPropsUpdatedEncrypted = fmap (process serverConfig.general.secret) submissionPropsUpdated
   traverse_ insertOrUpdateUserSubmissionProp submissionPropsUpdatedEncrypted
@@ -104,6 +104,6 @@ modifyLocale :: WizardRequestContextC s m => UserLocaleDTO -> m UserLocaleDTO
 modifyLocale reqDto = do
   validateLocale reqDto
   user <- getCurrentUser
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   updateUserLocaleByUuid user.uuid reqDto.uuid now
   return reqDto

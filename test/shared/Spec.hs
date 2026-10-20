@@ -20,6 +20,7 @@ import Shared.Integration.Http.Common.ServantClient
 import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
+import Shared.Model.Context.ProgressReporter
 import Shared.Model.Context.Scope
 import Shared.S3.Common
 import Shared.Service.Config.BuildInfo.BuildInfoConfigService
@@ -52,6 +53,7 @@ import Specs.Api.Handler.Locale.ApiSpec
 import Specs.Api.Handler.Locale.Registry.ApiSpec
 import Specs.Api.Handler.MailTemplateLocale.ApiSpec
 import Specs.Api.Handler.MailTemplateLocale.Registry.ApiSpec
+import Specs.Api.Handler.Mcp.ApiSpec
 import Specs.Api.Handler.OpenIdClient.ApiSpec
 import Specs.Api.Handler.PluginSettings.ApiSpec
 import Specs.Api.Handler.Prefab.ApiSpec
@@ -108,6 +110,7 @@ import Specs.Service.KnowledgeModel.Squash.SquasherSpec
 import Specs.Service.Locale.LocaleServiceSpec
 import Specs.Service.Locale.Registry.RegistryLocaleMapperSpec
 import Specs.Service.Mail.MailerSpec
+import Specs.Service.Mcp.Server.McpServerServiceSpec
 import Specs.Service.PersistentCommand.PersistentCommandServiceSpec
 import Specs.Service.Project.Cache.ProjectCacheServiceSpec
 import Specs.Service.Project.Collaboration.ProjectCollaborationAclSpec
@@ -125,12 +128,15 @@ import Specs.Service.Report.ReportGeneratorSpec
 import Specs.Service.Tenant.TenantValidationSpec
 import Specs.Service.TypeHint.TypeHintServiceSpec
 import Specs.Service.User.UserServiceSpec
+import Specs.Service.UserToken.UserTokenServiceSpec
 import Specs.Service.Workspace.CoordinateResolutionSpec
 import Specs.Service.Workspace.WorkspaceScopeServiceSpec
+import Specs.Util.DateSpec
 import Specs.Util.GettextSpec
 import Specs.Util.HttpSpec
 import Specs.Util.JSON.CanonicalSpec
 import Specs.Util.JinjaSpec
+import Specs.Util.JsonSchemaSpec
 import Specs.Util.ListSpec
 import Specs.Util.LocaleCodeSpec
 import Specs.Util.MapSpec
@@ -207,6 +213,7 @@ prepareWebApp runCallback =
                 , auditLogSource = userAuditLogSource
                 , websocketRegistry = websocketRegistry
                 , nodeUuid = nodeUuid
+                , progressReporter = noProgressReporter
                 }
         putStrLn "DB: start creating schema"
         buildSchema requestContext
@@ -263,6 +270,7 @@ main =
               describe "Report" reportGeneratorSpec
               describe "Tenant" tenantValidationSpec
             describe "UTIL" $ do
+              dateSpec
               mapSpec
               mathSpec
               listSpec
@@ -270,6 +278,7 @@ main =
               stringSpec
               tokenSpec
               jinjaSpec
+              jsonSchemaSpec
               canonicalSpec
               gettextSpec
               localeCodeSpec
@@ -294,6 +303,7 @@ main =
               localeRegistryAPI serverContext requestContext
               mailTemplateLocaleAPI serverContext requestContext
               mailTemplateLocaleRegistryAPI serverContext requestContext
+              mcpAPI serverContext requestContext
               openIdClientAPI serverContext requestContext
               pluginSettingsAPI serverContext requestContext
               prefabAPI serverContext requestContext
@@ -334,6 +344,7 @@ main =
               auditLogServiceSpec requestContext
               localeServiceIntegrationSpec requestContext
               mailerIntegrationSpec requestContext
+              describe "Mcp" $ mcpServerServiceSpec requestContext
               persistentCommandServiceSpec requestContext
               projectEventServiceIntegrationSpec requestContext
               registrySynchronizationServiceSpec requestContext
@@ -347,6 +358,7 @@ main =
                 projectCommentServiceSpec requestContext
                 projectServiceSpec requestContext
               userServiceIntegrationSpec requestContext
+              userTokenServiceSpec requestContext
               describe "Workspace" $ do
                 coordinateResolutionSpec requestContext
                 workspaceScopeServiceSpec requestContext

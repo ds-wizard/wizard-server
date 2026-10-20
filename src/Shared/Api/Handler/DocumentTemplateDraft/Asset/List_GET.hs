@@ -7,6 +7,7 @@ import Shared.Api.Handler.Common
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetDTO
 import Shared.Api.Resource.DocumentTemplate.Asset.DocumentTemplateAssetJM ()
+import Shared.Constant.TemporaryFile
 import Shared.Model.Context.TransactionState
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetService
 
@@ -21,4 +22,4 @@ type List_GET =
 list_GET :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> U.UUID -> sm (Headers '[Header "x-trace-uuid" String] [DocumentTemplateAssetDTO])
 list_GET mTokenHeader mServerUrl dtUuid =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
-    runInAuthService NoTransaction $ addTraceUuidHeader =<< getAssets dtUuid
+    runInAuthService NoTransaction $ addTraceUuidHeader =<< getAssets temporaryFileExpiration dtUuid

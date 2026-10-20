@@ -67,7 +67,7 @@ createNotMemberTest requestContext prepare reqMethod reqUrl reqBody missingPerm 
     void prepare
     insertSecondWorkspaceWithoutCaller requestContext
     -- AND: Prepare expectation
-    let expDto = ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ missingPerm)
+    let expDto = ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION missingPerm
     -- WHEN: Call API
     response <- request reqMethod reqUrl [reqAuthHeader] reqBody
     -- THEN: Compare response with expectation

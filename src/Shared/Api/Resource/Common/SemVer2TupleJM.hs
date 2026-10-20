@@ -6,6 +6,7 @@ import Servant.API
 import Text.Read (readMaybe)
 
 import Shared.Model.Common.SemVer2Tuple
+import Shared.Util.JsonSchema
 import Shared.Util.String
 
 instance FromJSON SemVer2Tuple where
@@ -25,6 +26,9 @@ instance FromJSON SemVer2Tuple where
 instance ToJSON SemVer2Tuple where
   toJSON (SemVer2Tuple maj min) =
     String $ T.pack (show maj ++ "." ++ show min)
+
+instance JsonSchema SemVer2Tuple where
+  jsonSchema _ = stringSchema
 
 instance FromHttpApiData SemVer2Tuple where
   parseQueryParam versionT =

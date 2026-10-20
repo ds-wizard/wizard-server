@@ -13,6 +13,7 @@ import Shared.Model.AuditLog.AuditLog
 import Shared.Model.AuditLog.AuditLogEvent
 import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.AuditLog.Data.AuditLogRef
+import Shared.Model.AuditLog.Data.UserAuditLogData
 import Shared.Util.Maybe
 
 toAuditLog
@@ -43,6 +44,8 @@ toAuditLog uuid component action actionData mWorkspace mCreatedBy source tenantU
     , sourceUuid = source.uuid
     , tenantUuid = tenantUuid
     , createdAt = createdAt
+    , sourceClientName = source.clientName
+    , sourceToolName = source.toolName
     }
 
 nonEmptyChanges :: ToJSON c => c -> Maybe Value
@@ -68,9 +71,12 @@ toDTO auditLog =
     , actionData = auditLog.actionData
     , workspace = AuditLogWorkspaceDTO <$> auditLog.workspaceUuid <*> auditLog.workspaceName
     , createdBy = toUserDTO auditLog
-    , source = AuditLogSource {sType = auditLog.sourceType, uuid = auditLog.sourceUuid}
+    , source = toSource auditLog
     , createdAt = auditLog.createdAt
     }
+
+toSource :: AuditLog -> AuditLogSource
+toSource auditLog = AuditLogSource {sType = auditLog.sourceType, uuid = auditLog.sourceUuid, clientName = auditLog.sourceClientName, toolName = auditLog.sourceToolName}
 
 toEventBridgeData :: AuditLog -> Value
 toEventBridgeData auditLog =
@@ -92,6 +98,19 @@ toUserRef
   => u
   -> AuditLogUserRef
 toUserRef user = AuditLogUserRef {uuid = user.uuid, firstName = user.firstName, lastName = user.lastName, email = user.email, imageUrl = user.imageUrl}
+
+toSessionData
+  :: (HasField "uuid" t U.UUID, HasField "name" t String, HasField "userAgent" t String, HasField "expiresAt" t UTCTime, HasField "createdAt" t UTCTime)
+  => t
+  -> AuditLogSessionData
+toSessionData userToken =
+  AuditLogSessionData
+    { tokenUuid = userToken.uuid
+    , name = userToken.name
+    , userAgent = userToken.userAgent
+    , expiresAt = userToken.expiresAt
+    , createdAt = userToken.createdAt
+    }
 
 toAuditLogSource :: Maybe UserDTO -> AuditLogSource
 toAuditLogSource (Just user) | user.uuid /= U.nil = userAuditLogSource

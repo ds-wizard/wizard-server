@@ -3,19 +3,18 @@ module Shared.Service.Project.Collaboration.ProjectCollaborationService where
 import Control.Monad (when)
 import Control.Monad.Reader (asks, liftIO, local)
 import Data.Aeson (ToJSON, toJSON)
+import Data.IORef
+import Data.Maybe (isJust)
 import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Project.Detail.ProjectDetailWsDTO
 import Shared.Api.Resource.Project.Event.ProjectEventChangeDTO
 import Shared.Api.Resource.User.UserDTO
-import Shared.Database.DAO.Project.ProjectCacheDAO
-import Shared.Database.DAO.Project.ProjectCommentDAO
-import Shared.Database.DAO.Project.ProjectCommentThreadDAO
 import Shared.Database.DAO.Project.ProjectDAO
-import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.User.UserGroupMembershipDAO
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.Project.File.ProjectFileSimple
 import Shared.Model.Project.Project
 import Shared.Model.User.OnlineUserInfo
@@ -28,8 +27,10 @@ import Shared.Model.Websocket.WebsocketSubscription
 import Shared.Service.Acl.AclService
 import Shared.Service.Project.Collaboration.ProjectCollaborationAcl
 import Shared.Service.Project.Collaboration.ProjectCollaborationMapper
-import Shared.Service.Project.Comment.ProjectCommentMapper
 import Shared.Service.Project.Event.ProjectEventMapper
+import Shared.Service.Project.Event.ProjectEventStorageService
+import Shared.Service.Project.Event.ProjectEventValidation
+import Shared.Service.Project.ProjectUtil
 import Shared.Service.Websocket.WebsocketBusService
 import Shared.Service.Websocket.WebsocketRegistryService
 import Shared.Service.Websocket.WebsocketService
@@ -71,8 +72,8 @@ removeUserGroupFromUsers userGroupUuid userUuids = do
 setProject :: WizardRequestContextC s m => U.UUID -> ProjectDetailWsDTO -> m ()
 setProject projectUuid reqDto = broadcast projectUuid AllRecipients (toSetProjectMessage reqDto)
 
-addEvent :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m ()
-addEvent = processSetContent
+addEvent :: WizardRequestContextC s m => Project -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m ()
+addEvent project = processSetContent project.uuid (compileProjectKnowledgeModel project.knowledgeModelPackageUuid project.selectedQuestionTagUuids)
 
 addFile :: WizardRequestContextC s m => U.UUID -> ProjectFileSimple -> m ()
 addFile projectUuid reqDto = broadcast projectUuid AllRecipients (toAddFileMessage reqDto)
@@ -83,107 +84,47 @@ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuid = do
   publish LogOutAll {..}
 
 -- --------------------------------
-setContent :: WizardRequestContextC s m => U.UUID -> U.UUID -> ProjectEventChangeDTO -> m ()
-setContent projectUuid connectionUuid reqDto = do
+setContent :: WizardRequestContextC s m => U.UUID -> IORef (Maybe KnowledgeModel) -> U.UUID -> ProjectEventChangeDTO -> m ()
+setContent projectUuid knowledgeModelRef connectionUuid reqDto = do
   key <- projectKey projectUuid
   myself <- findLocalConnection' key connectionUuid
-  processSetContent projectUuid myself.websocketPerm (getMaybeCreatedBy myself.onlineUser) reqDto
+  let findKnowledgeModel = findConnectionKnowledgeModel knowledgeModelRef projectUuid
+  processSetContent projectUuid findKnowledgeModel myself.websocketPerm (getMaybeCreatedBy myself.onlineUser) reqDto
 
-processSetContent :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m ()
-processSetContent projectUuid perm mCreatedBy reqDto =
+findConnectionKnowledgeModel :: WizardRequestContextC s m => IORef (Maybe KnowledgeModel) -> U.UUID -> m KnowledgeModel
+findConnectionKnowledgeModel knowledgeModelRef projectUuid = do
+  mKnowledgeModel <- liftIO (readIORef knowledgeModelRef)
+  case mKnowledgeModel of
+    Just km -> return km
+    Nothing -> do
+      project <- findProjectByUuid projectUuid
+      km <- compileProjectKnowledgeModel project.knowledgeModelPackageUuid project.selectedQuestionTagUuids
+      liftIO (writeIORef knowledgeModelRef (Just km))
+      return km
+
+processSetContent :: WizardRequestContextC s m => U.UUID -> m KnowledgeModel -> WebsocketPerm -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m ()
+processSetContent projectUuid findKnowledgeModel perm mCreatedBy reqDto = do
+  if isJust (commentPrivacy reqDto) then checkCommentPermission perm else checkEditPermission perm
+  validateProjectEventChange projectUuid findKnowledgeModel reqDto
+  now <- liftIO getCurrentTime
+  storeEvent projectUuid mCreatedBy now reqDto
+  broadcastEvent projectUuid mCreatedBy now reqDto
+
+broadcastEvent :: WizardRequestContextC s m => U.UUID -> Maybe UserSuggestion -> UTCTime -> ProjectEventChangeDTO -> m ()
+broadcastEvent projectUuid mCreatedBy now reqDto =
+  broadcast projectUuid (maybe AllRecipients commentRecipients (commentPrivacy reqDto)) (toAddEventMessage (toEventDTO' reqDto mCreatedBy now))
+
+commentPrivacy :: ProjectEventChangeDTO -> Maybe Bool
+commentPrivacy reqDto =
   case reqDto of
-    SetReplyEventChangeDTO' event -> setReply projectUuid perm mCreatedBy event
-    ClearReplyEventChangeDTO' event -> clearReply projectUuid perm mCreatedBy event
-    SetPhaseEventChangeDTO' event -> setPhase projectUuid perm mCreatedBy event
-    SetLabelsEventChangeDTO' event -> setLabel projectUuid perm mCreatedBy event
-    ResolveCommentThreadEventChangeDTO' event -> resolveCommentThread projectUuid perm mCreatedBy event
-    ReopenCommentThreadEventChangeDTO' event -> reopenCommentThread projectUuid perm mCreatedBy event
-    AssignCommentThreadEventChangeDTO' event -> assignCommentThread projectUuid perm mCreatedBy event
-    DeleteCommentThreadEventChangeDTO' event -> deleteCommentThread projectUuid perm mCreatedBy event
-    AddCommentEventChangeDTO' event -> addComment projectUuid perm mCreatedBy event
-    EditCommentEventChangeDTO' event -> editComment projectUuid perm mCreatedBy event
-    DeleteCommentEventChangeDTO' event -> deleteComment projectUuid perm mCreatedBy event
-
-setReply :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> SetReplyEventChangeDTO -> m ()
-setReply projectUuid entityPerm mCreatedBy reqDto = do
-  checkEditPermission entityPerm
-  now <- insertEvent projectUuid mCreatedBy (SetReplyEventChangeDTO' reqDto)
-  broadcast projectUuid AllRecipients (toSetReplyMessage (toSetReplyEventDTO' reqDto mCreatedBy now))
-
-clearReply :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ClearReplyEventChangeDTO -> m ()
-clearReply projectUuid entityPerm mCreatedBy reqDto = do
-  checkEditPermission entityPerm
-  now <- insertEvent projectUuid mCreatedBy (ClearReplyEventChangeDTO' reqDto)
-  broadcast projectUuid AllRecipients (toClearReplyMessage (toClearReplyEventDTO' reqDto mCreatedBy now))
-
-setPhase :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> SetPhaseEventChangeDTO -> m ()
-setPhase projectUuid entityPerm mCreatedBy reqDto = do
-  checkEditPermission entityPerm
-  now <- insertEvent projectUuid mCreatedBy (SetPhaseEventChangeDTO' reqDto)
-  broadcast projectUuid AllRecipients (toSetPhaseMessage (toSetPhaseEventDTO' reqDto mCreatedBy now))
-
-setLabel :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> SetLabelsEventChangeDTO -> m ()
-setLabel projectUuid entityPerm mCreatedBy reqDto = do
-  checkEditPermission entityPerm
-  now <- insertEvent projectUuid mCreatedBy (SetLabelsEventChangeDTO' reqDto)
-  broadcast projectUuid AllRecipients (toSetLabelMessage (toSetLabelsEventDTO' reqDto mCreatedBy now))
-
-resolveCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ResolveCommentThreadEventChangeDTO -> m ()
-resolveCommentThread projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  now <- liftIO getCurrentTime
-  updateProjectCommentThreadResolvedById reqDto.threadUuid True
-  broadcast projectUuid (commentRecipients reqDto.private) (toResolveCommentThreadMessage (toResolveCommentThreadEventDTO' reqDto mCreatedBy now))
-
-reopenCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> ReopenCommentThreadEventChangeDTO -> m ()
-reopenCommentThread projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  now <- liftIO getCurrentTime
-  updateProjectCommentThreadResolvedById reqDto.threadUuid False
-  broadcast projectUuid (commentRecipients reqDto.private) (toReopenCommentThreadMessage (toReopenCommentThreadEventDTO' reqDto mCreatedBy now))
-
-assignCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> AssignCommentThreadEventChangeDTO -> m ()
-assignCommentThread projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  now <- liftIO getCurrentTime
-  updateProjectCommentThreadAssignee reqDto.threadUuid (fmap (.uuid) reqDto.assignedTo) (fmap (.uuid) mCreatedBy)
-  broadcast projectUuid (commentRecipients reqDto.private) (toAssignCommentThreadMessage (toAssignCommentThreadEventDTO' reqDto mCreatedBy now))
-
-deleteCommentThread :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> DeleteCommentThreadEventChangeDTO -> m ()
-deleteCommentThread projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  now <- liftIO getCurrentTime
-  deleteProjectCommentsByThreadUuid reqDto.threadUuid
-  deleteProjectCommentThreadById reqDto.threadUuid
-  deleteProjectCacheByProjectUuid projectUuid
-  broadcast projectUuid (commentRecipients reqDto.private) (toDeleteCommentThreadMessage (toDeleteCommentThreadEventDTO' reqDto mCreatedBy now))
-
-addComment :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> AddCommentEventChangeDTO -> m ()
-addComment projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  tenantUuid <- asks (.tenantUuid')
-  now <- liftIO getCurrentTime
-  let mCreatedByUuid = fmap (.uuid) mCreatedBy
-  let comment = toComment reqDto tenantUuid mCreatedByUuid now
-  if reqDto.newThread
-    then insertProjectThreadAndComment (toCommentThread reqDto projectUuid tenantUuid mCreatedByUuid now) comment
-    else insertProjectComment comment
-  broadcast projectUuid (commentRecipients reqDto.private) (toAddCommentMessage (toAddCommentEventDTO' reqDto mCreatedBy now))
-
-editComment :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> EditCommentEventChangeDTO -> m ()
-editComment projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  now <- liftIO getCurrentTime
-  updateProjectCommentTextById reqDto.commentUuid reqDto.text
-  broadcast projectUuid (commentRecipients reqDto.private) (toEditCommentMessage (toEditCommentEventDTO' reqDto mCreatedBy now))
-
-deleteComment :: WizardRequestContextC s m => U.UUID -> WebsocketPerm -> Maybe UserSuggestion -> DeleteCommentEventChangeDTO -> m ()
-deleteComment projectUuid entityPerm mCreatedBy reqDto = do
-  checkCommentPermission entityPerm
-  now <- liftIO getCurrentTime
-  deleteProjectCommentById reqDto.commentUuid
-  deleteProjectCacheByProjectUuid projectUuid
-  broadcast projectUuid (commentRecipients reqDto.private) (toDeleteCommentMessage (toDeleteCommentEventDTO' reqDto mCreatedBy now))
+    ResolveCommentThreadEventChangeDTO' event -> Just event.private
+    ReopenCommentThreadEventChangeDTO' event -> Just event.private
+    AssignCommentThreadEventChangeDTO' event -> Just event.private
+    DeleteCommentThreadEventChangeDTO' event -> Just event.private
+    AddCommentEventChangeDTO' event -> Just event.private
+    EditCommentEventChangeDTO' event -> Just event.private
+    DeleteCommentEventChangeDTO' event -> Just event.private
+    _ -> Nothing
 
 -- --------------------------------
 -- PRIVATE
@@ -200,13 +141,6 @@ broadcast projectUuid recipients content = do
 
 commentRecipients :: Bool -> WebsocketRecipients
 commentRecipients private = if private then EditorsOnly else CommentersAndEditors
-
-insertEvent :: WizardRequestContextC s m => U.UUID -> Maybe UserSuggestion -> ProjectEventChangeDTO -> m UTCTime
-insertEvent projectUuid mCreatedBy reqDto = do
-  now <- liftIO getCurrentTime
-  tenantUuid <- asks (.tenantUuid')
-  insertProjectEventWithTimestampUpdate projectUuid (fromEventChangeDTO reqDto projectUuid tenantUuid (fmap (.uuid) mCreatedBy) now)
-  return now
 
 resolveProjectPermission :: WizardRequestContextC s m => U.UUID -> m (Maybe UserDTO, WebsocketPerm, [U.UUID])
 resolveProjectPermission projectUuid = do

@@ -4,7 +4,8 @@ import Control.Monad (void, when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
-import Data.Time
+import Data.Function (on)
+import Data.List (maximumBy)
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftChangeDTO
@@ -31,6 +32,7 @@ import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftData
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftDetail
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftList
+import Shared.Model.DocumentTemplate.DocumentTemplateDraftPublication
 import Shared.Model.DocumentTemplate.DocumentTemplateSimple
 import Shared.Model.Error.Error
 import Shared.Service.DocumentTemplate.Asset.DocumentTemplateAssetService
@@ -45,6 +47,8 @@ import Shared.Service.DocumentTemplate.File.DocumentTemplateFileService
 import Shared.Service.DocumentTemplate.Locale.Pot.PotFileService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
+import Shared.Util.Reference (compareVersion)
 import Shared.Util.Uuid
 
 getDraftsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page DocumentTemplateDraftList)
@@ -53,20 +57,24 @@ getDraftsPage mQuery pageable sort = do
   findDraftsPage mQuery pageable sort
 
 createDraft :: WizardRequestContextC s m => DocumentTemplateDraftCreateDTO -> m DocumentTemplateSimple
-createDraft reqDto =
+createDraft reqDto = do
+  uuid <- liftIO generateUuid
+  createDraftWithUuid uuid reqDto
+
+createDraftWithUuid :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftCreateDTO -> m DocumentTemplateSimple
+createDraftWithUuid uuid reqDto =
   runInTransaction $ do
-    draft <- insertNewDraft reqDto
+    draft <- insertNewDraft uuid reqDto
     al_createDocumentTemplateDraft draft reqDto.basedOn
     return $ toSimple draft
 
-insertNewDraft :: WizardRequestContextC s m => DocumentTemplateDraftCreateDTO -> m DocumentTemplate
-insertNewDraft reqDto =
+insertNewDraft :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftCreateDTO -> m DocumentTemplate
+insertNewDraft uuid reqDto =
   runInTransaction $ do
     workspaceUuid <- requireTenantOrWorkspaceScope
     checkPermissionInWorkspace _DOCUMENT_TEMPLATE_EDITORS_USE_ROLE_PERMISSION workspaceUuid
     checkDocumentTemplateDraftLimit
-    uuid <- liftIO generateUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     tenantUuid <- asks (.tenantUuid')
     case reqDto.basedOn of
       Just dtUuid -> do
@@ -111,12 +119,48 @@ getDraft dtUuid = do
       Nothing -> return Nothing
   return $ toDraftDetail draft formats draftData mProjectSuggestion mKmEditorSuggestion
 
+getDraftToChange :: WizardRequestContextC s m => U.UUID -> m DocumentTemplate
+getDraftToChange dtUuid = do
+  checkEditorPermissionToAnyDocumentTemplate dtUuid
+  dt <- findDocumentTemplateByUuid dtUuid
+  validateDraftPhase dt
+  return dt
+
+findDraftToChange :: WizardRequestContextC s m => U.UUID -> m (Maybe DocumentTemplate)
+findDraftToChange dtUuid = traverse (const (getDraftToChange dtUuid)) =<< findDocumentTemplateByUuid' dtUuid
+
+getDraftChangeDTO :: WizardRequestContextC s m => DocumentTemplate -> m DocumentTemplateDraftChangeDTO
+getDraftChangeDTO dt = do
+  formats <- findDocumentTemplateFormats dt.uuid
+  return ((toChangeDTO dt) {formats = fmap toFormatDTO formats} :: DocumentTemplateDraftChangeDTO)
+
+getDraftPublication :: WizardRequestContextC s m => U.UUID -> m DocumentTemplateDraftPublication
+getDraftPublication dtUuid = do
+  draft <- getDraftToChange dtUuid
+  validateReleasedVersion (toChangeDTO draft) draft
+  latestRelease <- findLatestRelease <$> findDocumentTemplatesByIdInWorkspace draft.id draft.workspaceUuid
+  formats <- findDocumentTemplateFormats dtUuid
+  files <- findFileListsByDocumentTemplateUuid dtUuid
+  assets <- findAssetsByDocumentTemplateUuid dtUuid
+  return DocumentTemplateDraftPublication {..}
+
+publishDraft :: WizardRequestContextC s m => DocumentTemplate -> m DocumentTemplateDraftDetail
+publishDraft draft = do
+  reqDto <- getDraftChangeDTO draft
+  modifyDraft draft.uuid (reqDto {phase = ReleasedDocumentTemplatePhase} :: DocumentTemplateDraftChangeDTO)
+
+findLatestRelease :: [DocumentTemplate] -> Maybe DocumentTemplate
+findLatestRelease templates =
+  case filter ((/= DraftDocumentTemplatePhase) . (.phase)) templates of
+    [] -> Nothing
+    released -> Just (maximumBy (compareVersion `on` (.version)) released)
+
 modifyDraft :: WizardRequestContextC s m => U.UUID -> DocumentTemplateDraftChangeDTO -> m DocumentTemplateDraftDetail
 modifyDraft dtUuid reqDto =
   runInTransaction $ do
     checkEditorPermissionToDocumentTemplate dtUuid
     -- Update draft
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     draft <- findDraftByUuid dtUuid
     validateChangeDto reqDto draft
     let draftUpdated = fromChangeDTO reqDto draft now

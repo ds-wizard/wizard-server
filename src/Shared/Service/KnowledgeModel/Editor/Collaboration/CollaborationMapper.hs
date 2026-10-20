@@ -18,6 +18,13 @@ toAddKnowledgeModelEditorWebsocketMessage = Success_ServerActionDTO . SetContent
 toSetRepliesMessage :: SetRepliesDTO -> Success_ServerActionDTO ServerKnowledgeModelEditorMessageDTO
 toSetRepliesMessage = Success_ServerActionDTO . SetReplies_ServerKnowledgeModelEditorMessageDTO
 
+toAddKnowledgeModelEditorWebSocketEventDTO :: KnowledgeModelEvent -> AddKnowledgeModelEditorWebSocketEventDTO
+toAddKnowledgeModelEditorWebSocketEventDTO event =
+  AddKnowledgeModelEditorWebSocketEventDTO
+    { uuid = event.uuid
+    , event = event
+    }
+
 fromAddKnowledgeModelEditorWebSocketEventDTO :: KnowledgeModelEvent -> U.UUID -> U.UUID -> KnowledgeModelEditorEvent
 fromAddKnowledgeModelEditorWebSocketEventDTO KnowledgeModelEvent {..} knowledgeModelEditorUuid tenantUuid = KnowledgeModelEditorEvent {..}
 

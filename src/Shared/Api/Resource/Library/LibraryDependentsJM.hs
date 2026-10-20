@@ -4,6 +4,7 @@ import Data.Aeson
 
 import Shared.Model.Library.LibraryDependents
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON LibraryDependents where
   parseJSON = genericParseJSON jsonOptions
@@ -28,3 +29,15 @@ instance FromJSON LibraryHiddenDependents where
 
 instance ToJSON LibraryHiddenDependents where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema LibraryDependents where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema LibraryDependentKnowledgeModelPackage where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema LibraryDependentResource where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema LibraryHiddenDependents where
+  jsonSchema = genericJsonSchema jsonOptions

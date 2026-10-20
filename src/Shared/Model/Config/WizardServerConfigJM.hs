@@ -39,7 +39,15 @@ instance FromJSON ServerConfig where
     admin <- o .:? "admin" .!= defaultAdmin
     registry <- o .:? "registry" .!= defaultRegistry
     httpClient <- o .:? "httpClient" .!= defaultHttpClient
+    mcp <- o .:? "mcp" .!= defaultMcp
     return ServerConfig {..}
+  parseJSON _ = mzero
+
+instance FromJSON ServerConfigMcp where
+  parseJSON (Object o) = do
+    documentPreviewWait <- o .:? "documentPreviewWait" .!= defaultMcp.documentPreviewWait
+    documentPreviewLimit <- o .:? "documentPreviewLimit" .!= defaultMcp.documentPreviewLimit
+    return ServerConfigMcp {..}
   parseJSON _ = mzero
 
 instance FromJSON ServerConfigHttpClient where

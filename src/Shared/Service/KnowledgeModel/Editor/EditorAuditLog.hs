@@ -32,6 +32,12 @@ al_updateKnowledgeModelEditor editor updatedEditor =
 al_deleteKnowledgeModelEditor :: WizardRequestContextC s m => KnowledgeModelEditor -> m ()
 al_deleteKnowledgeModelEditor editor = whenAuditLogEnabled $ logAuditLog knowledgeModelEditorsDelete (editorEntity editor) =<< toEditorData editor
 
+al_addKnowledgeModelEditorEvents :: WizardRequestContextC s m => KnowledgeModelEditor -> Int -> m ()
+al_addKnowledgeModelEditorEvents editor count = logAuditLog knowledgeModelEditorsEventsAdd (editorEntity editor) AuditLogEventCountData {events = count}
+
+al_setKnowledgeModelEditorReplies :: WizardRequestContextC s m => KnowledgeModelEditor -> Int -> m ()
+al_setKnowledgeModelEditorReplies editor count = logAuditLog knowledgeModelEditorsRepliesSet (editorEntity editor) AuditLogReplyCountData {replies = count}
+
 al_startKnowledgeModelMigration :: WizardRequestContextC s m => KnowledgeModelEditor -> KnowledgeModelMigration -> m ()
 al_startKnowledgeModelMigration editor = whenAuditLogEnabled . (logAuditLog knowledgeModelEditorsMigrationStart (editorEntity editor) <=< toMigrationData)
 

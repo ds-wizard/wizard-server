@@ -66,6 +66,14 @@ findProjectVersionByEventUuid' projectUuid eventUuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("project_uuid", U.toString projectUuid), ("event_uuid", U.toString eventUuid)]
 
+existsProjectVersionWithUuid :: WizardRequestContextC s m => U.UUID -> m Bool
+existsProjectVersionWithUuid uuid = do
+  let sql = fromString "SELECT EXISTS (SELECT 1 FROM project_version WHERE uuid = ?)"
+  let params = [toField uuid]
+  logQuery sql params
+  result <- runDB (\conn -> query conn sql params)
+  return $ result == [Only True]
+
 insertProjectVersion :: WizardRequestContextC s m => ProjectVersion -> m Int64
 insertProjectVersion = createInsertFn entityName
 

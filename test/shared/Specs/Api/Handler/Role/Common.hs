@@ -35,6 +35,7 @@ compareRoles resModel expModel = do
   liftIO $ resModel.permissions `shouldBe` expModel.permissions
   liftIO $ resModel.isAdmin `shouldBe` expModel.isAdmin
   liftIO $ resModel.tenantUuid `shouldBe` expModel.tenantUuid
+  liftIO $ resModel.workspaceUuid `shouldBe` expModel.workspaceUuid
 
 compareRoleDtos :: RoleList -> RoleList -> WaiSession st ()
 compareRoleDtos resDto expDto = do

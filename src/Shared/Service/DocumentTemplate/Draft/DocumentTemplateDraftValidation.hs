@@ -7,6 +7,7 @@ import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.Draft.DocumentTemplateDraftChangeDTO
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
+import Shared.Localization.Messages.Mcp.Public
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
@@ -37,3 +38,9 @@ validatePhase dtUuid newPhase = do
   when
     (newPhase == DeprecatedDocumentTemplatePhase)
     (throwError . UserError $ _ERROR_VALIDATION__DOC_TML_UNSUPPORTED_STATE (U.toString dtUuid) (show newPhase))
+
+validateDraftPhase :: WizardRequestContextC s m => DocumentTemplate -> m ()
+validateDraftPhase dt =
+  when (dt.phase /= DraftDocumentTemplatePhase) $
+    throwError . UserError $
+      _ERROR_SERVICE_MCP__NOT_A_DRAFT (U.toString dt.uuid)

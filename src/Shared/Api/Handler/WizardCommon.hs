@@ -1,5 +1,6 @@
 module Shared.Api.Handler.WizardCommon where
 
+import Control.Monad (unless)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (ask, liftIO)
 import Data.Time
@@ -13,6 +14,7 @@ import Shared.Api.Resource.UserToken.UserTokenClaimsDTO
 import Shared.Constant.UserToken
 import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.UserToken.Public
 import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
@@ -27,7 +29,13 @@ import Shared.Util.Token
 
 class (WizardServerContextC s sm, WizardRequestContextC r rm) => WizardHandlerC s sm r rm | sm -> rm where
   runIn :: Maybe String -> Maybe UserDTO -> Maybe U.UUID -> Maybe Bool -> TransactionState -> rm a -> sm a
-  getScopedAuthServiceExecutor :: Maybe String -> Maybe String -> Maybe U.UUID -> Maybe Bool -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+  getAuthServiceExecutorFor :: [UserTokenType] -> Maybe String -> Maybe String -> Maybe U.UUID -> Maybe Bool -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+
+getScopedAuthServiceExecutor :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> Maybe U.UUID -> Maybe Bool -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+getScopedAuthServiceExecutor = getAuthServiceExecutorFor [LoginUserTokenType, ApiKeyUserTokenType]
+
+getMcpAuthServiceExecutor :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
+getMcpAuthServiceExecutor mTokenHeader mServerUrl = getAuthServiceExecutorFor [LoginUserTokenType, ApiKeyUserTokenType, McpUserTokenType] mTokenHeader mServerUrl Nothing Nothing
 
 getAuthServiceExecutor :: WizardHandlerC s sm r rm => Maybe String -> Maybe String -> ((TransactionState -> rm a -> sm a) -> sm b) -> sm b
 getAuthServiceExecutor mTokenHeader mServerUrl = getScopedAuthServiceExecutor mTokenHeader mServerUrl Nothing Nothing
@@ -75,3 +83,8 @@ getCurrentUser userTokenClaims mServerUrl = do
   where
     handleError userUuid (NotExistsError _) = throwError $ UnauthorizedError (_ERROR_VALIDATION__USER_ABSENCE . U.toString $ userUuid)
     handleError userUuid error = throwError error
+
+checkUserTokenType :: WizardServerContextC s sm => [UserTokenType] -> UserToken -> sm ()
+checkUserTokenType tokenTypes userToken =
+  unless (userToken.tType `elem` tokenTypes) $
+    throwError =<< (sendError . UnauthorizedError $ _ERROR_SERVICE_TOKEN__UNABLE_TO_DECODE_AND_VERIFY_TOKEN)

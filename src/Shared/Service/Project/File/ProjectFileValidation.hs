@@ -12,13 +12,13 @@ import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.KnowledgeModelLenses
 import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.Project
-import Shared.Service.KnowledgeModel.KnowledgeModelService
+import Shared.Service.Project.ProjectUtil
 import Shared.Service.Tenant.Limit.WizardLimitService
 
 validateProjectFile :: WizardRequestContextC s m => Project -> U.UUID -> ProjectFile -> m ()
 validateProjectFile project questionUuid projectFile = do
   checkStorageSize projectFile.fileSize
-  km <- compileKnowledgeModel [] (Just project.knowledgeModelPackageUuid) project.selectedQuestionTagUuids
+  km <- compileProjectKnowledgeModel project.knowledgeModelPackageUuid project.selectedQuestionTagUuids
   case M.lookup questionUuid (getQuestionsM km) of
     Just (FileQuestion' question) ->
       case question.maxSize of

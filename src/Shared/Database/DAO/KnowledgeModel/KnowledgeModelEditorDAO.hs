@@ -136,6 +136,16 @@ findKnowledgeModelEditorByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   createFindEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
+findKnowledgeModelEditorByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe KnowledgeModelEditor)
+findKnowledgeModelEditorByUuid' uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityByFn' entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+
+findKnowledgeModelEditorByUuidLocked :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelEditor
+findKnowledgeModelEditorByUuidLocked uuid = do
+  tenantUuid <- asks (.tenantUuid')
+  createFindEntityWithFieldsByFn "*" True entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+
 findKnowledgeModelEditorSuggestionByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe KnowledgeModelEditorSuggestion)
 findKnowledgeModelEditorSuggestionByUuid' uuid = do
   tenantUuid <- asks (.tenantUuid')

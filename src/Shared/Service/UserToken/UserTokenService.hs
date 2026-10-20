@@ -9,6 +9,9 @@ import qualified Data.UUID as U
 import GHC.Records
 
 import Shared.Database.DAO.Common
+import Shared.Database.DAO.Mcp.McpAuthorizationCodeDAO
+import Shared.Database.DAO.Mcp.McpRefreshTokenDAO
+import Shared.Database.DAO.Mcp.McpUsedConfirmationTokenDAO
 import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Localization.Messages.User.Public
 import Shared.Model.Context.RequestContext
@@ -81,4 +84,7 @@ cleanTokens
   => m ()
 cleanTokens = do
   deletedUserTokens <- deleteUserTokensWithExpiration
+  deleteMcpAuthorizationCodesWithExpiration
+  deleteMcpRefreshTokensWithExpiration
+  deleteMcpUsedConfirmationTokensWithExpiration
   logInfoI _CMP_SERVICE $ f' "Deleted the following %s tokens" [show deletedUserTokens]

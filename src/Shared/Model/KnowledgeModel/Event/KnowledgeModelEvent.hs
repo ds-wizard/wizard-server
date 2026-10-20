@@ -19,6 +19,8 @@ import Shared.Model.KnowledgeModel.Event.Reference.ReferenceEvent
 import Shared.Model.KnowledgeModel.Event.Resource.ResourceEvent
 import Shared.Model.KnowledgeModel.Event.Tag.TagEvent
 import Shared.Util.KnowledgeModel.Hashable ()
+import Shared.Util.Reflection (constructorName)
+import Shared.Util.String (stripSuffixIfExists)
 
 data KnowledgeModelEvent = KnowledgeModelEvent
   { uuid :: U.UUID
@@ -78,3 +80,6 @@ data KnowledgeModelEventData
 instance Hashable KnowledgeModelEvent
 
 instance Hashable KnowledgeModelEventData
+
+eventTypeName :: KnowledgeModelEventData -> String
+eventTypeName = stripSuffixIfExists "'" . constructorName

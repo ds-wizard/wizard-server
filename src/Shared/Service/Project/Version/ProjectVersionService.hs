@@ -1,7 +1,7 @@
 module Shared.Service.Project.Version.ProjectVersionService where
 
-import Control.Monad (void, when)
-import Control.Monad.Except (catchError)
+import Control.Monad (unless, void, when)
+import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
@@ -19,11 +19,16 @@ import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Project.ProjectFileDAO
 import Shared.Database.DAO.Project.ProjectVersionDAO
 import Shared.Database.DAO.WizardCommon
+import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.WizardPublic
 import Shared.Model.Common.Lens
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
+import Shared.Model.Error.Error
+import Shared.Model.Localization.LocaleRecord
 import Shared.Model.Project.Event.ProjectEventList
 import Shared.Model.Project.Event.ProjectEventListLenses ()
+import Shared.Model.Project.File.ProjectFile
 import Shared.Model.Project.Project
 import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Project.Version.ProjectVersionList
@@ -46,12 +51,16 @@ getVersions projectUuid = do
   findProjectVersionListByProjectUuid projectUuid
 
 createVersion :: WizardRequestContextC s m => U.UUID -> ProjectVersionChangeDTO -> m ProjectVersionList
-createVersion projectUuid reqDto =
+createVersion projectUuid reqDto = createVersionWithUuid projectUuid reqDto =<< liftIO generateUuid
+
+createVersionWithUuid :: WizardRequestContextC s m => U.UUID -> ProjectVersionChangeDTO -> U.UUID -> m ProjectVersionList
+createVersionWithUuid projectUuid reqDto uuid =
   runInTransaction $ do
     project <- findProjectByUuid projectUuid
     checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
     validateProjectVersionCreate projectUuid reqDto
-    uuid <- liftIO generateUuid
+    taken <- existsProjectVersionWithUuid uuid
+    when taken (throwError . UserError $ _ERROR_SERVICE_PROJECT_VERSION__UUID_TAKEN (U.toString uuid))
     tenantUuid <- asks (.tenantUuid')
     currentUser <- getCurrentUser
     now <- liftIO getCurrentTime
@@ -106,6 +115,21 @@ deleteVersion projectUuid vUuid =
     al_deleteProjectVersion project version
     void $ deleteProjectCacheByProjectUuid projectUuid
 
+getRevertedChanges :: WizardRequestContextC s m => U.UUID -> U.UUID -> m (Project, [ProjectEventList], [ProjectVersion], [ProjectFile])
+getRevertedChanges projectUuid eventUuid = do
+  project <- findProjectByUuid projectUuid
+  checkOwnerPermissionToProject project.workspaceUuid project.visibility project.permissions
+  events <- findProjectEventListsByProjectUuid projectUuid
+  event <- maybe (throwError . NotExistsError $ eventNotFound projectUuid eventUuid) return (L.find ((== eventUuid) . getUuid) events)
+  let reverted = dropWhileExclusive ((/= eventUuid) . getUuid) events
+  versions <- findProjectVersionsByProjectUuid projectUuid
+  files <- findProjectFilesByProject projectUuid
+  let revertedVersions = filter ((`elem` fmap getUuid reverted) . (.eventUuid)) versions
+  return (project, reverted, revertedVersions, filter ((> getCreatedAt event) . (.createdAt)) files)
+
+eventNotFound :: U.UUID -> U.UUID -> LocaleRecord
+eventNotFound projectUuid eventUuid = _ERROR_DATABASE__ENTITY_NOT_FOUND "project_event" [("project_uuid", U.toString projectUuid), ("uuid", U.toString eventUuid)]
+
 revertToEvent :: WizardRequestContextC s m => U.UUID -> ProjectVersionRevertDTO -> Bool -> m ProjectContentDTO
 revertToEvent projectUuid reqDto shouldSave =
   runInTransaction $ do
@@ -115,6 +139,7 @@ revertToEvent projectUuid reqDto shouldSave =
       else checkViewPermissionToProject project.workspaceUuid project.visibility project.sharing project.permissions
     projectVersions <- findProjectVersionsByProjectUuid projectUuid
     projectEvents <- findProjectEventListsByProjectUuid projectUuid
+    unless (any ((== reqDto.eventUuid) . getUuid) projectEvents) (throwError . NotExistsError $ eventNotFound projectUuid reqDto.eventUuid)
     let updatedEvents = takeWhileInclusive (\e -> getUuid e /= reqDto.eventUuid) projectEvents
     let eventsToDelete = dropWhileExclusive (\e -> getUuid e /= reqDto.eventUuid) projectEvents
     let updatedEventUuids = S.fromList . fmap getUuid $ updatedEvents

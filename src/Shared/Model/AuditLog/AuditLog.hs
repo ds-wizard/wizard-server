@@ -23,5 +23,7 @@ data AuditLog = AuditLog
   , sourceUuid :: Maybe U.UUID
   , tenantUuid :: U.UUID
   , createdAt :: UTCTime
+  , sourceClientName :: Maybe String
+  , sourceToolName :: Maybe String
   }
   deriving (Show, Eq, Generic)

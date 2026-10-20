@@ -25,6 +25,7 @@ import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.BuildInfoConfig
 import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
+import Shared.Model.Context.ProgressReporter
 import Shared.Model.Context.RequestContext
 import Shared.Model.Context.Scope
 import Shared.Model.Context.WizardRequestContext
@@ -57,6 +58,7 @@ data RequestContext = RequestContext
   , auditLogSource :: AuditLogSource
   , websocketRegistry :: WebsocketRegistry
   , nodeUuid :: U.UUID
+  , progressReporter :: ProgressReporter
   }
 
 newtype RequestContextM a = RequestContextM
@@ -74,6 +76,8 @@ instance WizardRequestContextType RequestContext where
   setTraceUuid uuid context = context {traceUuid = uuid}
   setDbConnection connection context = context {dbConnection = connection}
   setAuditLogSource source context = context {auditLogSource = source}
+  setScope scope context = context {scope = scope}
+  setProgressReporter reporter context = context {progressReporter = reporter}
 
 instance HasField "serverConfig'" RequestContext ServerConfig where
   getField = (.serverConfig)
@@ -144,6 +148,9 @@ instance HasField "websocketRegistry'" RequestContext WebsocketRegistry where
 instance HasField "nodeUuid'" RequestContext U.UUID where
   getField = (.nodeUuid)
 
+instance HasField "progressReporter'" RequestContext ProgressReporter where
+  getField = (.progressReporter)
+
 instance WizardRequestContextC RequestContext RequestContextM where
   runRequestContextWithRequestContext function requestContext = do
     let loggingLevel = requestContext.serverConfig.logging.level
@@ -161,7 +168,7 @@ instance AclContext RequestContextM where
     perms <- scopePermissions
     unless
       (perm `elem` perms)
-      (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ perm))
+      (throwError . ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION perm)
   checkPermissionsAny perms = do
     userPerms <- scopePermissions
     unless
@@ -181,7 +188,7 @@ instance AclContext RequestContextM where
     perms <- currentPermissionsInWorkspace mWorkspaceUuid
     unless
       (perm `elem` perms)
-      (throwError . ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ perm))
+      (throwError . ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION perm)
   hasPermissionInWorkspace perm mWorkspaceUuid = do
     mCurrentUser <- asks (.currentUser)
     case mCurrentUser of

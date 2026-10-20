@@ -20,6 +20,10 @@ assertExistenceOfOpenIdClientInDB requestContext openIdClient = do
   let (Right openIdClientFromDB) = eOpenIdClient
   compareOpenIdClients openIdClientFromDB openIdClient
 
+assertAbsenceOfOpenIdClientInDB requestContext openIdClientUuid = do
+  eOpenIdClient <- runInContextIO (findOpenIdClientDefinitionByUuid' openIdClientUuid) requestContext
+  liftIO $ fmap (fmap (.uuid)) eOpenIdClient `shouldBe` Right Nothing
+
 -- --------------------------------
 -- COMPARATORS
 -- --------------------------------

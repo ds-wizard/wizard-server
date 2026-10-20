@@ -80,6 +80,21 @@ deleteLocale uuid =
     void $ deleteLocaleByUuid locale.uuid
     al_deleteLocale locale
 
+modifyLocaleFlags :: WizardRequestContextC s m => U.UUID -> Maybe Bool -> Maybe Bool -> m LocaleDTO
+modifyLocaleFlags uuid mEnabled mDefaultLocale = do
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+  locale <- findLocaleByUuid uuid
+  modifyLocale uuid (toLocaleChange locale.enabled locale.defaultLocale mEnabled mDefaultLocale)
+
+getLocalePoContent :: WizardRequestContextC s m => U.UUID -> m BS.ByteString
+getLocalePoContent uuid =
+  runInTransaction $ do
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
+    locale <- findLocaleByUuid uuid
+    content <- retrieveLocalePo locale.uuid
+    al_exportLocale locale
+    return content
+
 getLocalePo :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getLocalePo uuid =
   runInTransaction $ do

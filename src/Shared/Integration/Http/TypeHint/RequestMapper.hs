@@ -2,6 +2,7 @@ module Shared.Integration.Http.TypeHint.RequestMapper (
   toTypeHintTestRequestError,
   toTypeHintTestRequest,
   toHttpRequest,
+  rendersSecrets,
 ) where
 
 import Data.Aeson hiding (encode)
@@ -17,6 +18,7 @@ import Shared.Model.Http.HttpRequest
 import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Util.Aeson as A
 import Shared.Util.Jinja (renderJinjaMultiple, renderJinjaSingle)
+import Shared.Util.Secret (redactSecretNames)
 
 toTypeHintTestRequestError :: TypeHintRequest -> String -> TypeHintExchange
 toTypeHintTestRequestError testRequest message =
@@ -31,7 +33,7 @@ toTypeHintTestRequestError testRequest message =
 
 toTypeHintTestRequest :: ApiIntegration -> M.Map String String -> M.Map String String -> String -> IO TypeHintRequest
 toTypeHintTestRequest integration variables secrets q = do
-  let redactedSecrets = redactSecrets secrets
+  let redactedSecrets = redactSecretNames secrets
   let (context, urlContext) = prepareContext variables redactedSecrets q
   (resultUrl, resultHeaders, resultBody) <- renderRequestParts integration context urlContext
   return $
@@ -41,6 +43,10 @@ toTypeHintTestRequest integration variables secrets q = do
       , headers = fromRight [] resultHeaders
       , body = fromRight (Just "") resultBody
       }
+
+rendersSecrets :: ApiIntegration -> M.Map String String -> M.Map String String -> String -> IO Bool
+rendersSecrets integration variables secrets q =
+  (/=) <$> toTypeHintTestRequest integration variables secrets q <*> toTypeHintTestRequest integration variables M.empty q
 
 toHttpRequest :: ApiIntegration -> M.Map String String -> M.Map String String -> String -> IO (Either String HttpRequest)
 toHttpRequest integration variables secrets q = do
@@ -90,8 +96,6 @@ renderHttpHeaders headers context =
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
-redactSecrets :: M.Map String String -> M.Map String String
-redactSecrets = M.mapWithKey (\k _ -> "[SECRET:" ++ k ++ "]")
 
 prepareContext :: M.Map String String -> M.Map String String -> String -> (Value, Value)
 prepareContext variables secrets q =

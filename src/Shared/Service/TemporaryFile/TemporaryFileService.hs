@@ -20,13 +20,12 @@ import Shared.Util.Logger
 import Shared.Util.String
 import Shared.Util.Uuid
 
-createTemporaryFile :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> BSL.ByteString -> m String
-createTemporaryFile fileName contentType mCreatedBy content = do
+createTemporaryFile :: RequestContextC s sc m => Int -> String -> String -> Maybe U.UUID -> BSL.ByteString -> m String
+createTemporaryFile expirationInSeconds fileName contentType mCreatedBy content = do
   runInTransaction logInfoI logWarnI $ do
     uuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
     now <- liftIO getCurrentTime
-    let expirationInSeconds = 60
     let escapedFileName = filter isLetterOrDotOrDashOrUnderscore fileName
     let tf = toTemporaryFile uuid escapedFileName contentType expirationInSeconds tenantUuid mCreatedBy now
     insertTemporaryFile tf
@@ -34,13 +33,12 @@ createTemporaryFile fileName contentType mCreatedBy content = do
     putTemporaryFile tf.uuid escapedFileName tf.contentType contentDisposition (BSL.toStrict content)
     presignGetTemporaryFileUrl tf.uuid escapedFileName expirationInSeconds
 
-createTemporaryFileConduit :: RequestContextC s sc m => String -> String -> Maybe U.UUID -> Minio (C.ConduitM () BS.ByteString Minio ()) -> m String
-createTemporaryFileConduit fileName contentType mCreatedBy contentAction = do
+createTemporaryFileConduit :: RequestContextC s sc m => Int -> String -> String -> Maybe U.UUID -> Minio (C.ConduitM () BS.ByteString Minio ()) -> m String
+createTemporaryFileConduit expirationInSeconds fileName contentType mCreatedBy contentAction = do
   runInTransaction logInfoI logWarnI $ do
     uuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
     now <- liftIO getCurrentTime
-    let expirationInSeconds = 60
     let escapedFileName = filter isLetterOrDotOrDashOrUnderscore fileName
     let tf = toTemporaryFile uuid escapedFileName contentType expirationInSeconds tenantUuid mCreatedBy now
     insertTemporaryFile tf

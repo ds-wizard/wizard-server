@@ -1,13 +1,20 @@
 module Shared.Service.KnowledgeModel.Editor.EditorUtil where
 
+import qualified Data.UUID as U
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorDAO
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelEditorEventDAO
 import Shared.Database.DAO.KnowledgeModel.KnowledgeModelMigrationDAO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorState
+import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
+import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.Migration.KnowledgeModelMigration
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Service.KnowledgeModel.Editor.EditorMapper (toKnowledgeModelEvent)
+import Shared.Service.KnowledgeModel.KnowledgeModelService
 
 getEditorPreviousPackage :: WizardRequestContextC s m => KnowledgeModelEditor -> m (Maybe KnowledgeModelPackage)
 getEditorPreviousPackage editor =
@@ -72,3 +79,13 @@ getEditorState editor eventSize mForkOfPackageId = do
             Nothing -> continue
         Nothing -> continue
     isDefault = return DefaultKnowledgeModelEditorState
+
+findEditorKnowledgeModel :: WizardRequestContextC s m => U.UUID -> [U.UUID] -> m (KnowledgeModelEditor, KnowledgeModel)
+findEditorKnowledgeModel editorUuid tagUuids = do
+  editor <- findKnowledgeModelEditorByUuid editorUuid
+  events <- findKnowledgeModelEventsByEditorUuid editorUuid
+  km <- compileKnowledgeModel (fmap toKnowledgeModelEvent events) editor.previousPackageUuid tagUuids
+  return (editor, km)
+
+compileEditorKnowledgeModel :: WizardRequestContextC s m => KnowledgeModelEditor -> [KnowledgeModelEvent] -> m KnowledgeModel
+compileEditorKnowledgeModel editor events = compileKnowledgeModel events editor.previousPackageUuid []

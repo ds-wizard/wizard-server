@@ -8,9 +8,13 @@ import Shared.Api.Resource.Project.ProjectSuggestionJM ()
 import Shared.Model.DocumentTemplate.DocumentTemplateDraftDetail
 import Shared.Model.DocumentTemplate.DocumentTemplateJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON DocumentTemplateDraftDetail where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON DocumentTemplateDraftDetail where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema DocumentTemplateDraftDetail where
+  jsonSchema = genericJsonSchema jsonOptions

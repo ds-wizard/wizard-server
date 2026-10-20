@@ -55,6 +55,9 @@ findTenantsPage mQuery mStates mEnabled pageable sort = do
 findTenantByUuid :: WizardRequestContextC s m => U.UUID -> m Tenant
 findTenantByUuid uuid = createFindEntityByFn entityName [("uuid", U.toString uuid)]
 
+findTenantByUuid' :: WizardRequestContextC s m => U.UUID -> m (Maybe Tenant)
+findTenantByUuid' uuid = createFindEntityByFn' entityName [("uuid", U.toString uuid)]
+
 findTenantByServerDomain :: WizardRequestContextC s m => String -> m Tenant
 findTenantByServerDomain serverDomain = createFindEntityByFn entityName [("server_domain", serverDomain)]
 

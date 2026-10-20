@@ -1,6 +1,7 @@
 module Shared.Localization.Messages.WizardPublic where
 
 import Data.Maybe (fromMaybe)
+import qualified Data.UUID as U
 
 import Shared.Model.Localization.LocaleRecord
 
@@ -38,6 +39,9 @@ _ERROR_VALIDATION__PREVIOUS_PKG_ABSENCE =
 _ERROR_VALIDATION__QUESTION_ABSENCE =
   LocaleRecord "error.validation.question_absence" "Desired question doesn't exist" []
 
+_ERROR_VALIDATION__KM_ENTITY_ABSENCE entityUuid =
+  LocaleRecord "error.validation.km_entity_absence" "The knowledge model has no entity %s" [entityUuid]
+
 _ERROR_VALIDATION__TEMPLATE_ABSENCE = LocaleRecord "error.validation.template_absence" "DocumentTemplate doesn't exist" []
 
 _ERROR_VALIDATION__USER_ABSENCE userUuid =
@@ -63,6 +67,34 @@ _ERROR_VALIDATION__PROJECT_FILE_SIZE_EXCEEDS_LIMIT fileSize maxFileSize =
 
 _ERROR_VALIDATION__PROJECT_FILE_QUESTION_ABSENCE_OR_WRONG_TYPE =
   LocaleRecord "error.validation.project_file_question_absence_or_wrong_type" "The question either doesn't exist or is not a File Question" []
+
+-- Project Event
+_ERROR_VALIDATION__PROJECT_EVENT_PATH_ABSENCE path =
+  LocaleRecord "error.validation.project_event_path_absence" "Path ('%s') doesn't match the knowledge model of the project" [path]
+
+_ERROR_VALIDATION__PROJECT_EVENT_ITEM_ABSENCE itemUuid =
+  LocaleRecord "error.validation.project_event_item_absence" "List item ('%s') doesn't exist" [U.toString itemUuid]
+
+_ERROR_VALIDATION__PROJECT_EVENT_REPLY_TYPE_MISMATCH =
+  LocaleRecord "error.validation.project_event_reply_type_mismatch" "Reply doesn't match the type of the question" []
+
+_ERROR_VALIDATION__PROJECT_EVENT_ANSWER_ABSENCE answerUuid =
+  LocaleRecord "error.validation.project_event_answer_absence" "Answer ('%s') doesn't belong to the question" [U.toString answerUuid]
+
+_ERROR_VALIDATION__PROJECT_EVENT_CHOICE_ABSENCE choiceUuid =
+  LocaleRecord "error.validation.project_event_choice_absence" "Choice ('%s') doesn't belong to the question" [U.toString choiceUuid]
+
+_ERROR_VALIDATION__PROJECT_EVENT_SELECTED_ITEM_ABSENCE itemUuid =
+  LocaleRecord "error.validation.project_event_selected_item_absence" "Item ('%s') doesn't exist in the referenced list" [U.toString itemUuid]
+
+_ERROR_VALIDATION__PROJECT_EVENT_FILE_ABSENCE fileUuid =
+  LocaleRecord "error.validation.project_event_file_absence" "File ('%s') doesn't belong to the project" [U.toString fileUuid]
+
+_ERROR_VALIDATION__PROJECT_EVENT_VALUE_TYPE valueType =
+  LocaleRecord "error.validation.project_event_value_type" "Value doesn't match the value type ('%s')" [valueType]
+
+_ERROR_VALIDATION__PROJECT_EVENT_VALUE_VALIDATION validation =
+  LocaleRecord "error.validation.project_event_value_validation" "Value doesn't pass the validation ('%s')" [validation]
 
 -- --------------------------------------
 -- SERVICE
@@ -156,6 +188,15 @@ _ERROR_SERVICE_PROJECT_COLLABORATION__FORCE_DISCONNECT projectUuid =
     "Project ('%s') dramatically changed its state. Therefore, users has to be disconnected"
     [projectUuid]
 
+_ERROR_SERVICE_PROJECT_COMMENT__NOT_AUTHOR =
+  LocaleRecord "error.service.project.comment.not_author" "Only its author can do this" []
+
+_ERROR_SERVICE_PROJECT_COMMENT__THREAD_RESOLVED =
+  LocaleRecord "error.service.project.comment.thread_resolved" "The comment thread is resolved; reopen it first" []
+
+_ERROR_SERVICE_PROJECT_COMMENT__ASSIGNEE_WITHOUT_ACCESS userUuid =
+  LocaleRecord "error.service.project.comment.assignee_without_access" "The user ('%s') cannot comment on the project" [userUuid]
+
 _ERROR_SERVICE_PROJECT_VERSION__NON_EXISTENT_EVENT_UUID eventUuid =
   LocaleRecord
     "error.service.project.version.non_existent_event_uuid"
@@ -167,6 +208,9 @@ _ERROR_SERVICE_PROJECT_VERSION__VERSION_UNIQUENESS eventUuid =
     "error.service.project.version.version_uniqueness"
     "There is already a version for the event (eventUuid: '%s')"
     [eventUuid]
+
+_ERROR_SERVICE_PROJECT_VERSION__UUID_TAKEN uuid =
+  LocaleRecord "error.service.project.version.uuid_taken" "The uuid ('%s') is already used by another version" [uuid]
 
 _ERROR_SERVICE_PROJECT__UNABLE_TO_GENERATE_DOCUMENT_PREVIEW workerLog =
   LocaleRecord "error.service.project.unable_to_generate_document_preview" "%s" [fromMaybe "no log provided" workerLog]

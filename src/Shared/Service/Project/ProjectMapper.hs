@@ -6,6 +6,9 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.DocumentTemplate.DocumentTemplateDTO
+import Shared.Api.Resource.Mcp.Project.McpProjectDTO
+import Shared.Api.Resource.Mcp.Project.McpProjectDetailDTO
+import Shared.Api.Resource.Mcp.Project.McpProjectQuestionnaireDTO
 import Shared.Api.Resource.Project.Acl.ProjectPermChangeDTO
 import Shared.Api.Resource.Project.Acl.ProjectPermDTO
 import Shared.Api.Resource.Project.Detail.ProjectDetailDTO
@@ -246,6 +249,40 @@ fromShareChangeDTO project dto visibility sharing now =
     , createdAt = project.createdAt
     , updatedAt = now
     , workspaceUuid = project.workspaceUuid
+    }
+
+toSettingsChangeDTO :: Project -> ProjectSettingsChangeDTO
+toSettingsChangeDTO project =
+  ProjectSettingsChangeDTO
+    { name = project.name
+    , description = project.description
+    , projectTags = project.projectTags
+    , documentTemplateUuid = project.documentTemplateUuid
+    , formatUuid = project.formatUuid
+    , isTemplate = project.isTemplate
+    , language = project.language
+    , documentTemplateLanguage = project.documentTemplateLanguage
+    }
+
+toMcpProjectDTO :: Project -> McpProjectDTO
+toMcpProjectDTO Project {..} = McpProjectDTO {..}
+
+toMcpProjectDetailDTO :: Project -> ProjectDTO -> McpProjectDetailDTO
+toMcpProjectDetailDTO project dto =
+  McpProjectDetailDTO
+    { project = toMcpProjectDTO project
+    , permissions = dto.permissions
+    , knowledgeModelState = dto.knowledgeModelState
+    , documentTemplateState = dto.documentTemplateState
+    }
+
+toMcpProjectQuestionnaireDTO :: Project -> ProjectContent -> McpProjectQuestionnaireDTO
+toMcpProjectQuestionnaireDTO project content =
+  McpProjectQuestionnaireDTO
+    { project = toMcpProjectDTO project
+    , phaseUuid = content.phaseUuid
+    , replies = content.replies
+    , labels = content.labels
     }
 
 fromSettingsChangeDTO :: Project -> ProjectSettingsChangeDTO -> Bool -> UTCTime -> Project

@@ -43,13 +43,13 @@ import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.String
 import Shared.Util.Uuid
 
-getTemporaryFileWithBundle :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
-getTemporaryFileWithBundle dtUuid =
+getTemporaryFileWithBundle :: WizardRequestContextC s m => Int -> U.UUID -> m TemporaryFileDTO
+getTemporaryFileWithBundle expiration dtUuid =
   runInTransaction $ do
     (coordinate, bundle) <- exportBundle dtUuid
     whenAuditLogEnabled (al_exportDocumentTemplate =<< findDocumentTemplateByUuid dtUuid)
     mCurrentUserUuid <- getCurrentUserUuid
-    url <- createTemporaryFile (f' "%s.zip" [show coordinate]) "application/octet-stream" mCurrentUserUuid bundle
+    url <- createTemporaryFile expiration (f' "%s.zip" [show coordinate]) "application/octet-stream" mCurrentUserUuid bundle
     return $ TemporaryFileMapper.toDTO url "application/zip"
 
 exportBundle :: WizardRequestContextC s m => U.UUID -> m (Coordinate, BSL.ByteString)

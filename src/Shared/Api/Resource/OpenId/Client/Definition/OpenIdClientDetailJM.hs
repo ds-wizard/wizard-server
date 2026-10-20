@@ -6,9 +6,13 @@ import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientDetailDTO
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientParameterJM ()
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientStyleJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON OpenIdClientDetailDTO where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON OpenIdClientDetailDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema OpenIdClientDetailDTO where
+  jsonSchema = genericJsonSchema jsonOptions

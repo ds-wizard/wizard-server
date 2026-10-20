@@ -30,7 +30,16 @@ instance FromEnv ServerConfig where
     admin <- applyEnv serverConfig.admin
     registry <- applyEnv serverConfig.registry
     httpClient <- applyEnv serverConfig.httpClient
+    mcp <- applyEnv serverConfig.mcp
     return ServerConfig {..}
+
+instance FromEnv ServerConfigMcp where
+  applyEnv serverConfig =
+    applyEnvVariables
+      serverConfig
+      [ \c -> applyEnvVariable "MCP_DOCUMENT_PREVIEW_WAIT" c.documentPreviewWait (\x -> c {documentPreviewWait = x})
+      , \c -> applyEnvVariable "MCP_DOCUMENT_PREVIEW_LIMIT" c.documentPreviewLimit (\x -> c {documentPreviewLimit = x})
+      ]
 
 instance FromEnv ServerConfigHttpClient where
   applyEnv serverConfig = do

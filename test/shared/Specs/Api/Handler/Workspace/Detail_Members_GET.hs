@@ -85,7 +85,9 @@ create_test_200 title requestContext reqUrl expDto =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
+test_401 requestContext = do
+  createAuthTest reqMethod reqUrl [] reqBody
+  createMcpTokenTest requestContext reqMethod reqUrl [] reqBody
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

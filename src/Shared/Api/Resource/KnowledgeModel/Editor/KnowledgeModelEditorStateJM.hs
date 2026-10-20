@@ -3,7 +3,11 @@ module Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorStateJM whe
 import Data.Aeson
 
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorState
+import Shared.Util.JsonSchema
 
 instance ToJSON KnowledgeModelEditorState
 
 instance FromJSON KnowledgeModelEditorState
+
+instance JsonSchema KnowledgeModelEditorState where
+  jsonSchema = genericJsonSchema defaultOptions

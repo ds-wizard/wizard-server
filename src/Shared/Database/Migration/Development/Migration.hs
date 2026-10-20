@@ -28,6 +28,7 @@ import qualified Shared.Database.Migration.Development.Locale.LocaleMigration as
 import qualified Shared.Database.Migration.Development.Locale.LocaleSchemaMigration as Locale
 import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleMigration as MailTemplateLocale
 import qualified Shared.Database.Migration.Development.MailTemplateLocale.MailTemplateLocaleSchemaMigration as MailTemplateLocale
+import qualified Shared.Database.Migration.Development.Mcp.McpSchemaMigration as Mcp
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientMigration as OpenIdClient
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientSchemaMigration as OpenIdClient
 import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientSessionSchemaMigration as OpenIdClientSession
@@ -88,6 +89,7 @@ runMigration = do
   PersistentCommand.dropTables
   Submission.dropTables
   UserEmailLink.dropTables
+  Mcp.dropTables
   KnowledgeModelMigration.dropTables
   KnowledgeModelEditor.dropTables
   KnowledgeModelCache.dropTables
@@ -129,6 +131,7 @@ runMigration = do
   Role.createTables
   User.createTables
   Workspace.createMembershipTable
+  Mcp.createTables
   UserOpenIdIdentity.createTables
   UserRegistrationPending.createTables
   TemporaryFile.createTables

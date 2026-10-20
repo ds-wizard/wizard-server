@@ -12,6 +12,7 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Model.AuditLog.AuditLogSource
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
+import Shared.Model.Context.ProgressReporter
 import Shared.Model.Context.RequestContext
 import Shared.Model.Context.Scope
 import Shared.Model.Tenant.Limit.TenantLimitBundleChange
@@ -33,6 +34,7 @@ class
   , HasField "auditLogSource'" context AuditLogSource
   , HasField "websocketRegistry'" context WebsocketRegistry
   , HasField "nodeUuid'" context U.UUID
+  , HasField "progressReporter'" context ProgressReporter
   ) =>
   WizardRequestContextType context
   where
@@ -41,6 +43,8 @@ class
   setTraceUuid :: U.UUID -> context -> context
   setDbConnection :: Maybe Connection -> context -> context
   setAuditLogSource :: AuditLogSource -> context -> context
+  setScope :: Scope -> context -> context
+  setProgressReporter :: ProgressReporter -> context -> context
 
 class (RequestContextC context ServerConfig m, WizardRequestContextType context) => WizardRequestContextC context m | m -> context where
   runRequestContextWithRequestContext :: m a -> context -> IO (Either String a)

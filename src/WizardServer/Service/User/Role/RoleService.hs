@@ -4,7 +4,6 @@ import Control.Monad (void, when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Foldable (traverse_)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.RoleChangeDTO
@@ -34,6 +33,7 @@ import Shared.Service.Settings.SettingsService
 import Shared.Service.User.RoleAcl
 import qualified Shared.Service.User.RoleMapper as Mapper
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
 import WizardServer.Service.User.Role.RoleValidation
 
@@ -58,14 +58,18 @@ getRole uuid = do
   findRoleListByUuid uuid
 
 createRole :: WizardRequestContextC s m => RoleChangeDTO -> m RoleList
-createRole reqDto =
+createRole reqDto = do
+  uuid <- liftIO generateUuid
+  createRoleWithUuid uuid reqDto
+
+createRoleWithUuid :: WizardRequestContextC s m => U.UUID -> RoleChangeDTO -> m RoleList
+createRoleWithUuid uuid reqDto =
   runInTransaction $ do
     mWorkspaceUuid <- requireTenantOrWorkspaceScope
     checkRoleManagePermission mWorkspaceUuid
     checkIfAdminIsDisabled
     validateRoleChangeDTO mWorkspaceUuid reqDto
-    uuid <- liftIO generateUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     tenantUuid <- asks (.tenantUuid')
     let role = Mapper.fromCreateDTO reqDto uuid tenantUuid mWorkspaceUuid now
     insertRole role
@@ -80,7 +84,7 @@ modifyRole uuid reqDto =
     checkIfAdminIsDisabled
     validateRoleChangeDTO role.workspaceUuid reqDto
     when role.isAdmin (throwError $ UserError _ERROR_VALIDATION__USER_ROLE_ADMIN_CANNOT_BE_CHANGED)
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updated = Mapper.fromChangeDTO role reqDto now
     updateRoleByUuid updated
     void $ updateUsersRoleByRole uuid reqDto.permissions reqDto.name

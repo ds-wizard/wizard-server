@@ -171,7 +171,7 @@ create_test_403 title requestContext project projectEvent authHeader errorMessag
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_404 requestContext =
+test_404 requestContext = do
   createNotFoundTest'
     reqMethod
     "/api/projects/f08ead5f-746d-411b-aee6-77ea3d24016a/events"
@@ -179,3 +179,23 @@ test_404 requestContext =
     reqBody
     "project"
     [("uuid", "f08ead5f-746d-411b-aee6-77ea3d24016a")]
+  it "HTTP 404 NOT FOUND (event of another project)" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = reqUrlT project1.uuid (getUuid (sre_rQ1' project2Uuid))
+      let reqHeaders = reqHeadersT [reqAuthHeader]
+      -- AND: Prepare expectation
+      let expStatus = 404
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = NotExistsError (_ERROR_DATABASE__ENTITY_NOT_FOUND "project_event" [("project_uuid", U.toString project1.uuid), ("uuid", U.toString (getUuid (sre_rQ1' project2Uuid)))])
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO TML.runMigration requestContext
+      runInContextIO PRJ.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher

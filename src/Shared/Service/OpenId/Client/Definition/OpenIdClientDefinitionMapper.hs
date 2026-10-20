@@ -7,6 +7,7 @@ import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientChangeDTO
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientDetailDTO
 import Shared.Model.OpenId.OpenIdClient
 import Shared.Model.OpenId.OpenIdClientSimple
+import Shared.Util.Secret (maskSecret)
 
 toSimple :: OpenIdClient -> OpenIdClientSimple
 toSimple openIdClient =
@@ -70,3 +71,9 @@ fromChangeDTO openIdClient reqDto now =
     , createdAt = openIdClient.createdAt
     , updatedAt = now
     }
+
+toChangeDTO :: OpenIdClient -> OpenIdClientChangeDTO
+toChangeDTO client = OpenIdClientChangeDTO client.name client.url client.clientId client.clientSecret client.parameters client.style client.registrationEnabled client.scopeProfile client.scopeEmail
+
+toMaskedDetailDTO :: OpenIdClient -> OpenIdClientDetailDTO
+toMaskedDetailDTO client = (toDetailDTO client) {clientSecret = maskSecret client.clientSecret} :: OpenIdClientDetailDTO

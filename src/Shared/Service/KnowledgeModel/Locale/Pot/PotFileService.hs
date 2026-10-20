@@ -11,6 +11,7 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
+import Shared.Constant.TemporaryFile
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.WizardCommon
 import Shared.Model.Context.RequestContextHelpers
@@ -29,15 +30,20 @@ import Shared.Util.String (f', trim)
 getTemporaryFileWithTranslationTemplate :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getTemporaryFileWithTranslationTemplate pkgUuid =
   runInTransaction $ do
+    (pkg, pot) <- getTranslationTemplate pkgUuid
+    mCurrentUserUuid <- getCurrentUserUuid
+    let fileName = f' "%s_%s.pot" [pkg.id, pkg.version]
+    url <- createTemporaryFile temporaryFileExpiration fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict . TE.encodeUtf8 . T.pack $ pot)
+    return $ TemporaryFileMapper.toDTO url "application/octet-stream"
+
+getTranslationTemplate :: WizardRequestContextC s m => U.UUID -> m (KnowledgeModelPackage, String)
+getTranslationTemplate pkgUuid =
+  runInTransaction $ do
     checkManagePermissionToPackage pkgUuid
     pkg <- findPackageByUuid pkgUuid
     knowledgeModel <- compileKnowledgeModel [] (Just pkgUuid) []
     now <- liftIO getCurrentTime
-    let pot = buildTranslationTemplate pkg knowledgeModel now
-    mCurrentUserUuid <- getCurrentUserUuid
-    let fileName = f' "%s_%s.pot" [pkg.id, pkg.version]
-    url <- createTemporaryFile fileName "application/octet-stream" mCurrentUserUuid (BSL.fromStrict . TE.encodeUtf8 . T.pack $ pot)
-    return $ TemporaryFileMapper.toDTO url "application/octet-stream"
+    return (pkg, buildTranslationTemplate pkg knowledgeModel now)
 
 buildTranslationTemplate :: KnowledgeModelPackage -> KnowledgeModel -> UTCTime -> String
 buildTranslationTemplate pkg km now = serializePot headers (buildPotEntries km)

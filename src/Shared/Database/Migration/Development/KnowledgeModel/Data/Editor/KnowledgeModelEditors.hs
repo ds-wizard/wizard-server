@@ -85,8 +85,7 @@ amsterdamKnowledgeModelEditorEvents = fmap (toKnowledgeModelEditorEvent amsterda
 
 amsterdamEvents :: [KnowledgeModelEvent]
 amsterdamEvents =
-  [ a_km1_ir
-  , a_km1_ch1_q1
+  [ a_km1_ch1_q1
   , a_km1_ch1_q2
   , a_km1_ch1_q2_aNo1
   , a_km1_ch1_q2_aYes1

@@ -6,6 +6,7 @@ import Shared.Api.Resource.User.UserSuggestionJM ()
 import Shared.Model.Project.Version.ProjectVersion
 import Shared.Model.Project.Version.ProjectVersionList
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON ProjectVersion where
   parseJSON = genericParseJSON jsonOptions
@@ -18,3 +19,6 @@ instance FromJSON ProjectVersionList where
 
 instance ToJSON ProjectVersionList where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema ProjectVersionList where
+  jsonSchema = genericJsonSchema jsonOptions

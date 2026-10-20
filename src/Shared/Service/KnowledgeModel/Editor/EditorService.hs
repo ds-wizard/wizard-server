@@ -3,6 +3,7 @@ module Shared.Service.KnowledgeModel.Editor.EditorService where
 import Control.Monad (void, when)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks, liftIO)
+import Data.Foldable (traverse_)
 import Data.Time
 import qualified Data.UUID as U
 
@@ -41,6 +42,7 @@ import Shared.Service.KnowledgeModel.Editor.EditorValidation
 import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
 
 getEditorsPage :: WizardRequestContextC s m => Maybe String -> Pageable -> [Sort] -> m (Page KnowledgeModelEditorList)
@@ -54,10 +56,14 @@ getEditorSuggestionsPage mQuery pageable sort = do
   findKnowledgeModelEditorSuggestionsPage mQuery pageable sort
 
 createEditor :: WizardRequestContextC s m => KnowledgeModelEditorCreateDTO -> m KnowledgeModelEditorList
-createEditor reqDto =
+createEditor reqDto = do
+  uuid <- liftIO generateUuid
+  createEditorWithUuid uuid reqDto
+
+createEditorWithUuid :: WizardRequestContextC s m => U.UUID -> KnowledgeModelEditorCreateDTO -> m KnowledgeModelEditorList
+createEditorWithUuid bUuid reqDto =
   runInTransaction $ do
-    bUuid <- liftIO generateUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     currentUser <- getCurrentUser
     checkKnowledgeModelEditorLimit
     editorList <- createEditorWithParams bUuid now currentUser reqDto
@@ -123,13 +129,24 @@ getEditorByUuid kmEditorUuid = do
       Nothing -> return Nothing
   return $ toDetailDTO editor editorEvents editorReplies mPreviousPackage knowledgeModel mForkOfPackageId mForkOfPackage kmEditorState
 
+getEditorWithPermission :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelEditor
+getEditorWithPermission editorUuid = do
+  checkPermissionToEditor editorUuid
+  findKnowledgeModelEditorByUuid editorUuid
+
+findEditorWithPermission :: WizardRequestContextC s m => U.UUID -> m (Maybe KnowledgeModelEditor)
+findEditorWithPermission editorUuid = do
+  mEditor <- findKnowledgeModelEditorByUuid' editorUuid
+  traverse_ (const (checkPermissionToEditor editorUuid)) mEditor
+  return mEditor
+
 modifyEditor :: WizardRequestContextC s m => U.UUID -> KnowledgeModelEditorChangeDTO -> m KnowledgeModelEditorDetailDTO
 modifyEditor kmEditorUuid reqDto =
   runInTransaction $ do
     checkPermissionToEditor kmEditorUuid
     editorFromDB <- findKnowledgeModelEditorByUuid kmEditorUuid
     validateChangeDto reqDto
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let editor =
           fromChangeDTO
             reqDto

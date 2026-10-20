@@ -221,7 +221,7 @@ createComputeParentPathTest uuid path =
     -- GIVEN:
     do
       let parentMap = makeParentMap km1WithQ4
-      let expected = path
+      let expected = km1WithQ4.uuid : path
       -- WHEN:
       let result = computeParentPath parentMap uuid
       -- THEN:

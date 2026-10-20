@@ -6,6 +6,7 @@ import Data.Maybe (maybeToList)
 import Data.String (fromString)
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple.ToField
 import GHC.Int
 import GHC.Records
 
@@ -110,6 +111,25 @@ insertUserToken
   -> m Int64
 insertUserToken userToken = do
   result <- createInsertFn entityName userToken
+  addToCache userToken
+  return result
+
+updateUserTokenByUuid
+  :: ( RequestContextC s sc m
+     , HasField "cache'" s serverCache
+     , HasField "userToken" serverCache (C.Cache Int UserToken)
+     , HasField "cache'" sc scCache
+     , HasField "dataEnabled'" scCache Bool
+     )
+  => UserToken
+  -> m Int64
+updateUserTokenByUuid userToken = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = "UPDATE user_token SET value = ?, expires_at = ? WHERE tenant_uuid = ? AND uuid = ?"
+  let params = [toField userToken.value, toField userToken.expiresAt, toField tenantUuid, toField userToken.uuid]
+  logInfoI _CMP_DATABASE (trim sql)
+  let action conn = execute conn (fromString sql) params
+  result <- runDB action
   addToCache userToken
   return result
 

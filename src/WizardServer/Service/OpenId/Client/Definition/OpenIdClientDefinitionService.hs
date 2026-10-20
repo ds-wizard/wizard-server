@@ -2,7 +2,6 @@ module WizardServer.Service.OpenId.Client.Definition.OpenIdClientDefinitionServi
 
 import Control.Monad (void)
 import Control.Monad.Reader (asks, liftIO)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.OpenId.Client.Definition.OpenIdClientChangeDTO
@@ -13,6 +12,7 @@ import Shared.Model.Context.AclContext
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.OpenId.OpenIdClientSimple
 import Shared.Service.OpenId.Client.Definition.OpenIdClientDefinitionMapper
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Uuid
 
 getOpenIdClientDefinitions :: WizardRequestContextC s m => m [OpenIdClientSimple]
@@ -28,12 +28,16 @@ getOpenIdClientDefinitionByUuid uuid = do
   return $ toDetailDTO openIdClient
 
 createOpenIdClientDefinition :: WizardRequestContextC s m => OpenIdClientChangeDTO -> m OpenIdClientDetailDTO
-createOpenIdClientDefinition reqDto =
+createOpenIdClientDefinition reqDto = do
+  uuid <- liftIO generateUuid
+  createOpenIdClientDefinitionWithUuid uuid reqDto
+
+createOpenIdClientDefinitionWithUuid :: WizardRequestContextC s m => U.UUID -> OpenIdClientChangeDTO -> m OpenIdClientDetailDTO
+createOpenIdClientDefinitionWithUuid uuid reqDto =
   runInTransaction $ do
     checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
-    uuid <- liftIO generateUuid
     tenantUuid <- asks (.tenantUuid')
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let openIdClient = fromCreateDTO reqDto uuid tenantUuid now
     void $ insertOpenIdClientDefinition openIdClient
     return $ toDetailDTO openIdClient
@@ -43,7 +47,7 @@ modifyOpenIdClientDefinition uuid reqDto =
   runInTransaction $ do
     checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
     openIdClient <- findOpenIdClientDefinitionByUuid uuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedOpenIdClient = fromChangeDTO openIdClient reqDto now
     void $ updateOpenIdClientDefinition updatedOpenIdClient
     return $ toDetailDTO updatedOpenIdClient

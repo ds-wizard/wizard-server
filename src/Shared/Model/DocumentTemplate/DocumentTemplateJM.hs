@@ -6,6 +6,7 @@ import Shared.Api.Resource.Common.SemVer2TupleJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackagePatternJM ()
 import Shared.Model.DocumentTemplate.DocumentTemplate
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON DocumentTemplatePhase
 
@@ -40,3 +41,12 @@ instance FromJSON DocumentTemplateAsset where
 
 instance ToJSON DocumentTemplateAsset where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema DocumentTemplatePhase where
+  jsonSchema = genericJsonSchema defaultOptions
+
+instance JsonSchema DocumentTemplateFormat where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema DocumentTemplateFormatStep where
+  jsonSchema = genericJsonSchema jsonOptions

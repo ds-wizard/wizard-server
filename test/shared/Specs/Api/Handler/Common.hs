@@ -24,9 +24,12 @@ import Shared.Api.Resource.Document.DocumentPreviewAcceptedDTO
 import Shared.Api.Resource.Document.DocumentPreviewAcceptedJM ()
 import Shared.Bootstrap.Web
 import Shared.Database.DAO.User.UserDAO
+import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Database.Migration.Development.User.Data.WizardUserTokens
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Localization.Messages.Public
+import Shared.Localization.Messages.UserToken.Public
+import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Error.Error
 import Shared.Model.User.RolePermission
@@ -94,10 +97,29 @@ createNoPermissionTest requestContext reqMethod reqUrl otherHeaders reqBody miss
       runInContextIO (updateUserByUuid user) requestContext
       let reqHeaders = reqAuthHeader : otherHeaders
       -- GIVEN: Prepare expectation
-      let expDto = ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ missingPerm)
+      let expDto = ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION missingPerm
       let expBody = encode expDto
       let expHeaders = resCtHeader : resCorsHeaders
       let expStatus = 403
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+createMcpTokenTest requestContext reqMethod reqUrl otherHeaders reqBody =
+  it "HTTP 401 UNAUTHORIZED if the token is an MCP token" $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = ("Authorization", BS.pack $ "Bearer " ++ albertMcpToken.value) : otherHeaders
+      -- AND: Prepare expectation
+      let expStatus = 401
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = UnauthorizedError _ERROR_SERVICE_TOKEN__UNABLE_TO_DECODE_AND_VERIFY_TOKEN
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO (insertUserToken albertMcpToken) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

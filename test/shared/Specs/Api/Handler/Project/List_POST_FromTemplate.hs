@@ -159,7 +159,7 @@ test_403_create requestContext =
       -- AND: Prepare expectation
       let expStatus = 403
       let expHeaders = resCtHeader : resCorsHeaders
-      let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _PROJECTS_CREATE_ROLE_PERMISSION))
+      let expBody = encode (ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION _PROJECTS_CREATE_ROLE_PERMISSION)
       -- AND: Run migrations
       runInContextIO U_Migration.runMigration requestContext
       runInContextIO TML_Migration.runMigration requestContext

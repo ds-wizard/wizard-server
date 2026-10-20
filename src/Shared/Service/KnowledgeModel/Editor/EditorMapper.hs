@@ -8,6 +8,7 @@ import qualified Data.UUID as U
 import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorChangeDTO
 import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorCreateDTO
 import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorDetailDTO
+import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorMetadataDTO
 import Shared.Constant.KnowledgeModel
 import Shared.Model.Coordinate.Coordinate
 import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditor
@@ -104,6 +105,35 @@ fromChangeDTO dto editor bUpdatedAt =
     , createdAt = editor.createdAt
     , updatedAt = bUpdatedAt
     , workspaceUuid = editor.workspaceUuid
+    }
+
+toChangeDTO :: KnowledgeModelEditor -> KnowledgeModelEditorChangeDTO
+toChangeDTO editor =
+  KnowledgeModelEditorChangeDTO
+    { name = editor.name
+    , id = editor.id
+    , version = editor.version
+    , description = editor.description
+    , readme = editor.readme
+    , license = editor.license
+    , language = editor.language
+    }
+
+toMetadataDTO :: KnowledgeModelEditor -> KnowledgeModelEditorMetadataDTO
+toMetadataDTO editor =
+  KnowledgeModelEditorMetadataDTO
+    { uuid = editor.uuid
+    , name = editor.name
+    , id = editor.id
+    , version = editor.version
+    , description = editor.description
+    , readme = editor.readme
+    , license = editor.license
+    , language = editor.language
+    , previousPackageUuid = editor.previousPackageUuid
+    , workspaceUuid = editor.workspaceUuid
+    , createdAt = editor.createdAt
+    , updatedAt = editor.updatedAt
     }
 
 toKnowledgeModelEditorEvent :: U.UUID -> U.UUID -> KnowledgeModelEvent -> KnowledgeModelEditorEvent

@@ -168,7 +168,7 @@ test_200_workspace_manager requestContext =
     assertResStatus status 200
     liftIO $ resDto.permissions `shouldBe` reqDto.permissions
     -- AND: The organization role stays closed
-    let expBody2 = encode (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _ROLES_MANAGE_ROLE_PERMISSION))
+    let expBody2 = encode (ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION _ROLES_MANAGE_ROLE_PERMISSION)
     response2 <- request reqMethod reqUrl reqHeaders reqBody
     let responseMatcher2 =
           ResponseMatcher {matchHeaders = resCtHeader : resCorsHeaders, matchStatus = 403, matchBody = bodyEquals expBody2}

@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import Shared.Api.Resource.AuditLog.AuditLogDTO
 import Shared.Model.AuditLog.AuditLogSource
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance ToJSON AuditLogSourceType where
   toJSON = String . T.pack . auditLogSourceTypeName
@@ -38,3 +39,18 @@ instance ToJSON AuditLogUserDTO where
 
 instance FromJSON AuditLogUserDTO where
   parseJSON = genericParseJSON jsonOptions
+
+instance JsonSchema AuditLogSourceType where
+  jsonSchema _ = enumSchema (fmap auditLogSourceTypeName [minBound .. maxBound])
+
+instance JsonSchema AuditLogSource where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema AuditLogDTO where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema AuditLogWorkspaceDTO where
+  jsonSchema = genericJsonSchema jsonOptions
+
+instance JsonSchema AuditLogUserDTO where
+  jsonSchema = genericJsonSchema jsonOptions

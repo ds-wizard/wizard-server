@@ -1,10 +1,14 @@
 module Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleService where
 
+import Control.Applicative ((<|>))
 import Control.Monad (void, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
-import Data.Aeson (Value, decodeStrict)
+import Data.Aeson (Value, decodeStrict, encode)
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import Data.Foldable (traverse_)
+import Data.Maybe (fromMaybe)
 import Data.Time
 import qualified Data.UUID as U
 
@@ -26,6 +30,7 @@ import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleMapper
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleUtil
 import Shared.Service.KnowledgeModel.Locale.KnowledgeModelLocaleValidation
 import Shared.Service.KnowledgeModel.Package.KnowledgeModelPackageAcl
+import Shared.Util.Gettext
 import Shared.Util.Uuid
 
 getLocalesForPackage :: WizardRequestContextC s m => U.UUID -> m [KnowledgeModelLocaleList]
@@ -58,6 +63,15 @@ createLocale pkgUuid reqDto =
     putKnowledgeModelLocale uuid translationPoFileName reqDto.poContent
     putKnowledgeModelLocale uuid translationJsonFileName reqDto.jsonContent
     return . toList $ locale
+
+saveLocaleFromPo :: WizardRequestContextC s m => U.UUID -> Maybe String -> BS.ByteString -> m KnowledgeModelLocaleList
+saveLocaleFromPo pkgUuid mName poContent =
+  runInTransaction $ do
+    entries <- either (throwError . UserError . _ERROR_VALIDATION__KM_LOCALE_INVALID_PO) return (parsePo poContent)
+    code <- extractLanguageCode poContent
+    traverse_ (deleteLocale pkgUuid . (.uuid)) =<< findKnowledgeModelLocaleByPackageUuidAndCode' pkgUuid code
+    let name = fromMaybe code (mName <|> fmap (.name) (poHeaderInfo (poHeaderFields entries)))
+    createLocale pkgUuid (KnowledgeModelLocaleCreateDTO name poContent (BSL.toStrict . encode . toJed $ entries))
 
 getLocaleContent :: WizardRequestContextC s m => U.UUID -> U.UUID -> m BS.ByteString
 getLocaleContent pkgUuid localeUuid = do

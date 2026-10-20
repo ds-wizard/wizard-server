@@ -139,7 +139,7 @@ test_403 requestContext =
     -- WHEN: Call API
     response <- request reqMethod reqUrl reqHeaders reqBody
     -- THEN: Compare response with expectation
-    expectJson 403 (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _USER_GROUPS_CREATE_ROLE_PERMISSION)) response
+    expectJson 403 (ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION _USER_GROUPS_CREATE_ROLE_PERMISSION) response
 
 test_403_workspace requestContext =
   it "HTTP 403 FORBIDDEN (no userGroups.create in w)" $ do
@@ -151,4 +151,4 @@ test_403_workspace requestContext =
     -- WHEN: Call API
     response <- request reqMethod (reqUrl <> "?" <> secondWorkspaceQuery) reqHeaders reqBody
     -- THEN: Compare response with expectation
-    expectJson 403 (ForbiddenError $ _ERROR_VALIDATION__FORBIDDEN ("Missing permission: " ++ _USER_GROUPS_CREATE_ROLE_PERMISSION)) response
+    expectJson 403 (ForbiddenError $ _ERROR_VALIDATION__MISSING_PERMISSION _USER_GROUPS_CREATE_ROLE_PERMISSION) response

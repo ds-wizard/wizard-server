@@ -12,6 +12,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Document.Document
 import Shared.Model.Document.DocumentList
 import Shared.Model.Settings.Settings
+import Shared.Model.Submission.SubmissionList
 import Shared.Service.Document.DocumentMapper
 import Shared.Service.Settings.WorkspaceSettingsService
 
@@ -28,6 +29,11 @@ enhanceDocument submissionSettings doc = do
       then findSubmissionsByDocumentUuid doc.uuid
       else return []
   return $ toDTO doc submissions
+
+findDocumentSubmissions :: WizardRequestContextC s m => Document -> m [SubmissionList]
+findDocumentSubmissions doc = do
+  settings <- getEffectiveSettingsSubmission (Just doc.workspaceUuid)
+  if settings.enabled then findSubmissionsByDocumentUuid doc.uuid else return []
 
 matchesDocumentKey :: String -> U.UUID -> U.UUID -> Maybe String -> Document -> Bool
 matchesDocumentKey name documentTemplateUuid formatUuid mLanguage doc =

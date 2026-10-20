@@ -4,7 +4,6 @@ import Control.Monad (unless, void, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (asks, liftIO)
 import Data.Maybe (fromMaybe)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Auth.AuthConsentDTO
@@ -14,6 +13,7 @@ import Shared.Api.Resource.User.UserDTO
 import Shared.Api.Resource.User.UserPasswordDTO
 import Shared.Api.Resource.UserEmailLink.UserEmailLinkDTO
 import Shared.Api.Resource.UserToken.UserTokenDTO
+import Shared.Constant.User
 import Shared.Database.DAO.Settings.SettingsAuthenticationDAO
 import Shared.Database.DAO.Settings.SettingsRolesDAO
 import Shared.Database.DAO.User.RoleDAO
@@ -53,7 +53,7 @@ import Shared.Service.User.WizardUserMapper
 import Shared.Service.UserEmailLink.WizardUserEmailLinkService
 import Shared.Service.UserToken.Login.LoginService
 import Shared.Service.Workspace.WorkspaceMembershipService
-import Shared.Util.Crypto (generateRandomString)
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.Password
 import Shared.Util.String
 import Shared.Util.Uuid
@@ -112,7 +112,7 @@ registerUser reqDto mAcceptLanguage =
     mExistingUser <- findUserByEmailAndTenantUuid' (toLower reqDto.email) tenantUuid
     case mExistingUser of
       Just _ -> do
-        now <- liftIO getCurrentTime
+        now <- liftIO getCurrentTimeInMicroseconds
         let fakeUser = fromUserCreateDTO reqDto uUuid uPasswordHash role uRole.permissions uRole.name mLocale tenantUuid now True
         return $ toDTO fakeUser
       Nothing -> createUser reqDto uUuid uPasswordHash role uRole.permissions uRole.name mLocale tenantUuid clientUrl True
@@ -123,7 +123,7 @@ createUser reqDto uUuid uPasswordHash role uPermissions uRoleName mLocale tenant
     checkUserLimitForTenant tenantUuid
     checkActiveUserLimitForTenant tenantUuid
     validateUserEmailUniqueness reqDto.email tenantUuid
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let user = fromUserCreateDTO reqDto uUuid uPasswordHash role uPermissions uRoleName mLocale tenantUuid now shouldSendRegistrationEmail
     insertUser user
     addUserToSingleWorkspace tenantUuid uUuid now
@@ -153,14 +153,12 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
   runInTransaction $ do
     checkUserLimit
     checkActiveUserLimit
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     tenantUuid <- asks (.tenantUuid')
     uUuid <-
       case mUserUuid of
         Just userUuid -> return userUuid
         Nothing -> liftIO generateUuid
-    password <- liftIO $ generateRandomString 40
-    uPasswordHash <- generatePasswordHash password
     settingsRoles <- getCurrentSettings findSettingsRoles
     let role = settingsRoles.defaultRoleUuid
     uRole <- getRoleForUser role
@@ -171,7 +169,7 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
             firstName
             lastName
             email
-            uPasswordHash
+            noPasswordHash
             role
             uRole.permissions
             uRole.name
@@ -230,7 +228,7 @@ changeUserPasswordByAdmin userUuid reqDto =
   runInTransaction $ do
     user <- findUserByUuid userUuid
     passwordHash <- generatePasswordHash reqDto.password
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     updateUserPasswordByUuid userUuid passwordHash now
     return ()
 
@@ -241,7 +239,7 @@ changeUserPasswordByHash userUuid hash userPasswordDto =
     validateUserEmailLinkNotExpired userEmailLink
     user <- findUserByUuid userEmailLink.identity
     passwordHash <- generatePasswordHash userPasswordDto.password
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     updateUserPasswordByUuid user.uuid passwordHash now
     deleteUserEmailLinkByHash userEmailLink.hash
     return ()
@@ -268,7 +266,7 @@ changeUserState hash active =
     (userEmailLink :: UserEmailLink U.UUID UserEmailLinkType) <- findUserEmailLinkByHash hash
     validateUserEmailLinkNotExpired userEmailLink
     user <- findUserByUuid userEmailLink.identity
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let baseUser :: User
         baseUser = user {active = active, updatedAt = now}
     let updatedUser :: User
@@ -296,7 +294,7 @@ confirmEmailChange hash =
     (userEmailLink :: UserEmailLink U.UUID UserEmailLinkType) <- findUserEmailLinkByHashAndType hash EmailChangeUserEmailLinkType
     validateUserEmailLinkNotExpired userEmailLink
     user <- findUserByUuid userEmailLink.identity
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     case user.emailPending of
       Just newEmail -> do
         validateUserEmailUniqueness newEmail user.tenantUuid
@@ -343,7 +341,7 @@ getRoleForUserInTenant tenantUuid roleUuid = do
 
 updateUserTimestamp :: WizardRequestContextC s m => User -> m User
 updateUserTimestamp user = do
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   return $ user {updatedAt = now}
 
 sendAnalyticsEmailIfEnabled :: WizardRequestContextC s m => User -> m ()

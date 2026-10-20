@@ -1,7 +1,6 @@
 module Shared.Service.Project.Migration.ProjectMigrationService where
 
 import Control.Monad.Reader (asks, liftIO)
-import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.Project.Detail.ProjectDetailQuestionnaireDTO
@@ -31,6 +30,7 @@ import Shared.Service.Project.ProjectAcl
 import Shared.Service.Project.ProjectAuditLog
 import Shared.Service.Project.ProjectService
 import Shared.Service.Workspace.WorkspaceScopeService
+import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.List
 import Shared.Util.Uuid
 
@@ -47,7 +47,7 @@ migrateProject projectUuid reqDto =
     deltaEvents <- sanitizeProjectEvents oldKm newKm projectEvents
     phaseEvents <- ensurePhaseIsSetIfNecessary project newKm projectEvents
     (newDocumentTemplateUuid, newFormatUuid) <- getNewDocumentTemplateIdAndFormatUuid project newPkg
-    now <- liftIO getCurrentTime
+    now <- liftIO getCurrentTimeInMicroseconds
     let updatedProject =
           project
             { knowledgeModelPackageUuid = reqDto.targetKnowledgeModelPackageUuid
@@ -71,7 +71,7 @@ ensurePhaseIsSetIfNecessary :: WizardRequestContextC s m => Project -> Knowledge
 ensurePhaseIsSetIfNecessary project newKm projectEvents = do
   uuid <- liftIO generateUuid
   mCurrentUser <- asks (.currentUser')
-  now <- liftIO getCurrentTime
+  now <- liftIO getCurrentTimeInMicroseconds
   let projectContent = compileProjectEvents projectEvents
   return $
     case (headSafe newKm.phaseUuids, projectContent.phaseUuid) of

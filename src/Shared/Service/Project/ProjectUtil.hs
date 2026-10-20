@@ -12,12 +12,14 @@ import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.DocumentTemplate.DocumentTemplate
+import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
 import Shared.Model.Project.Acl.ProjectPerm
 import Shared.Model.Project.Event.ProjectEventLenses ()
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectState
 import Shared.Model.Settings.Settings
+import Shared.Service.KnowledgeModel.KnowledgeModelService
 import Shared.Service.Project.ProjectMapper
 import Shared.Service.Settings.WorkspaceSettingsService
 import Shared.Util.Reference
@@ -78,3 +80,6 @@ skipIfAssigningProject project action = do
   when
     (not (projectSharingEnabled && projectSharingAnonymousEnabled) || (not . null $ project.permissions))
     action
+
+compileProjectKnowledgeModel :: WizardRequestContextC s m => U.UUID -> [U.UUID] -> m KnowledgeModel
+compileProjectKnowledgeModel pkgUuid = compileKnowledgeModel [] (Just pkgUuid)

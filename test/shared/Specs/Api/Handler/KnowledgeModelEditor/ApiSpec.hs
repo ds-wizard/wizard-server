@@ -9,6 +9,7 @@ import Specs.Api.Handler.KnowledgeModelEditor.Detail_DocumentContext_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_Locales_GET
 import Specs.Api.Handler.KnowledgeModelEditor.Detail_PUT
+import Specs.Api.Handler.KnowledgeModelEditor.Event.ApiSpec
 import Specs.Api.Handler.KnowledgeModelEditor.List_GET
 import Specs.Api.Handler.KnowledgeModelEditor.List_POST
 import Specs.Api.Handler.KnowledgeModelEditor.List_Suggestions_GET
@@ -25,4 +26,5 @@ knowledgeModelEditorAPI serverContext requestContext =
       detail_DELETE requestContext
       detail_locales_GET requestContext
       detail_documentContext_GET requestContext
+      knowledgeModelEditorEventAPI requestContext
       knowledgeModelEditorMigrationAPI requestContext

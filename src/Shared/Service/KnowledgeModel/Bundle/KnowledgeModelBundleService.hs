@@ -60,13 +60,13 @@ import Shared.Util.List
 import Shared.Util.Logger
 import Shared.Util.Uuid
 
-getTemporaryFileWithBundle :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
-getTemporaryFileWithBundle uuid =
+getTemporaryFileWithBundle :: WizardRequestContextC s m => Int -> U.UUID -> m TemporaryFileDTO
+getTemporaryFileWithBundle expiration uuid =
   runInTransaction $ do
     bundle <- exportBundle uuid
     whenAuditLogEnabled (al_exportKnowledgeModel =<< findPackageByUuid uuid)
     mCurrentUserUuid <- getCurrentUserUuid
-    url <- createTemporaryFile (f' "%s.km" [show . createCoordinate $ bundle]) "application/octet-stream" mCurrentUserUuid (encode bundle)
+    url <- createTemporaryFile expiration (f' "%s.km" [show . createCoordinate $ bundle]) "application/octet-stream" mCurrentUserUuid (encode bundle)
     return $ TemporaryFileMapper.toDTO url "application/octet-stream"
 
 exportBundle :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelBundle

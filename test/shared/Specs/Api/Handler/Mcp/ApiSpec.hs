@@ -1,0 +1,119 @@
+module Specs.Api.Handler.Mcp.ApiSpec where
+
+import Test.Hspec
+import Test.Hspec.Wai hiding (shouldRespondWith)
+
+import Specs.Api.Handler.Common
+import Specs.Api.Handler.Mcp.Detail_AuthorizationServer_GET
+import Specs.Api.Handler.Mcp.Detail_Clients_GET
+import Specs.Api.Handler.Mcp.Detail_Codes_POST
+import Specs.Api.Handler.Mcp.Detail_Keys_GET
+import Specs.Api.Handler.Mcp.Detail_OpenIdConfiguration_GET
+import Specs.Api.Handler.Mcp.Detail_Plugins_GET
+import Specs.Api.Handler.Mcp.Detail_ProtectedResource_GET
+import Specs.Api.Handler.Mcp.Detail_Register_POST
+import Specs.Api.Handler.Mcp.Detail_Token_POST
+import Specs.Api.Handler.Mcp.Detail_Tokens_DELETE
+import Specs.Api.Handler.Mcp.Detail_Tokens_GET
+import Specs.Api.Handler.Mcp.List_POST
+import Specs.Integration.Http.Registry.Common
+import Specs.Service.Mcp.Tool.ApiKeyTools.ToolSpec
+import Specs.Service.Mcp.Tool.AuthoringGuideTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentContextTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTemplateDraftTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTemplateFileTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTemplateLibraryTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTemplateLocaleTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTemplatePreviewTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTemplatePublishTools.ToolSpec
+import Specs.Service.Mcp.Tool.DocumentTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelEditorReplyTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelEditorTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelEventTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelIntegrationTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelLocaleTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelMigrationTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelPackageTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelPublishTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelSecretTools.ToolSpec
+import Specs.Service.Mcp.Tool.KnowledgeModelTreeTools.ToolSpec
+import Specs.Service.Mcp.Tool.LocaleTools.ToolSpec
+import Specs.Service.Mcp.Tool.MailTemplateLocaleTools.ToolSpec
+import Specs.Service.Mcp.Tool.OpenIdClientTools.ToolSpec
+import Specs.Service.Mcp.Tool.OperationTools.ToolSpec
+import Specs.Service.Mcp.Tool.PluginSettingsTools.ToolSpec
+import Specs.Service.Mcp.Tool.PrefabTools.ToolSpec
+import Specs.Service.Mcp.Tool.ProjectCommentTools.ToolSpec
+import Specs.Service.Mcp.Tool.ProjectFileTools.ToolSpec
+import Specs.Service.Mcp.Tool.ProjectHistoryTools.ToolSpec
+import Specs.Service.Mcp.Tool.ProjectReportTools.ToolSpec
+import Specs.Service.Mcp.Tool.ProjectTools.ToolSpec
+import Specs.Service.Mcp.Tool.RegistryLocaleTools.ToolSpec
+import Specs.Service.Mcp.Tool.RoleTools.ToolSpec
+import Specs.Service.Mcp.Tool.SettingsTools.ToolSpec
+import Specs.Service.Mcp.Tool.SubmissionPropTools.ToolSpec
+import Specs.Service.Mcp.Tool.TenantContextTools.ToolSpec
+import Specs.Service.Mcp.Tool.TenantTools.ToolSpec
+import Specs.Service.Mcp.Tool.UserAccountTools.ToolSpec
+import Specs.Service.Mcp.Tool.UserGroupTools.ToolSpec
+import Specs.Service.Mcp.Tool.UserTools.ToolSpec
+import Specs.Service.Mcp.Tool.WorkspaceTools.ToolSpec
+
+mcpAPI serverContext requestContext = do
+  with (startWebApp serverContext requestContext) $ describe "MCP API Spec" $ do
+    list_POST requestContext
+    detail_protectedResource_GET requestContext
+    detail_authorizationServer_GET requestContext
+    detail_openIdConfiguration_GET requestContext
+    detail_keys_GET requestContext
+    detail_plugins_GET requestContext
+    detail_clients_GET requestContext
+    detail_register_POST requestContext
+    detail_codes_POST requestContext
+    detail_token_POST requestContext
+    detail_tokens_GET requestContext
+    detail_tokens_DELETE requestContext
+    tenantContextToolsSpec requestContext
+    authoringGuideToolsSpec requestContext
+    knowledgeModelEditorToolsSpec requestContext
+    knowledgeModelTreeToolsSpec requestContext
+    knowledgeModelEventToolsSpec requestContext
+    knowledgeModelPublishToolsSpec requestContext
+    knowledgeModelMigrationToolsSpec requestContext
+    knowledgeModelIntegrationToolsSpec requestContext
+    knowledgeModelPackageToolsSpec requestContext
+    knowledgeModelLocaleToolsSpec requestContext
+    knowledgeModelSecretToolsSpec requestContext
+    prefabToolsSpec requestContext
+    documentTemplateDraftToolsSpec requestContext
+    documentTemplateFileToolsSpec requestContext
+    documentContextToolsSpec requestContext
+    documentTemplatePreviewToolsSpec requestContext
+    documentTemplatePublishToolsSpec requestContext
+    documentTemplateLibraryToolsSpec requestContext
+    documentTemplateLocaleToolsSpec requestContext
+    projectToolsSpec requestContext
+    documentToolsSpec requestContext
+    projectHistoryToolsSpec requestContext
+    projectCommentToolsSpec requestContext
+    projectFileToolsSpec requestContext
+    projectReportToolsSpec requestContext
+    knowledgeModelEditorReplyToolsSpec requestContext
+    settingsToolsSpec requestContext
+    pluginSettingsToolsSpec requestContext
+    localeToolsSpec requestContext
+    mailTemplateLocaleToolsSpec requestContext
+    workspaceToolsSpec requestContext
+    userGroupToolsSpec requestContext
+    userToolsSpec requestContext
+    roleToolsSpec requestContext
+    userAccountToolsSpec requestContext
+    apiKeyToolsSpec requestContext
+    submissionPropToolsSpec requestContext
+    openIdClientToolsSpec requestContext
+    tenantToolsSpec requestContext
+    operationToolsSpec requestContext
+  fakeServerContext <- runIO $ withFakeRegistryServer serverContext
+  with (startWebApp fakeServerContext requestContext) $
+    describe "MCP API Spec" $
+      registryLocaleToolsSpec requestContext

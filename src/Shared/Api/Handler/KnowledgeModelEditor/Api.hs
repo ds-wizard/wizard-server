@@ -9,6 +9,7 @@ import Shared.Api.Handler.KnowledgeModelEditor.Detail_GET
 import Shared.Api.Handler.KnowledgeModelEditor.Detail_Locales_GET
 import Shared.Api.Handler.KnowledgeModelEditor.Detail_PUT
 import Shared.Api.Handler.KnowledgeModelEditor.Detail_WS
+import Shared.Api.Handler.KnowledgeModelEditor.Event.Api
 import Shared.Api.Handler.KnowledgeModelEditor.List_GET
 import Shared.Api.Handler.KnowledgeModelEditor.List_POST
 import Shared.Api.Handler.KnowledgeModelEditor.List_Suggestions_GET
@@ -26,6 +27,7 @@ type KnowledgeModelEditorAPI =
            :<|> Detail_Locales_GET
            :<|> Detail_DocumentContext_GET
            :<|> Detail_WS
+           :<|> EventAPI
            :<|> MigrationAPI
        )
 
@@ -43,4 +45,5 @@ knowledgeModelEditorServer =
     :<|> detail_locales_GET
     :<|> detail_documentContext_GET
     :<|> detail_WS
+    :<|> eventServer
     :<|> migrationServer

@@ -7,9 +7,13 @@ import Shared.Api.Resource.Project.Acl.ProjectPermJM ()
 import Shared.Api.Resource.Project.ProjectSharingJM ()
 import Shared.Api.Resource.Project.ProjectVisibilityJM ()
 import Shared.Util.Aeson
+import Shared.Util.JsonSchema
 
 instance FromJSON ProjectPermChangeDTO where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON ProjectPermChangeDTO where
   toJSON = genericToJSON jsonOptions
+
+instance JsonSchema ProjectPermChangeDTO where
+  jsonSchema = genericJsonSchema jsonOptions

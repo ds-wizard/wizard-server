@@ -2,6 +2,7 @@ module WizardServer.Api.Web where
 
 import Servant hiding (ServerContext)
 
+import Shared.Api.Handler.Mcp.WellKnown.Api
 import Shared.Api.Handler.Root.Api
 import Shared.Bootstrap.Web
 import Shared.Model.Config.BuildInfoConfig
@@ -10,7 +11,7 @@ import WizardServer.Api.Handler.Common ()
 import WizardServer.Api.Handler.Swagger.Api
 import WizardServer.Model.Context.ServerContext
 
-type WebAPI = RootAPI :<|> ("api" :> (SwaggerAPI :<|> ApplicationAPI))
+type WebAPI = RootAPI :<|> McpWellKnownAPI :<|> ("api" :> (SwaggerAPI :<|> ApplicationAPI))
 
 webApi :: Proxy WebAPI
 webApi = Proxy
@@ -18,6 +19,7 @@ webApi = Proxy
 webServer :: ServerContext -> Server WebAPI
 webServer serverContext =
   hoistServer rootApi run rootServer
+    :<|> hoistServer mcpWellKnownApi run mcpWellKnownServer
     :<|> (swaggerServer version :<|> hoistServer applicationApi run applicationServer)
   where
     run :: ServerContextM a -> Handler a

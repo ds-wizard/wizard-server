@@ -25,6 +25,16 @@ entityName = "document"
 
 pageLabel = "documents"
 
+lockTemporaryDocumentsOfCurrentTenant :: WizardRequestContextC s m => m ()
+lockTemporaryDocumentsOfCurrentTenant = do
+  tenantUuid <- asks (.tenantUuid')
+  let sql = fromString "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))::text"
+  let params = [toField ("temporary_document:" ++ U.toString tenantUuid)]
+  logQuery sql params
+  let action conn = query conn sql params :: IO [Only String]
+  _ <- runDB action
+  return ()
+
 findDocuments :: WizardRequestContextC s m => m [Document]
 findDocuments = do
   tenantUuid <- asks (.tenantUuid')

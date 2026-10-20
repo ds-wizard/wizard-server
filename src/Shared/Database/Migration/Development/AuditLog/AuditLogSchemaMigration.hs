@@ -36,6 +36,8 @@ createTables = do
         \    source_uuid           uuid, \
         \    tenant_uuid           uuid        NOT NULL, \
         \    created_at            timestamptz NOT NULL, \
+        \    source_client_name    varchar, \
+        \    source_tool_name      varchar, \
         \    CONSTRAINT audit_log_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT audit_log_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
         \); \
