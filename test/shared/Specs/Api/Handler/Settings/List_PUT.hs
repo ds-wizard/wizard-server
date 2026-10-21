@@ -160,7 +160,7 @@ test_200_override_not_allowed_deletes_overrides requestContext =
     liftIO $ override `shouldBe` Nothing
 
 test_200_workspace_role requestContext =
-  it "HTTP 200 OK (w with settings.manage on the workspace role)" $ do
+  it "HTTP 200 OK (w with workspaceSettings.manage on the workspace role)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceSettingsManager requestContext
@@ -260,11 +260,11 @@ test_401 requestContext = createAuthTest reqMethod (tenantUrl "support") [reqCtH
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod (tenantUrl "support") [reqCtHeader] (settingsBody settingsSupport Nothing) "organizationSettings.manage"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod (tenantUrl "support") [reqCtHeader] (settingsBody settingsSupport Nothing) "settings.manage"
 test_403_roles requestContext = createNoPermissionTest requestContext reqMethod (tenantUrl "roles") [reqCtHeader] (settingsBody (SettingsRoles dataStewardRole.uuid) Nothing) "roles.manage"
 
 test_403_workspace requestContext =
-  it "HTTP 403 FORBIDDEN (w without settings.manage in that workspace)" $ do
+  it "HTTP 403 FORBIDDEN (w without workspaceSettings.manage in that workspace)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceUserRole requestContext

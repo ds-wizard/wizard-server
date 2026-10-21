@@ -53,7 +53,7 @@ useWorkspaceUserRole requestContext = do
 
 useWorkspaceSettingsManager requestContext = do
   useWorkspaceUserRole requestContext
-  runInContextIO (updateRoleByUuid (defaultWorkspaceUserRole {permissions = [_SETTINGS_MANAGE_ROLE_PERMISSION]} :: Role)) requestContext
+  runInContextIO (updateRoleByUuid (defaultWorkspaceUserRole {permissions = [_WORKSPACE_SETTINGS_MANAGE_ROLE_PERMISSION]} :: Role)) requestContext
 
 countWorkspaceRows table requestContext = do
   counts <- getOneFromDB (runDB (\conn -> query_ conn (fromString ("SELECT count(*) FROM " ++ table ++ " WHERE workspace_uuid IS NOT NULL")))) requestContext

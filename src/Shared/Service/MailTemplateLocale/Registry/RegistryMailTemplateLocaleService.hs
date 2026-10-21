@@ -20,7 +20,7 @@ import Shared.Service.MailTemplateLocale.MailTemplateLocaleService (removeReplac
 
 getRegistryMailTemplateLocales :: WizardRequestContextC s m => m [RegistryLocaleDTO]
 getRegistryMailTemplateLocales = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   installedCodes <- fmap (.code) <$> findMailTemplateLocales
   fmap (toRegistryMailTemplateLocaleDTO installedCodes) <$> findRegistryMailTemplateLocales
 
@@ -28,7 +28,7 @@ pullRegistryMailTemplateLocale :: WizardRequestContextC s m => String -> Registr
 pullRegistryMailTemplateLocale code reqDto = do
   result <-
     runInTransaction $ do
-      checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+      checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
       registryLocale <- findRegistryMailTemplateLocaleByCode code
       content <- retrieveRegistryMailTemplateLocalePo registryLocale.code registryLocale.remoteVersion
       let uploadDto = LocaleUploadDTO {content = content, confirmed = reqDto.confirmed}

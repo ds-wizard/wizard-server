@@ -17,13 +17,13 @@ import Shared.Util.Uuid
 
 getOpenIdClientDefinitions :: WizardRequestContextC s m => m [OpenIdClientSimple]
 getOpenIdClientDefinitions = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   openIdClients <- findOpenIdClientDefinitions
   return . fmap toSimple $ openIdClients
 
 getOpenIdClientDefinitionByUuid :: WizardRequestContextC s m => U.UUID -> m OpenIdClientDetailDTO
 getOpenIdClientDefinitionByUuid uuid = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   openIdClient <- findOpenIdClientDefinitionByUuid uuid
   return $ toDetailDTO openIdClient
 
@@ -35,7 +35,7 @@ createOpenIdClientDefinition reqDto = do
 createOpenIdClientDefinitionWithUuid :: WizardRequestContextC s m => U.UUID -> OpenIdClientChangeDTO -> m OpenIdClientDetailDTO
 createOpenIdClientDefinitionWithUuid uuid reqDto =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     tenantUuid <- asks (.tenantUuid')
     now <- liftIO getCurrentTimeInMicroseconds
     let openIdClient = fromCreateDTO reqDto uuid tenantUuid now
@@ -45,7 +45,7 @@ createOpenIdClientDefinitionWithUuid uuid reqDto =
 modifyOpenIdClientDefinition :: WizardRequestContextC s m => U.UUID -> OpenIdClientChangeDTO -> m OpenIdClientDetailDTO
 modifyOpenIdClientDefinition uuid reqDto =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     openIdClient <- findOpenIdClientDefinitionByUuid uuid
     now <- liftIO getCurrentTimeInMicroseconds
     let updatedOpenIdClient = fromChangeDTO openIdClient reqDto now
@@ -55,6 +55,6 @@ modifyOpenIdClientDefinition uuid reqDto =
 deleteOpenIdClientDefinition :: WizardRequestContextC s m => U.UUID -> m ()
 deleteOpenIdClientDefinition uuid =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     _ <- findOpenIdClientDefinitionByUuid uuid
     deleteOpenIdClientDefinitionByUuid uuid

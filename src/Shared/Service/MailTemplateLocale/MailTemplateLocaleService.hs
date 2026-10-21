@@ -34,14 +34,14 @@ import Shared.Util.Uuid
 
 getMailTemplateLocales :: WizardRequestContextC s m => m [MailTemplateLocaleDTO]
 getMailTemplateLocales = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   fmap toDTO <$> findMailTemplateLocales
 
 uploadMailTemplateLocale :: WizardRequestContextC s m => LocaleUploadDTO -> m (LocaleUploadResultDTO MailTemplateLocaleDTO)
 uploadMailTemplateLocale reqDto = do
   result <-
     runInTransaction $ do
-      checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+      checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
       uploadLocalePo Nothing findMailTemplateLocaleByCode' toReplaceWarning storeMailTemplateLocale reqDto
   removeReplacedMailTemplateLocaleMo result
   return result
@@ -49,7 +49,7 @@ uploadMailTemplateLocale reqDto = do
 modifyMailTemplateLocale :: WizardRequestContextC s m => U.UUID -> LocaleChangeDTO -> m MailTemplateLocaleDTO
 modifyMailTemplateLocale uuid reqDto =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findMailTemplateLocaleByUuid uuid
     validateLocaleChange reqDto locale.defaultLocale
     now <- liftIO getCurrentTime
@@ -62,7 +62,7 @@ modifyMailTemplateLocale uuid reqDto =
 deleteMailTemplateLocale :: WizardRequestContextC s m => U.UUID -> m ()
 deleteMailTemplateLocale uuid =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findMailTemplateLocaleByUuid uuid
     void $ deleteMailTemplateLocaleByUuid locale.uuid
     al_deleteMailTemplateLocale locale
@@ -85,7 +85,7 @@ getMailTemplateLocalePoContent uuid =
 getMailTemplateLocalePo :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getMailTemplateLocalePo uuid =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findMailTemplateLocaleByUuid uuid
     content <- retrieveMailTemplateLocalePo locale.uuid
     tempFile <- createTemporaryFileWithContent (locale.code ++ ".po") poContentType content
@@ -95,7 +95,7 @@ getMailTemplateLocalePo uuid =
 getMailTemplatePot :: WizardRequestContextC s m => m TemporaryFileDTO
 getMailTemplatePot =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     mPot <- findMailTemplatePot
     case mPot of
       Just (_, pot) -> createTemporaryFileWithContent "mail.pot" potContentType pot
@@ -108,7 +108,7 @@ getMailTemplatePotContent = do
 
 getMailTemplatePotInfo :: WizardRequestContextC s m => m MailTemplatePotInfoDTO
 getMailTemplatePotInfo = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   mPot <- findMailTemplatePot
   return . toPotInfoDTO . fmap (fmap potVersionOf) $ mPot
 

@@ -77,7 +77,7 @@ test_204_keeps_enabled requestContext =
     assertWorkspacePluginSettingsInDB requestContext defaultWorkspaceUuid plugin1.uuid False Nothing
 
 test_204_workspace_role requestContext =
-  it "HTTP 204 NO CONTENT (w with settings.manage on the workspace role)" $ do
+  it "HTTP 204 NO CONTENT (w with workspaceSettings.manage on the workspace role)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceSettingsManager requestContext
@@ -115,7 +115,7 @@ test_401 requestContext = createAuthTest reqMethod (workspaceDetailUrl plugin1) 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test_403_workspace requestContext =
-  it "HTTP 403 FORBIDDEN (w without settings.manage in that workspace)" $ do
+  it "HTTP 403 FORBIDDEN (w without workspaceSettings.manage in that workspace)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceUserRole requestContext

@@ -10,10 +10,10 @@ import WizardServer.Database.Migration.Production.Migration_5_0_0.Migration
 permissionMappingSpec =
   describe "Migration 5.0.0 permission mapping" $ do
     it "renamePermissionSql maps an old permission to its first new name" $ do
-      renamePermissionSql "c" `shouldContain` "WHEN 'SettingsManageRolePermission' THEN 'organizationSettings.manage'"
+      renamePermissionSql "c" `shouldContain` "WHEN 'SettingsManageRolePermission' THEN 'settings.manage'"
       renamePermissionSql "c" `shouldContain` "WHEN 'IntegrationHubUseRolePermission' THEN 'knowledgeModels.manage'"
     it "renamePermissionsSql splits the old settings and users permissions" $ do
-      renamePermissionsSql "c" `shouldContain` "ARRAY['organizationSettings.manage', 'settings.manage', 'roles.manage']"
+      renamePermissionsSql "c" `shouldContain` "ARRAY['settings.manage', 'workspaceSettings.manage', 'roles.manage']"
       renamePermissionsSql "c" `shouldContain` "ARRAY['users.manage', 'members.manage', 'userGroups.manage']"
     it "renamePermissionsSql grants projects.create and userGroups.create to everyone" $
       renamePermissionsSql "c" `shouldContain` "ARRAY['projects.create', 'userGroups.create']"

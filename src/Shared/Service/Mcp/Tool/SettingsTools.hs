@@ -174,7 +174,7 @@ resetSettings section =
     Nothing -> throwError . UserError $ _ERROR_SERVICE_MCP__SETTINGS_NOT_OVERRIDABLE section.name
 
 settingsPermission :: String
-settingsPermission = anyOfPermissions [_ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION, _SETTINGS_MANAGE_ROLE_PERMISSION]
+settingsPermission = anyOfPermissions [_SETTINGS_MANAGE_ROLE_PERMISSION, _WORKSPACE_SETTINGS_MANAGE_ROLE_PERMISSION]
 
 sectionArgument :: [McpSettingsSection m] -> Arguments (McpSettingsSection m)
 sectionArgument sections =

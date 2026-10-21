@@ -112,7 +112,7 @@ test_200_workspace_keeps_enabled requestContext =
     assertWorkspacePluginSettingsInDB requestContext defaultWorkspaceUuid plugin1.uuid False (Just plugin1Values1Edited)
 
 test_200_workspace_role requestContext =
-  it "HTTP 200 OK (w with settings.manage on the workspace role)" $ do
+  it "HTTP 200 OK (w with workspaceSettings.manage on the workspace role)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceSettingsManager requestContext
@@ -149,10 +149,10 @@ test_401 requestContext = createAuthTest reqMethod (tenantDetailUrl plugin1) [re
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod (tenantDetailUrl plugin1) [reqCtHeader] reqBody "organizationSettings.manage"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod (tenantDetailUrl plugin1) [reqCtHeader] reqBody "settings.manage"
 
 test_403_workspace requestContext =
-  it "HTTP 403 FORBIDDEN (w without settings.manage in that workspace)" $ do
+  it "HTTP 403 FORBIDDEN (w without workspaceSettings.manage in that workspace)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceUserRole requestContext
