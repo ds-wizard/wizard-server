@@ -47,6 +47,7 @@ import Shared.Service.Tenant.Limit.WizardLimitService
 import Shared.Service.Tenant.TenantHelper
 import Shared.Service.User.RoleAcl
 import Shared.Service.User.UserAuditLog
+import Shared.Service.User.UserNotification
 import qualified Shared.Service.User.UserOpenIdIdentityMapper as UserOpenIdIdentityMapper
 import Shared.Service.User.UserValidation
 import Shared.Service.User.WizardUserMapper
@@ -211,6 +212,7 @@ modifyUser userUuid reqDto =
         else return (user.role.permissions, user.role.name)
     updatedUser <- updateUserTimestamp $ fromUserChangeDTO reqDto user newPermissions newRoleName
     updateUserByUuid updatedUser
+    notifyTenantRoleChanged user.role updatedUser
     return . toDTO $ updatedUser
 
 changeUserPasswordByAdminOrHash :: WizardRequestContextC s m => U.UUID -> UserPasswordDTO -> Maybe String -> m ()

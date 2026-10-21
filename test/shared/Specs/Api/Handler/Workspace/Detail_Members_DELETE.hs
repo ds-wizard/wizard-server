@@ -3,7 +3,9 @@ module Specs.Api.Handler.Workspace.Detail_Members_DELETE (
 ) where
 
 import Data.Aeson (encode)
+import qualified Data.ByteString.Char8 as BS
 import Data.Maybe (isJust, isNothing)
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -15,6 +17,7 @@ import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectCacheDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectPermDAO
+import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserGroupDAO
 import Shared.Database.DAO.User.UserGroupMembershipDAO
 import Shared.Database.DAO.Workspace.WorkspaceMembershipDAO
@@ -22,6 +25,7 @@ import qualified Shared.Database.Migration.Development.DocumentTemplate.Document
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
+import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.UserGroups
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import qualified Shared.Database.Migration.Development.User.UserMigration as U
@@ -69,7 +73,12 @@ reqBody = ""
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_204 requestContext =
+test_204 requestContext = do
+  test_204_removed requestContext
+  test_204_self requestContext
+  test_204_inactive requestContext
+
+test_204_removed requestContext =
   it "HTTP 204 NO CONTENT - group memberships and project permissions of the member are gone" $ do
     -- GIVEN: Prepare expectation
     let expStatus = 204
@@ -93,6 +102,7 @@ test_204 requestContext =
     assertCountInDB (findUserGroupMembershipsByUserUuid userNikola.uuid) requestContext 0
     assertCountInDB (findProjectPermsFiltered [("project_uuid", "8355fe3c-47b9-4078-b5b6-08aa0188e85f")]) requestContext 0
     assertCountInDB (findUserGroupMembershipsByUserUuid userAlbert.uuid) requestContext 1
+    assertMailsInDB requestContext [workspaceMemberMail "workspaceMemberRemoved" userNikola defaultWorkspace (roleMailParameters "role" defaultWorkspaceUserRole)]
 
 test_204_other_workspace requestContext =
   it "HTTP 204 NO CONTENT - rows of the member in another workspace remain, caches of affected projects are dropped" $ do
@@ -134,6 +144,45 @@ test_204_other_workspace requestContext =
     liftIO $ isNothing mProject14CacheAfter `shouldBe` True
     mProject16CacheAfter <- getOneFromDB (findProjectCacheByProjectUuid' (u' "5a2f1c8d-7e3b-4b6a-9d1c-2f4e6a8b0c3d")) requestContext
     liftIO $ isJust mProject16CacheAfter `shouldBe` True
+
+test_204_self requestContext =
+  it "HTTP 204 NO CONTENT if the current user removes themselves (no mail)" $ do
+    -- GIVEN: Prepare expectation
+    let expStatus = 204
+    let expHeaders = resCorsHeaders
+    let expBody = ""
+    -- AND: Run migrations
+    runInContextIO U.runMigration requestContext
+    insertSecondWorkspace requestContext
+    -- WHEN: Call API
+    response <- request reqMethod (BS.pack $ "/api/workspaces/" ++ U.toString defaultWorkspace.uuid ++ "/members/" ++ U.toString userAlbert.uuid) reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+    -- AND: Compare state in DB with expectation
+    assertCountInDB (findWorkspaceMembershipsByUserUuid userAlbert.uuid) requestContext 1
+    assertMailsInDB requestContext []
+
+test_204_inactive requestContext =
+  it "HTTP 204 NO CONTENT if the member is inactive (no mail)" $ do
+    -- GIVEN: Prepare expectation
+    let expStatus = 204
+    let expHeaders = resCorsHeaders
+    let expBody = ""
+    -- AND: Run migrations
+    runInContextIO U.runMigration requestContext
+    insertSecondWorkspace requestContext
+    runInContextIO (updateUserByUuid (userNikola {active = False} :: User)) requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let responseMatcher =
+          ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+    response `shouldRespondWith` responseMatcher
+    -- AND: Compare state in DB with expectation
+    assertCountInDB (findWorkspaceMembershipsByUserUuid userNikola.uuid) requestContext 0
+    assertMailsInDB requestContext []
 
 secondWorkspaceGroup :: UserGroup
 secondWorkspaceGroup =

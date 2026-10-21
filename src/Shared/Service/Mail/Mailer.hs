@@ -27,9 +27,12 @@ import Shared.Model.Project.Comment.ProjectCommentThreadNotification
 import Shared.Model.Project.Project
 import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Config.TenantConfigMail
+import Shared.Model.User.Role
+import Shared.Model.User.RoleSimple
 import Shared.Model.User.User
 import Shared.Model.User.UserSimple
 import Shared.Model.User.UserToken
+import Shared.Model.Workspace.Workspace
 import Shared.Service.PersistentCommand.PersistentCommandMapper
 import Shared.Service.Settings.SettingsService
 import Shared.Service.Settings.WorkspaceSettingsService
@@ -347,6 +350,31 @@ sendApiKeyExpirationMail user userToken =
             }
     sendEmailWithTenant body user.uuid user.tenantUuid
 
+sendWorkspaceMemberAddedMail :: WizardRequestContextC s m => User -> Workspace -> Role -> m ()
+sendWorkspaceMemberAddedMail user workspace role =
+  sendMembershipMail "workspaceMemberAdded" user (Just workspace.uuid) $
+    workspaceParameters workspace
+      ++ roleParameters "role" role.uuid role.name
+
+sendWorkspaceMemberRoleChangedMail :: WizardRequestContextC s m => User -> Workspace -> Role -> Role -> m ()
+sendWorkspaceMemberRoleChangedMail user workspace oldRole newRole =
+  sendMembershipMail "workspaceMemberRoleChanged" user (Just workspace.uuid) $
+    workspaceParameters workspace
+      ++ roleParameters "role" oldRole.uuid oldRole.name
+      ++ roleParameters "newRole" newRole.uuid newRole.name
+
+sendWorkspaceMemberRemovedMail :: WizardRequestContextC s m => User -> Workspace -> Role -> m ()
+sendWorkspaceMemberRemovedMail user workspace role =
+  sendMembershipMail "workspaceMemberRemoved" user (Just workspace.uuid) $
+    workspaceParameters workspace
+      ++ roleParameters "role" role.uuid role.name
+
+sendTenantRoleChangedMail :: WizardRequestContextC s m => User -> RoleSimple -> RoleSimple -> m ()
+sendTenantRoleChangedMail user oldRole newRole =
+  sendMembershipMail "tenantRoleChanged" user Nothing $
+    roleParameters "role" oldRole.uuid oldRole.name
+      ++ roleParameters "newRole" newRole.uuid newRole.name
+
 -- --------------------------------
 -- PRIVATE
 -- --------------------------------
@@ -364,3 +392,45 @@ sendEmailWithTenant dto createdBy tenantUuid = do
     let command = toPersistentCommand uuid "mailer" "sendMail" body 10 tenantUuid (Just . U.toString $ createdBy) now
     insertPersistentCommand command
     return ()
+
+sendMembershipMail :: WizardRequestContextC s m => String -> User -> Maybe U.UUID -> [(String, A.Value)] -> m ()
+sendMembershipMail template user mWorkspaceUuid parameters =
+  runInTransaction $ do
+    tcSupport <- getEffectiveSettingsSupport mWorkspaceUuid
+    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
+    tcMail <- findTenantConfigMail
+    clientUrl <- getClientUrl
+    currentUser <- getCurrentUser
+    let body =
+          MC.MailCommand
+            { mode = "wizard"
+            , template = template
+            , recipients = [MC.MailRecipient {uuid = Just user.uuid, email = user.email}]
+            , sendAsOne = False
+            , parameters =
+                M.fromList $
+                  [ ("userUuid", A.uuid user.uuid)
+                  , ("userFirstName", A.string user.firstName)
+                  , ("userLastName", A.string user.lastName)
+                  , ("userEmail", A.string user.email)
+                  , ("clientUrl", A.string clientUrl)
+                  , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
+                  , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
+                  , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
+                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
+                  , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
+                  , ("mailCustomTemplates", A.bool tcMail.customTemplates)
+                  , ("ownerUuid", A.uuid currentUser.uuid)
+                  , ("ownerFirstName", A.string currentUser.firstName)
+                  , ("ownerLastName", A.string currentUser.lastName)
+                  , ("ownerEmail", A.string currentUser.email)
+                  ]
+                    ++ parameters
+            }
+    sendEmail body currentUser.uuid
+
+workspaceParameters :: Workspace -> [(String, A.Value)]
+workspaceParameters workspace = [("workspaceUuid", A.uuid workspace.uuid), ("workspaceName", A.string workspace.name)]
+
+roleParameters :: String -> U.UUID -> String -> [(String, A.Value)]
+roleParameters prefix uuid name = [(prefix ++ "Uuid", A.uuid uuid), (prefix ++ "Name", A.string name)]

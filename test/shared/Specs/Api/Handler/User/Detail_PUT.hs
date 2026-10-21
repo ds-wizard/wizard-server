@@ -2,8 +2,10 @@ module Specs.Api.Handler.User.Detail_PUT (
   detail_PUT,
 ) where
 
-import Data.Aeson (encode)
+import Data.Aeson (encode, toJSON)
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.Map.Strict as M
+import qualified Data.UUID as U
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -24,6 +26,7 @@ import Shared.Service.User.WizardUserMapper
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
+import SharedTest.Specs.Api.Mail
 import Specs.Api.Handler.Common
 import Specs.Api.Handler.User.Common
 import Specs.Common
@@ -56,8 +59,14 @@ reqBody = encode reqDto
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_200 requestContext =
-  it "HTTP 200 OK" $
+test_200 requestContext = do
+  test_200_self requestContext
+  test_200_role_change requestContext "HTTP 200 OK if the tenant role of another user changes" dataStewardRole.uuid True [roleChangedMail]
+  test_200_role_change requestContext "HTTP 200 OK if the tenant role of another user stays (no mail)" researcherRole.uuid True []
+  test_200_role_change requestContext "HTTP 200 OK if the user is deactivated in the same request (no mail)" dataStewardRole.uuid False []
+
+test_200_self requestContext =
+  it "HTTP 200 OK if the current user changes their own role (no mail)" $
     -- GIVEN: Prepare expectation
     do
       let expStatus = 200
@@ -71,8 +80,43 @@ test_200 requestContext =
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       compareUserDtos resDto expDto
-      -- AND: Find result in DB and compare with expectation state
+      -- AND: Compare state in DB with expectation
       assertExistenceOfUserInDB requestContext userIsaacEdited
+      assertMailsInDB requestContext []
+
+test_200_role_change requestContext title roleUuid active expMails =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let reqDto = userIsaacChange {roleUuid = roleUuid, active = active} :: UserChangeDTO
+      -- AND: Prepare expectation
+      let expStatus = 200
+      let expHeaders = resCorsHeadersPlain
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod (BS.pack $ "/api/users/" ++ U.toString userIsaac.uuid) reqHeaders (encode reqDto)
+      -- THEN: Compare response with expectation
+      let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, UserDTO)
+      assertResStatus status expStatus
+      assertResHeaders headers expHeaders
+      liftIO $ (resDto.role.uuid, resDto.active) `shouldBe` (roleUuid, active)
+      -- AND: Compare state in DB with expectation
+      assertMailsInDB requestContext expMails
+
+roleChangedMail :: MailExpectation
+roleChangedMail =
+  wizardMail
+    "tenantRoleChanged"
+    userIsaac.uuid
+    [ ("userEmail", toJSON userIsaac.email)
+    , ("roleUuid", toJSON researcherRole.uuid)
+    , ("roleName", toJSON researcherRole.name)
+    , ("newRoleUuid", toJSON dataStewardRole.uuid)
+    , ("newRoleName", toJSON dataStewardRole.name)
+    , ("ownerUuid", toJSON userAlbert.uuid)
+    , ("ownerEmail", toJSON userAlbert.email)
+    ]
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

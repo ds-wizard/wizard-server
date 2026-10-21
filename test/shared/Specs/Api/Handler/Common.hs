@@ -23,6 +23,7 @@ import Shared.Api.Middleware.WizardLoggingMiddleware
 import Shared.Api.Resource.Document.DocumentPreviewAcceptedDTO
 import Shared.Api.Resource.Document.DocumentPreviewAcceptedJM ()
 import Shared.Bootstrap.Web
+import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Database.Migration.Development.User.Data.WizardUserTokens
@@ -32,6 +33,7 @@ import Shared.Localization.Messages.UserToken.Public
 import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Error.Error
+import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Model.User.RolePermission
 import Shared.Model.User.User
 import Shared.Model.User.UserToken
@@ -40,6 +42,7 @@ import WizardServer.Model.Context.RequestContext
 import WizardServer.Model.Context.ServerContext
 
 import SharedTest.Specs.Api.Common
+import SharedTest.Specs.Api.Mail
 import Specs.Common
 
 startWebApp :: ServerContext -> RequestContext -> IO Application
@@ -151,6 +154,12 @@ assertCountInDB dbFunction requestContext count = do
   liftIO $ isRight eitherList `shouldBe` True
   let (Right list) = eitherList
   liftIO $ L.length list `shouldBe` count
+
+assertMailsInDB requestContext expMails = do
+  eCommands <- runInContextIO (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) requestContext
+  liftIO $ isRight eCommands `shouldBe` True
+  let (Right commands) = eCommands
+  liftIO $ commands `shouldMatchMails` expMails
 
 getFirstFromDB dbFunction requestContext = do
   eitherList <- runInContextIO dbFunction requestContext

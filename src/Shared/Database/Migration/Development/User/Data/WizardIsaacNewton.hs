@@ -39,6 +39,17 @@ userIsaacEditedChange =
     , active = userIsaacEdited.active
     }
 
+userIsaacChange :: UserChangeDTO
+userIsaacChange =
+  UserChangeDTO
+    { firstName = userIsaac.firstName
+    , lastName = userIsaac.lastName
+    , email = userIsaac.email
+    , affiliation = userIsaac.affiliation
+    , roleUuid = userIsaac.role.uuid
+    , active = userIsaac.active
+    }
+
 userIsaacProfileChange :: UserProfileChangeDTO
 userIsaacProfileChange =
   UserProfileChangeDTO
