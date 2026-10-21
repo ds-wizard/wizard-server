@@ -133,6 +133,18 @@ test_200_workspace requestContext = do
     "/api/knowledge-model-editors?sort=createdAt,asc"
     (Page "knowledgeModelEditors" (PageMetadata 20 2 1 0) [amsterdamKnowledgeModelEditorList, secondWorkspaceKnowledgeModelEditorList])
   create_test_200_workspace
+    "HTTP 200 OK (sort by name)"
+    requestContext
+    insertSecondWorkspace
+    "/api/knowledge-model-editors?sort=name,desc"
+    (Page "knowledgeModelEditors" (PageMetadata 20 2 1 0) [secondWorkspaceKnowledgeModelEditorList, amsterdamKnowledgeModelEditorList])
+  create_test_200_workspace
+    "HTTP 200 OK (sort by id)"
+    requestContext
+    insertSecondWorkspace
+    "/api/knowledge-model-editors?sort=id,desc"
+    (Page "knowledgeModelEditors" (PageMetadata 20 2 1 0) [secondWorkspaceKnowledgeModelEditorList, amsterdamKnowledgeModelEditorList])
+  create_test_200_workspace
     "HTTP 200 OK (w)"
     requestContext
     insertSecondWorkspace
