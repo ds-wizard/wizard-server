@@ -283,7 +283,7 @@ test_200 requestContext = do
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = MatchBody (\_ _ -> Nothing)}
       response `shouldRespondWith` responseMatcher
       liftIO $ toolErrorOf response `shouldBe` Just (Bool True)
-  it "HTTP 200 OK if the user has neither organizationSettings.manage nor settings.manage (tool error)" $
+  it "HTTP 200 OK if the user has neither settings.manage nor workspaceSettings.manage (tool error)" $
     -- GIVEN: Prepare request
     do
       let reqBody = toolCallBody "update_settings" (object ["tenant" .= True, "section" .= ("projects" :: String), "value" .= object []])
@@ -291,7 +291,7 @@ test_200 requestContext = do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
       -- AND: Run migrations
-      removeAlbertPermissions requestContext [_ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION, _SETTINGS_MANAGE_ROLE_PERMISSION]
+      removeAlbertPermissions requestContext [_SETTINGS_MANAGE_ROLE_PERMISSION, _WORKSPACE_SETTINGS_MANAGE_ROLE_PERMISSION]
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
@@ -300,14 +300,14 @@ test_200 requestContext = do
       response `shouldRespondWith` responseMatcher
       liftIO $ toolErrorOf response `shouldBe` Just (Bool True)
   create_test_200_tools_list
-    "HTTP 200 OK if the user has neither organizationSettings.manage nor settings.manage (the settings tools hidden)"
+    "HTTP 200 OK if the user has neither settings.manage nor workspaceSettings.manage (the settings tools hidden)"
     requestContext
-    [_ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION, _SETTINGS_MANAGE_ROLE_PERMISSION]
+    [_SETTINGS_MANAGE_ROLE_PERMISSION, _WORKSPACE_SETTINGS_MANAGE_ROLE_PERMISSION]
     []
   create_test_200_tools_list
-    "HTTP 200 OK if the user has settings.manage alone (the settings tools listed)"
+    "HTTP 200 OK if the user has workspaceSettings.manage alone (the settings tools listed)"
     requestContext
-    [_ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION]
+    [_SETTINGS_MANAGE_ROLE_PERMISSION]
     settingsToolNames
 
 create_test_200_tools_list title requestContext removedPermissions expToolNames =

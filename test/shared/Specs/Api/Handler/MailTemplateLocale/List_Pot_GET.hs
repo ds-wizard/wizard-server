@@ -124,7 +124,7 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [] reqBody
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [] reqBody _SETTINGS_MANAGE_ROLE_PERMISSION
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

@@ -45,7 +45,7 @@ listOpenIdClientsTool =
     , outputSchema = Just $ objectSchema ["openIdClients"] [("openIdClients", arraySchema (jsonSchema (Proxy :: Proxy OpenIdClientDetailDTO)))]
     , annotations = readOnlyAnnotations
     , continuable = True
-    , permissions = [_MCP_READ_ROLE_PERMISSION, _MCP_SENSITIVE_ROLE_PERMISSION, _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION]
+    , permissions = [_MCP_READ_ROLE_PERMISSION, _MCP_SENSITIVE_ROLE_PERMISSION, _SETTINGS_MANAGE_ROLE_PERMISSION]
     , toolset = Just AdminMcpToolset
     , transactionState = NoTransaction
     , run = withArguments (pure ()) . const $ (\clients -> object ["openIdClients" .= fmap toMaskedDetailDTO clients]) <$> findOpenIdClientDefinitions
@@ -150,7 +150,7 @@ deleteLoginProvider deleteProvider findUserLoginProviders uuid =
     deleteProvider uuid
 
 loginProviderWritePermissions :: [String]
-loginProviderWritePermissions = [_MCP_READ_ROLE_PERMISSION, _MCP_WRITE_ROLE_PERMISSION, _MCP_SENSITIVE_ROLE_PERMISSION, _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION]
+loginProviderWritePermissions = [_MCP_READ_ROLE_PERMISSION, _MCP_WRITE_ROLE_PERMISSION, _MCP_SENSITIVE_ROLE_PERMISSION, _SETTINGS_MANAGE_ROLE_PERMISSION]
 
 clientUuidArgument :: Arguments U.UUID
 clientUuidArgument = requiredArgument "open_id_client_uuid" "The OpenID client"

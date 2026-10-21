@@ -209,4 +209,4 @@ test_401 requestContext = createAuthTest reqMethod reqUrl [reqCtMultipartHeader]
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtMultipartHeader] reqBody _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+test_403 requestContext = createNoPermissionTest requestContext reqMethod reqUrl [reqCtMultipartHeader] reqBody _SETTINGS_MANAGE_ROLE_PERMISSION

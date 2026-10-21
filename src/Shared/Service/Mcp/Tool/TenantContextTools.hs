@@ -23,7 +23,7 @@ getTenantContextTool getUsage =
     , title = "Get tenant context"
     , description =
         "Get who you are, your effective permissions, whether the tenant has one or more workspaces, the workspaces you can reach with your role in each, "
-          ++ "the plan limits and usage (with organizationSettings.manage) and the effective settings of the organization or of a chosen workspace. "
+          ++ "the plan limits and usage (with settings.manage) and the effective settings of the organization or of a chosen workspace. "
           ++ "Call it first to learn where and what you may change."
     , inputSchema = argumentsSchema arguments
     , outputSchema = Just $ withProperties [("usage", nullableSchema (jsonSchema (Proxy :: Proxy usage)))] (jsonSchema (Proxy :: Proxy TenantContextDTO))

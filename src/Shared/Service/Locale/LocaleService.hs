@@ -38,7 +38,7 @@ import Shared.Util.Uuid
 
 getLocales :: WizardRequestContextC s m => m [LocaleDTO]
 getLocales = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   fmap toDTO <$> findLocales
 
 getLocaleSuggestions :: WizardRequestContextC s m => m [LocaleSuggestionDTO]
@@ -56,13 +56,13 @@ getLocaleContentForCurrentUser mClientUrl = do
 uploadLocale :: WizardRequestContextC s m => LocaleUploadDTO -> m (LocaleUploadResultDTO LocaleDTO)
 uploadLocale reqDto =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     uploadLocalePo (Just uiLocaleKinds) findLocaleByCode' toReplaceWarning storeLocale reqDto
 
 modifyLocale :: WizardRequestContextC s m => U.UUID -> LocaleChangeDTO -> m LocaleDTO
 modifyLocale uuid reqDto =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findLocaleByUuid uuid
     validateLocaleChange reqDto locale.defaultLocale
     now <- liftIO getCurrentTime
@@ -75,7 +75,7 @@ modifyLocale uuid reqDto =
 deleteLocale :: WizardRequestContextC s m => U.UUID -> m ()
 deleteLocale uuid =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findLocaleByUuid uuid
     void $ deleteLocaleByUuid locale.uuid
     al_deleteLocale locale
@@ -98,7 +98,7 @@ getLocalePoContent uuid =
 getLocalePo :: WizardRequestContextC s m => U.UUID -> m TemporaryFileDTO
 getLocalePo uuid =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     locale <- findLocaleByUuid uuid
     content <- retrieveLocalePo locale.uuid
     tempFile <- createTemporaryFileWithContent (locale.code ++ ".po") poContentType content

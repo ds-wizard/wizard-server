@@ -58,7 +58,7 @@ checkScopedPermission organizationPermission _ Nothing = checkPermissionInWorksp
 checkScopedPermission _ workspacePermission mWorkspaceUuid = checkPermissionInWorkspace workspacePermission mWorkspaceUuid
 
 checkSettingsPermission :: WizardRequestContextC s m => Maybe U.UUID -> m ()
-checkSettingsPermission = checkScopedPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION _SETTINGS_MANAGE_ROLE_PERMISSION
+checkSettingsPermission = checkScopedPermission _SETTINGS_MANAGE_ROLE_PERMISSION _WORKSPACE_SETTINGS_MANAGE_ROLE_PERMISSION
 
 requireSettings :: WizardRequestContextC s m => Maybe a -> m a
 requireSettings = maybe (throwError . NotExistsError $ _ERROR_VALIDATION__ABSENCE "settings") return

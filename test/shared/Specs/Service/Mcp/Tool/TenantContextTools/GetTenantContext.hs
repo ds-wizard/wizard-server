@@ -100,15 +100,15 @@ test_200 requestContext = do
             ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = MatchBody (\_ _ -> Nothing)}
       response `shouldRespondWith` responseMatcher
       liftIO $ fmap (isLeft . (`validate` invalidContext)) (tenantContextOutputSchemaOf response) `shouldBe` Just True
-  it "HTTP 200 OK if the user has no organizationSettings.manage (the usage left out)" $
+  it "HTTP 200 OK if the user has no settings.manage (the usage left out)" $
     -- GIVEN: Prepare expectation
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let permissions = filter (/= _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION) userAlbert.role.permissions
+      let permissions = filter (/= _SETTINGS_MANAGE_ROLE_PERMISSION) userAlbert.role.permissions
       let expDto = toolResult (toJSON ((albertContext False [defaultWorkspaceContext]) {permissions = L.sort . L.nub $ permissions} :: TenantContextDTO))
       -- AND: Run migrations
-      removeAlbertPermissions requestContext [_ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION]
+      removeAlbertPermissions requestContext [_SETTINGS_MANAGE_ROLE_PERMISSION]
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

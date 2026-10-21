@@ -36,7 +36,7 @@ resolveContextWorkspace = do
 
 getUsageIfPermitted :: WizardRequestContextC s m => m A.Value -> m (Maybe A.Value)
 getUsageIfPermitted getUsage = do
-  permitted <- hasPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  permitted <- hasPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   if permitted then Just <$> getUsage else return Nothing
 
 getContextSettings :: WizardRequestContextC s m => Maybe U.UUID -> m TenantContextSettingsDTO

@@ -15,13 +15,13 @@ checkLibraryPermission :: WizardRequestContextC s m => String -> Maybe U.UUID ->
 checkLibraryPermission permission mWorkspaceUuid = do
   multiWorkspace <- asks (.tenantMultiWorkspace')
   case mWorkspaceUuid of
-    Nothing | multiWorkspace -> checkPermissionInWorkspace _ORGANIZATION_LIBRARY_MANAGE_ROLE_PERMISSION Nothing
+    Nothing | multiWorkspace -> checkPermissionInWorkspace _LIBRARY_MANAGE_ROLE_PERMISSION Nothing
     _ -> checkPermissionInWorkspace permission mWorkspaceUuid
 
 checkLibraryPermissionAnywhere :: WizardRequestContextC s m => String -> m ()
 checkLibraryPermissionAnywhere permission = do
   multiWorkspace <- asks (.tenantMultiWorkspace')
-  managesLibrary <- hasPermission _ORGANIZATION_LIBRARY_MANAGE_ROLE_PERMISSION
+  managesLibrary <- hasPermission _LIBRARY_MANAGE_ROLE_PERMISSION
   unless (multiWorkspace && managesLibrary) (checkPermission permission)
 
 checkDeleteAllowed :: WizardRequestContextC s m => LibraryDependents -> m ()

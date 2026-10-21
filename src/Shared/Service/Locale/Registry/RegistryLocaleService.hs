@@ -20,14 +20,14 @@ import Shared.Service.Locale.Registry.RegistryLocaleMapper
 
 getRegistryLocales :: WizardRequestContextC s m => m [RegistryLocaleDTO]
 getRegistryLocales = do
-  checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+  checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
   installedCodes <- fmap (.code) <$> findLocales
   fmap (toRegistryLocaleDTO installedCodes) <$> findRegistryLocales
 
 pullRegistryLocale :: WizardRequestContextC s m => String -> RegistryLocalePullDTO -> m (LocaleUploadResultDTO LocaleDTO)
 pullRegistryLocale code reqDto =
   runInTransaction $ do
-    checkPermission _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION
+    checkPermission _SETTINGS_MANAGE_ROLE_PERMISSION
     registryLocale <- findRegistryLocaleByCode code
     content <- retrieveRegistryLocalePo registryLocale.code registryLocale.remoteVersion
     let uploadDto = LocaleUploadDTO {content = content, confirmed = reqDto.confirmed}

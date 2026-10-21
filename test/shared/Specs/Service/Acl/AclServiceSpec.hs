@@ -46,5 +46,5 @@ aclServiceSpec =
       workspaceReachRolePermissions `shouldBe` filter (`notElem` [_PROJECTS_CREATE_ROLE_PERMISSION, _USER_GROUPS_CREATE_ROLE_PERMISSION]) workspaceRolePermissions
     it "workspaces.manage cannot be assigned" $
       (_WORKSPACES_MANAGE_ROLE_PERMISSION `elem` assignableRolePermissions) `shouldBe` False
-    it "organizationLibrary.manage cannot be assigned" $
-      (_ORGANIZATION_LIBRARY_MANAGE_ROLE_PERMISSION `elem` assignableRolePermissions) `shouldBe` False
+    it "library.manage cannot be assigned" $
+      (_LIBRARY_MANAGE_ROLE_PERMISSION `elem` assignableRolePermissions) `shouldBe` False

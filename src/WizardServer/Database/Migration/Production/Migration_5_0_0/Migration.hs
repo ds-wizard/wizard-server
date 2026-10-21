@@ -404,8 +404,8 @@ renamePermissions dbPool =
     f'
       "UPDATE role SET permissions = %s; \
       \UPDATE user_entity SET role_permissions = %s; \
-      \UPDATE role SET permissions = ARRAY(SELECT DISTINCT unnest(permissions || ARRAY['workspaces.manage', 'organizationLibrary.manage']))::varchar[] WHERE is_admin = true; \
-      \UPDATE user_entity SET role_permissions = ARRAY(SELECT DISTINCT unnest(role_permissions || ARRAY['workspaces.manage', 'organizationLibrary.manage']))::varchar[] WHERE role_uuid IN (SELECT uuid FROM role WHERE is_admin = true);"
+      \UPDATE role SET permissions = ARRAY(SELECT DISTINCT unnest(permissions || ARRAY['workspaces.manage', 'library.manage']))::varchar[] WHERE is_admin = true; \
+      \UPDATE user_entity SET role_permissions = ARRAY(SELECT DISTINCT unnest(role_permissions || ARRAY['workspaces.manage', 'library.manage']))::varchar[] WHERE role_uuid IN (SELECT uuid FROM role WHERE is_admin = true);"
       [renamePermissionsSql "permissions", renamePermissionsSql "role_permissions"]
 
 renamePermissionsSql :: String -> String
@@ -427,7 +427,7 @@ permissionMapping =
   [ ("DevUseRolePermission", ["dev.use"])
   , ("TenantsManageRolePermission", ["tenants.manage"])
   , ("HubspotUseRolePermission", ["hubspot.use"])
-  , ("SettingsManageRolePermission", ["organizationSettings.manage", "settings.manage", "roles.manage"])
+  , ("SettingsManageRolePermission", ["settings.manage", "workspaceSettings.manage", "roles.manage"])
   , ("UsersManageRolePermission", ["users.manage", "members.manage", "userGroups.manage"])
   , ("DocumentTemplateEditorsUseRolePermission", ["documentTemplates.useEditor"])
   , ("DocumentTemplatesManageRolePermission", ["documentTemplates.manage"])
@@ -474,7 +474,7 @@ workspaceAdminPermissions =
   , "roles.manage"
   , "userGroups.manage"
   , "userGroups.create"
-  , "settings.manage"
+  , "workspaceSettings.manage"
   ]
 
 keepProjectsOnDocumentTemplateDelete :: Pool Connection -> LoggingT IO ()

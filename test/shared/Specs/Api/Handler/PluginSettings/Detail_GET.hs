@@ -100,7 +100,7 @@ test_200_workspace_override_not_allowed requestContext =
     expectJson 200 (WorkspacePluginSettingsDTO False False plugin1Values1) response
 
 test_200_workspace_role requestContext =
-  it "HTTP 200 OK (w with settings.manage on the workspace role)" $ do
+  it "HTTP 200 OK (w with workspaceSettings.manage on the workspace role)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     insertOrganizationValues requestContext
@@ -127,10 +127,10 @@ test_401 requestContext = createAuthTest reqMethod (tenantDetailUrl plugin1) [] 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
-test_403 requestContext = createNoPermissionTest requestContext reqMethod (tenantDetailUrl plugin1) [] reqBody "organizationSettings.manage"
+test_403 requestContext = createNoPermissionTest requestContext reqMethod (tenantDetailUrl plugin1) [] reqBody "settings.manage"
 
 test_403_workspace requestContext =
-  it "HTTP 403 FORBIDDEN (w without settings.manage in that workspace)" $ do
+  it "HTTP 403 FORBIDDEN (w without workspaceSettings.manage in that workspace)" $ do
     -- GIVEN: Run migrations
     runInContextIO U.runMigration requestContext
     useWorkspaceUserRole requestContext

@@ -53,7 +53,7 @@ test_200 requestContext =
       let expBody = encode [toSuggestionDTO localeDe]
       -- AND: Run migrations
       runInContextIO LOC_Migration.runMigration requestContext
-      runInContextIO (updateUserByUuid (userWithoutPerm requestContext.serverConfig _ORGANIZATION_SETTINGS_MANAGE_ROLE_PERMISSION)) requestContext
+      runInContextIO (updateUserByUuid (userWithoutPerm requestContext.serverConfig _SETTINGS_MANAGE_ROLE_PERMISSION)) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
