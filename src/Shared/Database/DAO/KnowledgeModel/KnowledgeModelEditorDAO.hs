@@ -68,10 +68,10 @@ findKnowledgeModelEditorsPage mQuery pageable sort =
               \       knowledge_model_editor.version, \
               \       get_knowledge_model_editor_state(knowledge_model_editor, knowledge_model_migration, fork_of.id, fork_of_package.uuid, '%s') as state, \
               \       knowledge_model_editor.previous_package_uuid, \
-              \       fork_of_package.uuid, \
-              \       fork_of_package.name, \
-              \       fork_of_package.id, \
-              \       fork_of_package.version, \
+              \       fork_of_package.uuid AS fork_of_package_uuid, \
+              \       fork_of_package.name AS fork_of_package_name, \
+              \       fork_of_package.id AS fork_of_package_id, \
+              \       fork_of_package.version AS fork_of_package_version, \
               \       fork_of_package.description, \
               \       knowledge_model_editor.created_by, \
               \       knowledge_model_editor.created_at, \
