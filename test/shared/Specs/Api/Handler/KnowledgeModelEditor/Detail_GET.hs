@@ -9,12 +9,19 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Api.Resource.Error.ErrorJM ()
+import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorCreateDTO
 import Shared.Api.Resource.KnowledgeModel.Editor.KnowledgeModelEditorDetailDTO
 import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Editor.KnowledgeModelEditors
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelEditorMigration as KnowledgeModelEditor
+import Shared.Database.Migration.Development.User.Data.WizardUsers
+import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
+import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
+import Shared.Model.KnowledgeModel.KnowledgeModel
 import Shared.Model.KnowledgeModel.Package.KnowledgeModelPackage
+import Shared.Service.KnowledgeModel.Editor.EditorService
+import qualified Shared.Service.User.WizardUserMapper as U_Mapper
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
@@ -28,6 +35,7 @@ detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
   describe "GET /api/knowledge-model-editors/uuid" $ do
     test_200 requestContext
+    test_200_without_previous_package requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -64,6 +72,25 @@ test_200 requestContext =
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       liftIO $ resDto `shouldBe` expDto
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_200_without_previous_package requestContext =
+  it "HTTP 200 OK (editor without a previous package)" $
+    -- GIVEN: Prepare expectation
+    do
+      let expStatus = 200
+      -- AND: Prepare database
+      let editor = amsterdamKnowledgeModelEditorCreate {previousPackageUuid = Nothing} :: KnowledgeModelEditorCreateDTO
+      let user = U_Mapper.toDTO userAlbert
+      runInContextIO (createEditorWithParams amsterdamKnowledgeModelEditorList.uuid amsterdamKnowledgeModelEditorList.createdAt user editor) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let (status, _, resDto) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelEditorDetailDTO)
+      assertResStatus status expStatus
+      liftIO $ [resDto.knowledgeModel.uuid] `shouldBe` fmap (.entityUuid) resDto.events
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

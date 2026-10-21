@@ -120,7 +120,7 @@ getEditorByUuid kmEditorUuid = do
   mPreviousPackage <- traverse findPackageByUuid editor.previousPackageUuid
   mForkOfPackageId <- getEditorForkOfPackageId editor
   kmEditorState <- getEditorState editor (length editorEvents) mForkOfPackageId
-  knowledgeModel <- compileKnowledgeModel [] editor.previousPackageUuid []
+  knowledgeModel <- compileKnowledgeModel (filter isAddKnowledgeModelEvent . fmap toKnowledgeModelEvent $ editorEvents) editor.previousPackageUuid []
   mForkOfPackage <-
     case mForkOfPackageId of
       Just forkOfPackageId -> do
@@ -128,6 +128,11 @@ getEditorByUuid kmEditorUuid = do
         return . Just $ pkg
       Nothing -> return Nothing
   return $ toDetailDTO editor editorEvents editorReplies mPreviousPackage knowledgeModel mForkOfPackageId mForkOfPackage kmEditorState
+  where
+    isAddKnowledgeModelEvent event =
+      case event.content of
+        AddKnowledgeModelEvent' _ -> True
+        _ -> False
 
 getEditorWithPermission :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelEditor
 getEditorWithPermission editorUuid = do

@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -80,6 +80,7 @@ migrateShared dbPool = do
   createWebsocketTables dbPool
   createMcpTables dbPool
   addMcpPermissionsToAdminRoles dbPool
+  setKnowledgeModelEditorEventParents dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -972,6 +973,18 @@ addMcpPermissionsToAdminRoles dbPool =
     dbPool
     "UPDATE role SET permissions = ARRAY(SELECT DISTINCT unnest(permissions || ARRAY['mcp.read', 'mcp.write', 'mcp.sensitive']))::varchar[] WHERE is_admin = true; \
     \UPDATE user_entity SET role_permissions = ARRAY(SELECT DISTINCT unnest(role_permissions || ARRAY['mcp.read', 'mcp.write', 'mcp.sensitive']))::varchar[] WHERE role_uuid IN (SELECT uuid FROM role WHERE is_admin = true);"
+
+setKnowledgeModelEditorEventParents :: Pool Connection -> LoggingT IO ()
+setKnowledgeModelEditorEventParents dbPool =
+  runSql
+    dbPool
+    "UPDATE knowledge_model_editor_event event \
+    \SET parent_uuid = km_event.entity_uuid \
+    \FROM knowledge_model_editor_event km_event \
+    \WHERE km_event.editor_uuid = event.editor_uuid \
+    \  AND km_event.content ->> 'eventType' = 'AddKnowledgeModelEvent' \
+    \  AND event.parent_uuid = '00000000-0000-0000-0000-000000000000' \
+    \  AND event.content ->> 'eventType' NOT IN ('AddKnowledgeModelEvent', 'EditKnowledgeModelEvent');"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do
