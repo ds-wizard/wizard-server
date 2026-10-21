@@ -41,6 +41,7 @@ import Shared.Service.Project.Collaboration.ProjectCollaborationService
 import Shared.Service.Workspace.WorkspaceAuditLog
 import Shared.Service.Workspace.WorkspaceMapper
 import Shared.Service.Workspace.WorkspaceMembershipService
+import Shared.Service.Workspace.WorkspaceNotification
 import Shared.Service.Workspace.WorkspaceScopeService
 import Shared.Util.Date (getCurrentTimeInMicroseconds)
 import Shared.Util.String (trim)
@@ -143,10 +144,11 @@ addWorkspaceMember uuid userUuid reqDto =
     checkPermissionInWorkspace _MEMBERS_MANAGE_ROLE_PERMISSION (Just uuid)
     when (userUuid == systemUserUuid) (throwError $ UserError _ERROR_SERVICE_WORKSPACE__SYSTEM_USER)
     workspace <- findWorkspaceByUuid uuid
-    _ <- findUserByUuid userUuid
+    user <- findUserByUuid userUuid
     checkWorkspacePlaneAvailable
     now <- liftIO getCurrentTimeInMicroseconds
-    saveWorkspaceMembership workspace userUuid reqDto.roleUuid now
+    (mOldMembership, membership) <- saveWorkspaceMembership workspace userUuid reqDto.roleUuid now
+    notifyWorkspaceMemberSaved workspace user mOldMembership membership
 
 removeWorkspaceMember :: WizardRequestContextC s m => U.UUID -> U.UUID -> m ()
 removeWorkspaceMember uuid userUuid =
@@ -159,6 +161,7 @@ removeWorkspaceMember uuid userUuid =
     mMembership <- findWorkspaceMembership' uuid userUuid
     removeWorkspaceMembership uuid userUuid
     traverse_ (al_removeWorkspaceMember workspace) mMembership
+    traverse_ (notifyWorkspaceMemberRemoved workspace) mMembership
 
 createWorkspaceWithRoles :: WizardRequestContextC s m => Workspace -> m (Workspace, Role)
 createWorkspaceWithRoles workspace = do

@@ -1,7 +1,7 @@
 module Specs.Api.Handler.Workspace.Common where
 
 import Control.Monad (void)
-import Data.Aeson (encode)
+import Data.Aeson (Value, encode, toJSON)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
@@ -26,12 +26,27 @@ import Shared.Model.Workspace.Workspace
 import Shared.Service.User.RoleMapper (toRoleSimple)
 
 import SharedTest.Specs.Api.Common
+import SharedTest.Specs.Api.Mail
 import Specs.Api.Handler.Common
 import Specs.Common
 
 -- --------------------------------
 -- FIXTURES
 -- --------------------------------
+workspaceMemberMail :: String -> User -> Workspace -> [(String, Value)] -> MailExpectation
+workspaceMemberMail template user workspace parameters =
+  wizardMail template user.uuid $
+    [ ("userEmail", toJSON user.email)
+    , ("workspaceUuid", toJSON workspace.uuid)
+    , ("workspaceName", toJSON workspace.name)
+    , ("ownerUuid", toJSON userAlbert.uuid)
+    , ("ownerEmail", toJSON userAlbert.email)
+    ]
+      ++ parameters
+
+roleMailParameters :: String -> Role -> [(String, Value)]
+roleMailParameters prefix role = [(prefix ++ "Uuid", toJSON role.uuid), (prefix ++ "Name", toJSON role.name)]
+
 enableMultiWorkspace requestContext = void $ runInContextIO (updateTenantByUuid (defaultTenant {multiWorkspace = True})) requestContext
 
 demoteToResearcher requestContext user = void $ runInContextIO (updateUserByUuid (user {role = toRoleSimple researcherRole} :: User)) requestContext
