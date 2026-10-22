@@ -55,6 +55,7 @@ import Specs.Api.Handler.MailTemplateLocale.ApiSpec
 import Specs.Api.Handler.MailTemplateLocale.Registry.ApiSpec
 import Specs.Api.Handler.Mcp.ApiSpec
 import Specs.Api.Handler.OpenIdClient.ApiSpec
+import Specs.Api.Handler.PersistentCommand.ApiSpec
 import Specs.Api.Handler.PluginSettings.ApiSpec
 import Specs.Api.Handler.Prefab.ApiSpec
 import Specs.Api.Handler.Project.ApiSpec
@@ -305,6 +306,7 @@ main =
               mailTemplateLocaleRegistryAPI serverContext requestContext
               mcpAPI serverContext requestContext
               openIdClientAPI serverContext requestContext
+              persistentCommandAPI serverContext requestContext
               pluginSettingsAPI serverContext requestContext
               prefabAPI serverContext requestContext
               projectAPI serverContext requestContext
