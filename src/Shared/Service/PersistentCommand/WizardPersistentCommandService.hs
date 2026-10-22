@@ -57,6 +57,7 @@ modifyPersistentCommand uuid reqDto = do
 
 runPersistentCommandById :: WizardRequestContextC s m => U.UUID -> m PersistentCommandDetailDTO
 runPersistentCommandById uuid = do
+  checkPermission _DEV_USE_ROLE_PERMISSION
   command <- findPersistentCommandByUuid uuid
   if command.component `elem` components
     then runPersistentCommand' True (toSimple command)

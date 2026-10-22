@@ -25,5 +25,5 @@ detail_attempts_POST
   -> U.UUID
   -> sm (Headers '[Header "x-trace-uuid" String] PersistentCommandDetailDTO)
 detail_attempts_POST mTokenHeader mServerUrl uuid =
-  getMaybeAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
+  getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
     runInAuthService Transactional $ addTraceUuidHeader =<< runPersistentCommandById uuid
