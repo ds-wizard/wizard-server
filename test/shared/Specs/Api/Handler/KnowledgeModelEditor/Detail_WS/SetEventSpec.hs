@@ -3,6 +3,7 @@ module Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.SetEventSpec where
 import qualified Control.Exception as E
 import Data.Aeson
 import qualified Data.ByteString.Char8 as BS
+import Data.Foldable (traverse_)
 import qualified Data.Map.Strict as M
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple (begin, close, commit, connectPostgreSQL)
@@ -27,6 +28,7 @@ import Shared.Model.KnowledgeModel.Editor.KnowledgeModelEditorList
 import Shared.Model.KnowledgeModel.Event.Chapter.ChapterEvent
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEvent
 import Shared.Model.KnowledgeModel.Event.KnowledgeModelEventField
+import Shared.Model.KnowledgeModel.Event.Reference.ReferenceEvent
 import Shared.Service.KnowledgeModel.Editor.EditorMapper (toKnowledgeModelEditorEvent)
 import WizardServer.Model.Context.RequestContext
 
@@ -46,11 +48,17 @@ setEventSpec requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 test200 requestContext = do
-  create_test_200 "WS 200 OK" requestContext knowledgeModelEditorWebsocketEvent1'
+  create_test_200 "WS 200 OK" requestContext [] knowledgeModelEditorWebsocketEvent1'
   create_test_200
     "WS 200 OK if a required text is empty"
     requestContext
+    []
     (toWebsocketEvent (editChapter1 e_km1_ch1__content {title = ChangedValue "", questionUuids = NothingChanged}))
+  create_test_200
+    "WS 200 OK if a reference becomes a cross reference without a target"
+    requestContext
+    amsterdamKnowledgeModelEditorEvents
+    (toWebsocketEvent (e_km1_ch1_q2_rCh2_type {content = EditReferenceEvent' (EditCrossReferenceEvent' (EditCrossReferenceEvent NothingChanged NothingChanged NothingChanged))}))
   create_test_200_locked requestContext
 
 create_test_200_locked requestContext =
@@ -75,12 +83,13 @@ create_test_200_locked requestContext =
       close batchConnection
       closeSockets [s1, s2]
 
-create_test_200 title requestContext reqDto =
+create_test_200 title requestContext editorEvents reqDto =
   it title $
     -- GIVEN: Prepare database
     do
       let editor = amsterdamKnowledgeModelEditor
       insertKnowledgeModelEditorAndUsers requestContext editor
+      runInContextIO (traverse_ insertKnowledgeModelEvent editorEvents) requestContext
       -- AND: Connect to websocket
       ((c1, s1), (c2, s2)) <- connectTestWebsocketUsers requestContext editor.uuid
       ((c3, s3), (c4, s4)) <- connectTestWebsocketUsers requestContext leidenKnowledgeModelEditor.uuid

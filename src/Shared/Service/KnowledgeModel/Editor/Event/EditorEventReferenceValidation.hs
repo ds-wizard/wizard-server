@@ -32,6 +32,7 @@ validateReference :: KnowledgeModel -> EntityReference -> [(String, LocaleRecord
 validateReference km reference =
   [ ("content." ++ reference.field, absenceError uuid [reference.kind])
   | uuid <- reference.uuids
+  , uuid /= U.nil
   , not (isOfEntityKind km reference.kind uuid)
   ]
 
