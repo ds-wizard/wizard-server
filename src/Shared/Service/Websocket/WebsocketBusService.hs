@@ -14,11 +14,13 @@ import Database.PostgreSQL.Simple.Notification
 import Shared.Constant.Websocket
 import Shared.Database.DAO.Websocket.WebsocketBusDAO
 import Shared.Database.DAO.Websocket.WebsocketOutboxDAO
+import Shared.Model.Cache.ServerCache
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Websocket.WebsocketBusMessage
 import Shared.Model.Websocket.WebsocketOutbox
 import Shared.Model.Websocket.WebsocketRegistry
 import Shared.Model.Websocket.WebsocketSubscription
+import Shared.Service.Cache.UserTokenCache (deleteAllFromCache, deleteFromCache)
 import Shared.Service.Project.Collaboration.ProjectCollaborationPermissionService
 import Shared.Service.Websocket.WebsocketMapper
 import Shared.Service.Websocket.WebsocketRegistryService
@@ -47,6 +49,7 @@ purgeWebsocketOutbox = void deleteOldWebsocketOutboxes
 runWebsocketBusListener :: WizardRequestContextC s m => m ()
 runWebsocketBusListener = do
   listenWebsocketChannel
+  deleteAllFromCache
   previousListens <- markListening
   when (previousListens > 0) closeAfterListenerRestart
   forever (waitForWebsocketNotification websocketListenerLivenessMicros >>= traverse_ applyNotification)
@@ -96,6 +99,7 @@ apply message =
       LogOutAll {..} -> logOutAll (tenantUuid, subscription, entityUuid)
       AnalyticsEtlFinished {..} ->
         broadcastLocal (tenantUuid, AnalyticsWebsocketSubscription, tenantUuid) AllRecipients toAnalyticsEtlFinishedMessage
+      UserTokensDeleted {..} -> traverse_ (deleteFromCache . U.toString) userTokenUuids
 
 scheduleUserList :: forall s m. WizardRequestContextC s m => WebsocketEntityKey -> m ()
 scheduleUserList key = do

@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import Network.Socket
 import Network.WebSockets hiding (serverPort)
 
+import Shared.Cache.CacheFactory
 import Shared.Model.Config.WizardServerConfig
 import Shared.Service.Websocket.WebsocketBusService
 import Shared.Service.Websocket.WebsocketNodeService
@@ -35,9 +36,10 @@ withSecondNode :: RequestContext -> (RequestContext -> IO a) -> IO a
 withSecondNode requestContext action = do
   websocketRegistry <- createWebsocketRegistry
   nodeUuid <- generateUuid
+  cache <- createServerCache requestContext.serverConfig
   let general = requestContext.serverConfig.general
   let serverConfig = requestContext.serverConfig {general = general {serverPort = general.serverPort + 1}}
-  let requestContextB = requestContext {serverConfig = serverConfig, websocketRegistry = websocketRegistry, nodeUuid = nodeUuid}
+  let requestContextB = requestContext {serverConfig = serverConfig, websocketRegistry = websocketRegistry, nodeUuid = nodeUuid, cache = cache}
   runWebsocketNode requestContextB (action requestContextB)
 
 waitForNode :: RequestContext -> Int -> IO ()

@@ -1,5 +1,6 @@
 module Specs.Api.Handler.Websocket.MultiNodeSpec where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad (void)
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -8,7 +9,7 @@ import Data.String (fromString)
 import qualified Data.UUID as U
 import Database.PostgreSQL.Simple (Only (..), execute_, query_)
 import qualified Network.HTTP.Client as HC
-import Network.HTTP.Types.Status (ok200)
+import Network.HTTP.Types.Status (ok200, statusCode)
 import Network.Socket (Socket)
 import Network.WebSockets (Connection)
 import Test.Hspec hiding (shouldBe, shouldReturn)
@@ -18,12 +19,17 @@ import Shared.Api.Resource.Project.Detail.ProjectDetailWsDTO
 import Shared.Api.Resource.Project.ProjectSettingsChangeDTO
 import Shared.Constant.Tenant
 import Shared.Database.DAO.Common
+import Shared.Database.DAO.User.UserTokenDAO
 import Shared.Database.DAO.Websocket.WebsocketConnectionDAO
 import Shared.Database.Migration.Development.Project.Data.Projects
+import Shared.Database.Migration.Development.User.Data.UserTokens
+import qualified Shared.Database.Migration.Development.User.UserMigration as User
+import Shared.Model.Cache.ServerCache
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Http.HttpRequest
 import Shared.Model.Project.Project
 import Shared.Model.User.OnlineUserInfo
+import Shared.Model.User.UserToken
 import Shared.Model.Websocket.WebsocketConnection
 import Shared.Model.Websocket.WebsocketPerm
 import Shared.Model.Websocket.WebsocketSubscription
@@ -48,10 +54,12 @@ multiNodeSpec requestContext =
     test_userListSpansNodes requestContext
     test_eventCrossesNodes requestContext
     test_outbox requestContext
+    test_userTokenDeleteCrossesNodes requestContext
     test_stalePurge requestContext
     test_orphanRowPurge requestContext
     test_purgedConnectionClosed requestContext
     test_listenerRestart requestContext
+    test_listenerRestartDropsUserTokens requestContext
     test_shutdown requestContext
 
 -- ----------------------------------------------------
@@ -142,6 +150,23 @@ test_outbox requestContext =
         countOutbox requestContext `shouldReturn` 0
         -- AND: Close sockets
         closeSockets [sA, sB]
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test_userTokenDeleteCrossesNodes :: RequestContext -> SpecWith ()
+test_userTokenDeleteCrossesNodes requestContext =
+  it "HTTP 401 UNAUTHORIZED - a user token deleted on node A is refused on node B" $
+    -- GIVEN: Prepare database
+    do
+      runInContext User.runMigration requestContext
+      withSecondNode requestContext $ \requestContextB -> do
+        -- AND: Node B has the token in its cache
+        currentUserStatus requestContextB reqIsaacAuthToken `shouldReturn` 200
+        -- WHEN:
+        runInContextIO (deleteUserTokenByUuid isaacToken.uuid) requestContext
+        -- THEN:
+        waitForCurrentUserStatus requestContextB reqIsaacAuthToken 401
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -243,6 +268,26 @@ test_listenerRestart requestContext =
 -- ----------------------------------------------------
 -- ----------------------------------------------------
 -- ----------------------------------------------------
+test_listenerRestartDropsUserTokens :: RequestContext -> SpecWith ()
+test_listenerRestartDropsUserTokens requestContext =
+  it "HTTP 401 UNAUTHORIZED - a restarted bus listener drops the user tokens cached before" $
+    -- GIVEN: Prepare database
+    do
+      runInContext User.runMigration requestContext
+      withSecondNode requestContext $ \requestContextB -> do
+        -- AND: Node B has the token in its cache
+        currentUserStatus requestContextB reqIsaacAuthToken `shouldReturn` 200
+        -- AND: The token is deleted without a notification reaching node B
+        execute_' requestContext (f' "DELETE FROM user_token WHERE uuid = '%s'" [U.toString isaacToken.uuid])
+        -- WHEN: The listening connection of node B is lost
+        terminateNewestWebsocketListener requestContext
+        -- THEN:
+        waitForNode requestContextB 2
+        currentUserStatus requestContextB reqIsaacAuthToken `shouldReturn` 401
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
 test_shutdown :: RequestContext -> SpecWith ()
 test_shutdown requestContext =
   it "WS 200 OK - a node shutting down closes its connections with 1001 and removes its rows" $
@@ -273,6 +318,28 @@ connectToBothNodes requestContext requestContextB projectUuid = do
   read_SetUserList cB 1
   read_SetUserList cA 1
   return ((cA, sA), (cB, sB))
+
+currentUserStatus :: RequestContext -> String -> IO Int
+currentUserStatus requestContext token = do
+  let request =
+        HttpRequest
+          { requestMethod = "GET"
+          , requestUrl = "/api/users/current"
+          , requestHeaders = M.fromList [("Authorization", "Bearer " ++ token)]
+          , requestBody = ""
+          , multipart = Nothing
+          }
+  (Right response) <- runSimpleRequest requestContext request
+  return . statusCode . HC.responseStatus $ response
+
+waitForCurrentUserStatus :: RequestContext -> String -> Int -> IO ()
+waitForCurrentUserStatus requestContext token expStatus = go (50 :: Int)
+  where
+    go attempts = do
+      status <- currentUserStatus requestContext token
+      if status == expStatus || attempts == 0
+        then status `shouldBe` expStatus
+        else threadDelay 100000 >> go (attempts - 1)
 
 countOutbox :: RequestContext -> IO Int
 countOutbox requestContext = do

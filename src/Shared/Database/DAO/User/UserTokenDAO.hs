@@ -1,6 +1,7 @@
 module Shared.Database.DAO.User.UserTokenDAO where
 
 import Control.Monad.Reader (asks)
+import Data.Aeson (encode)
 import qualified Data.Cache as C
 import Data.Maybe (maybeToList)
 import Data.String (fromString)
@@ -11,11 +12,13 @@ import GHC.Int
 import GHC.Records
 
 import Shared.Database.DAO.Common
+import Shared.Database.DAO.Websocket.WebsocketBusDAO
 import Shared.Database.Mapping.User.UserToken ()
 import Shared.Database.Mapping.User.UserTokenList ()
 import Shared.Model.Context.RequestContext
 import Shared.Model.User.UserToken
 import Shared.Model.User.UserTokenList
+import Shared.Model.Websocket.WebsocketBusMessage
 import Shared.Service.Cache.UserTokenCache
 import Shared.Util.Cache
 import Shared.Util.Logger
@@ -157,6 +160,7 @@ deleteUserTokenByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
   result <- createDeleteEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
   deleteFromCache (U.toString uuid)
+  notifyUserTokensDeleted tenantUuid [uuid]
   return result
 
 deleteUserTokenByUuidAndTenantUuid
@@ -172,4 +176,8 @@ deleteUserTokenByUuidAndTenantUuid
 deleteUserTokenByUuidAndTenantUuid uuid tenantUuid = do
   result <- createDeleteEntityByFn entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
   deleteFromCache (U.toString uuid)
+  notifyUserTokensDeleted tenantUuid [uuid]
   return result
+
+notifyUserTokensDeleted :: RequestContextC s sc m => U.UUID -> [U.UUID] -> m ()
+notifyUserTokensDeleted tenantUuid userTokenUuids = notifyWebsocketChannel (encode UserTokensDeleted {..})
