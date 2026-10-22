@@ -154,6 +154,18 @@ createRemoveObjectsWithPrefixFn prefix = do
         traverse_ (removeObject (T.pack bucketName) . oiObject) [objectInfo | ListItemObject objectInfo <- items]
   runMinioClient action
 
+createRemoveObjectsWithPrefixWithTenantFn :: RequestContextC s sc m => U.UUID -> String -> m ()
+createRemoveObjectsWithPrefixWithTenantFn tenantUuid prefix = do
+  bucketName <- getBucketName
+  sanitizedPrefix <- sanitizeObjectWithTenant tenantUuid prefix
+  logInfoI _CMP_S3 (f' "Delete objects with prefix: '%s'" [sanitizedPrefix])
+  let action = do
+        let itemStream = listObjects (T.pack bucketName) (Just . T.pack $ sanitizedPrefix) True :: C.ConduitM () ListItem Minio ()
+        let foldFn = CL.fold (\acc i -> acc ++ [i]) [] :: C.ConduitT ListItem C.Void Minio [ListItem]
+        items <- C.connect itemStream foldFn
+        traverse_ (removeObject (T.pack bucketName) . oiObject) [objectInfo | ListItemObject objectInfo <- items]
+  runMinioClient action
+
 createRemoveObjectWithTenantFn :: RequestContextC s sc m => U.UUID -> String -> m ()
 createRemoveObjectWithTenantFn tenantUuid object = do
   bucketName <- getBucketName

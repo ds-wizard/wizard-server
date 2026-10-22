@@ -175,6 +175,9 @@ createPersistentCommandFunction = do
         "CREATE OR REPLACE FUNCTION create_persistent_command(component varchar, function varchar, body jsonb, tenant_uuid uuid) RETURNS int AS \
         \$$ \
         \BEGIN \
+        \    IF NOT EXISTS (SELECT 1 FROM tenant WHERE tenant.uuid = create_persistent_command.tenant_uuid) THEN \
+        \        RETURN 0; \
+        \    END IF; \
         \    INSERT INTO persistent_command (uuid, \
         \                                    state, \
         \                                    component, \

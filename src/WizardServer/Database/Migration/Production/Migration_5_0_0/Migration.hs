@@ -20,7 +20,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent, skip the persistent commands of the delete triggers when the tenant itself is being deleted"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -81,6 +81,7 @@ migrateShared dbPool = do
   createMcpTables dbPool
   addMcpPermissionsToAdminRoles dbPool
   setKnowledgeModelEditorEventParents dbPool
+  skipPersistentCommandsOfDeletedTenant dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -985,6 +986,23 @@ setKnowledgeModelEditorEventParents dbPool =
     \  AND km_event.content ->> 'eventType' = 'AddKnowledgeModelEvent' \
     \  AND event.parent_uuid = '00000000-0000-0000-0000-000000000000' \
     \  AND event.content ->> 'eventType' NOT IN ('AddKnowledgeModelEvent', 'EditKnowledgeModelEvent');"
+
+skipPersistentCommandsOfDeletedTenant :: Pool Connection -> LoggingT IO ()
+skipPersistentCommandsOfDeletedTenant dbPool =
+  runSql
+    dbPool
+    "CREATE OR REPLACE FUNCTION create_persistent_command(component character varying, function character varying, body jsonb, tenant_uuid uuid) RETURNS integer \
+    \    LANGUAGE plpgsql \
+    \    AS $$ \
+    \BEGIN \
+    \    IF NOT EXISTS (SELECT 1 FROM tenant WHERE tenant.uuid = create_persistent_command.tenant_uuid) THEN \
+    \        RETURN 0; \
+    \    END IF; \
+    \    INSERT INTO persistent_command (uuid, state, component, function, body, last_error_message, attempts, max_attempts, tenant_uuid, created_by, created_at, updated_at, last_trace_uuid) \
+    \    VALUES (gen_random_uuid(), 'NewPersistentCommandState', component, function, body, NULL, 0, 10, tenant_uuid, NULL, now(), now(), NULL); \
+    \    RETURN 1; \
+    \END; \
+    \$$;"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do
