@@ -44,7 +44,7 @@ documentServiceSpec requestContext =
         (Right (ctx, _)) <- runInContext (createProjectDocumentContext project1 Nothing) requestContext
         (Right doc) <- runInContext (createDocument (doc1Create {projectEventUuid = Nothing} :: DocumentCreateDTO)) requestContext
         (Right commands) <- runInContext (findPersistentCommands :: RequestContextM [PersistentCommand U.UUID]) requestContext
-        let [command] = filter (\c -> c.component == "doc_worker") commands
+        let [command] = filter (\c -> c.component == "document_worker") commands
         command.function `shouldBe` "generateDocument"
         let body = fromMaybe Null (decode (BSL.pack command.body))
         let document = jsonField "document" body

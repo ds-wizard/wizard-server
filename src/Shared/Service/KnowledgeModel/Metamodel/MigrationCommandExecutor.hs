@@ -5,6 +5,7 @@ import Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import qualified Data.UUID as U
 
+import Shared.Constant.PersistentCommand
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import Shared.Model.PersistentCommand.Migration.Metamodel.MigrateToLatestMetamodelVersionCommand
@@ -12,7 +13,7 @@ import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Service.KnowledgeModel.Metamodel.MigrationService
 import Shared.Util.Logger
 
-cComponent = "metamodel_migrator"
+cComponent = metamodelMigratorComponent
 
 execute :: WizardRequestContextC s m => PersistentCommand U.UUID -> m (PersistentCommandState, Maybe String)
 execute command

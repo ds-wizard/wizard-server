@@ -9,6 +9,7 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.TemporaryFile.TemporaryFileDTO
+import Shared.Constant.PersistentCommand
 import Shared.Constant.TemporaryFile
 import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
@@ -26,8 +27,6 @@ import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFi
 import Shared.Service.TemporaryFile.TemporaryFileService
 import Shared.Util.JSON
 import Shared.Util.Uuid
-
-cComponent = "doc_worker"
 
 cGeneratePotFileName = "generatePotFile"
 
@@ -59,5 +58,5 @@ publishGeneratePotFileCommand dt = do
           , language = dt.language
           }
   mCurrentUserUuid <- getCurrentUserUuid
-  let command = toPersistentCommand uuid cComponent cGeneratePotFileName (encodeJsonToString body) 10 dt.tenantUuid mCurrentUserUuid now
+  let command = toPersistentCommand uuid documentWorkerComponent cGeneratePotFileName (encodeJsonToString body) 10 dt.tenantUuid mCurrentUserUuid now
   void $ insertPersistentCommand command

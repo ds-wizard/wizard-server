@@ -83,6 +83,7 @@ buildSchema requestContext = do
   runInContext Locale.dropTriggers requestContext
   runInContext MailTemplateLocale.dropTriggers requestContext
   runInContext KnowledgeModelLocale.dropTriggers requestContext
+  runInContext DocumentTemplate.dropTriggers requestContext
   putStrLn "DB: dropping DB functions"
   runInContext Project.dropFunctions requestContext
   runInContext DocumentTemplate.dropFunctions requestContext
@@ -178,6 +179,7 @@ buildSchema requestContext = do
   runInContext KnowledgeModelLocale.createTriggers requestContext
   runInContext Project.createTriggers requestContext
   runInContext Document.createTriggers requestContext
+  runInContext DocumentTemplate.createTriggers requestContext
   putStrLn "DB-S3: Purging and creating schema"
   runInContext DocumentTemplateMigration.runS3Migration requestContext
   runInContext LocaleMigration.runS3Migration requestContext

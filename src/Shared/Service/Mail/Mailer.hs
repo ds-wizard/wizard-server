@@ -12,6 +12,7 @@ import qualified Data.Vector as Vector
 import Data.Aeson.Types
 import Shared.Api.Resource.Project.Comment.ProjectCommentThreadNotificationJM ()
 import Shared.Api.Resource.User.UserDTO
+import Shared.Constant.PersistentCommand
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
@@ -389,7 +390,7 @@ sendEmailWithTenant dto createdBy tenantUuid = do
     uuid <- liftIO generateUuid
     now <- liftIO getCurrentTime
     let body = encodeJsonToString dto
-    let command = toPersistentCommand uuid "mailer" "sendMail" body 10 tenantUuid (Just . U.toString $ createdBy) now
+    let command = toPersistentCommand uuid mailerComponent "sendMail" body 10 tenantUuid (Just . U.toString $ createdBy) now
     insertPersistentCommand command
     return ()
 
