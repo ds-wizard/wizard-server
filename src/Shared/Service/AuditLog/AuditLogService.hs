@@ -15,6 +15,7 @@ import Data.Time
 import qualified Data.UUID as U
 
 import Shared.Api.Resource.User.UserDTO (UserDTO (..))
+import Shared.Constant.PersistentCommand
 import Shared.Database.DAO.AuditLog.AuditLogDAO
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Workspace.WorkspaceDAO
@@ -100,5 +101,5 @@ publishToEventBridge definition auditLog = do
     let action = f' "%s::%s" [auditLog.component, auditLog.action]
     let body = encodeJsonToString AwsEventBridgePutEvents {action = action, actionData = toEventBridgeData auditLog}
     let createdBy = fmap U.toString auditLog.createdByUuid
-    insertPersistentCommand (toPersistentCommand uuid "awsEventBridge" "putEvents" body 10 auditLog.tenantUuid createdBy auditLog.createdAt)
+    insertPersistentCommand (toPersistentCommand uuid awsEventBridgeComponent "putEvents" body 10 auditLog.tenantUuid createdBy auditLog.createdAt)
     return ()

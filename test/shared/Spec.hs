@@ -83,6 +83,7 @@ import Specs.Database.DAO.CommonSpec
 import Specs.Database.DAO.Websocket.WebsocketConnectionDAOSpec
 import Specs.Database.DAO.Websocket.WebsocketOutboxDAOSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
+import Specs.Database.Migration.Production.Migration_5_0_0.MigrationSpec
 import Specs.Database.Migration.Production.PermissionMappingSpec
 import Specs.Integration.Http.Common.ResponseMapperSpec
 import Specs.Integration.Http.Common.SsrfProtectionSpec
@@ -328,8 +329,9 @@ main =
               workspaceAPI serverContext requestContext
             describe "DATABASE" $ do
               describe "Migration" $
-                describe "Production" $
+                describe "Production" $ do
                   migration_4_35_2Spec requestContext
+                  migration_5_0_0Spec requestContext
               websocketConnectionDAOSpec requestContext
               websocketOutboxDAOSpec requestContext
             describe "SERVICE" $ do

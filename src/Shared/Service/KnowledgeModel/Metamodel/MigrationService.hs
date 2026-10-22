@@ -7,6 +7,7 @@ import Data.Aeson
 import Data.Time
 import qualified Data.UUID as U
 
+import Shared.Constant.PersistentCommand
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Database.DAO.Tenant.WizardTenantDAO
 import Shared.Database.DAO.WizardCommon
@@ -26,7 +27,7 @@ migrateToLatestMetamodelVersionCommand tenant mCreatedBy = do
   let dto = MigrateToLatestMetamodelVersionCommand {tenantUuid = tenant.uuid}
   let body = encodeJsonToString dto
   now <- liftIO getCurrentTime
-  let command = toPersistentCommand uuid "metamodel_migrator" "migrate" body 10 tenant.uuid (fmap U.toString mCreatedBy) now
+  let command = toPersistentCommand uuid metamodelMigratorComponent "migrate" body 10 tenant.uuid (fmap U.toString mCreatedBy) now
   insertPersistentCommand command
   void $ updateTenantByUuid (tenant {state = HousekeepingInProgressTenantState, updatedAt = now})
 

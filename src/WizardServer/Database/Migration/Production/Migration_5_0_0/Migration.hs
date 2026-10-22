@@ -5,6 +5,7 @@ module WizardServer.Database.Migration.Production.Migration_5_0_0.Migration (
   addWorkspaceColumn,
   renamePermissionsSql,
   renamePermissionSql,
+  renamePersistentCommandComponents,
   runSql,
 ) where
 
@@ -20,7 +21,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent, skip the persistent commands of the delete triggers when the tenant itself is being deleted"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent, skip the persistent commands of the delete triggers when the tenant itself is being deleted, rename the doc_worker and awsEventBridge persistent command components to document_worker and aws_event_bridge"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -82,6 +83,7 @@ migrateShared dbPool = do
   addMcpPermissionsToAdminRoles dbPool
   setKnowledgeModelEditorEventParents dbPool
   skipPersistentCommandsOfDeletedTenant dbPool
+  renamePersistentCommandComponents dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -1003,6 +1005,14 @@ skipPersistentCommandsOfDeletedTenant dbPool =
     \    RETURN 1; \
     \END; \
     \$$;"
+
+renamePersistentCommandComponents :: Pool Connection -> LoggingT IO ()
+renamePersistentCommandComponents dbPool =
+  runSql
+    dbPool
+    "UPDATE persistent_command \
+    \SET component = CASE component WHEN 'doc_worker' THEN 'document_worker' WHEN 'awsEventBridge' THEN 'aws_event_bridge' END \
+    \WHERE component IN ('doc_worker', 'awsEventBridge');"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

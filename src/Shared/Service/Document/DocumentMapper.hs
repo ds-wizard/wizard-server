@@ -6,6 +6,7 @@ import qualified Data.UUID as U
 import Shared.Api.Resource.Document.DocumentCreateDTO
 import Shared.Api.Resource.Document.DocumentDTO
 import Shared.Api.Resource.User.UserDTO
+import Shared.Constant.PersistentCommand
 import Shared.Model.Document.Document
 import Shared.Model.Document.DocumentContext
 import Shared.Model.Document.DocumentContextJM ()
@@ -141,7 +142,7 @@ toDocPersistentCommand :: U.UUID -> DocumentContext -> Document -> PersistentCom
 toDocPersistentCommand uuid docContext doc =
   toPersistentCommand
     uuid
-    "doc_worker"
+    documentWorkerComponent
     "generateDocument"
     (encodeJsonToString docContext)
     10

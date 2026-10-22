@@ -9,6 +9,7 @@ import qualified Data.List as L
 import Data.Time
 import qualified Data.UUID as U
 
+import Shared.Constant.PersistentCommand
 import Shared.Database.DAO.PersistentCommand.PersistentCommandDAO
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
@@ -19,7 +20,7 @@ import Shared.Service.Project.Cache.ProjectCacheService
 import Shared.Util.Logger
 import Shared.Util.Uuid
 
-cComponent = "project_cache"
+cComponent = projectCacheComponent
 
 execute :: WizardRequestContextC s m => PersistentCommand U.UUID -> m (PersistentCommandState, Maybe String)
 execute command
@@ -38,7 +39,7 @@ cRefresh persistentCommand = do
         then do
           uuid <- liftIO generateUuid
           now <- liftIO getCurrentTime
-          void . insertPersistentCommand $ toPersistentCommand uuid "analytics" "synchronize" persistentCommand.body 10 persistentCommand.tenantUuid persistentCommand.createdBy now
+          void . insertPersistentCommand $ toPersistentCommand uuid analyticsComponent "synchronize" persistentCommand.body 10 persistentCommand.tenantUuid persistentCommand.createdBy now
           return (DonePersistentCommandState, Nothing)
         else return (ErrorPersistentCommandState, Just . L.intercalate "\n" $ failures)
     Left error -> return (ErrorPersistentCommandState, Just $ f' "Problem in deserialization of JSON: %s" [error])
