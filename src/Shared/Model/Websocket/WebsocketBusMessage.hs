@@ -48,6 +48,10 @@ data WebsocketBusMessage
   | AnalyticsEtlFinished
       { tenantUuid :: U.UUID
       }
+  | UserTokensDeleted
+      { tenantUuid :: U.UUID
+      , userTokenUuids :: [U.UUID]
+      }
   deriving (Show, Eq, Generic)
 
 instance ToJSON WebsocketRecipients where
