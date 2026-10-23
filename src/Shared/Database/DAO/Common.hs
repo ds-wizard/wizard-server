@@ -1,7 +1,7 @@
 module Shared.Database.DAO.Common where
 
 import Control.Exception
-import Control.Monad (unless, when)
+import Control.Monad (unless, void, when)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.Reader (ask, liftIO)
 import qualified Data.ByteString.Builder as BSB
@@ -158,6 +158,13 @@ rollbackOpenTransaction :: Connection -> IO ()
 rollbackOpenTransaction connection = do
   status <- withConnection connection LibPQ.transactionStatus
   unless (status == LibPQ.TransIdle) (PostgresTransaction.rollback connection)
+
+setLocalLockTimeout :: RequestContextC s sc m => String -> m ()
+setLocalLockTimeout timeout = do
+  let sql = f' "SET LOCAL lock_timeout = '%s'" [timeout]
+  logInfoI _CMP_DATABASE sql
+  let action conn = execute_ conn (fromString sql)
+  void $ runDB action
 
 createFindEntitiesFn :: (RequestContextC s sc m, FromRow entity) => String -> m [entity]
 createFindEntitiesFn = createFindEntitiesWithFieldsFn "*"

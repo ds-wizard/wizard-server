@@ -5,9 +5,8 @@ import Control.Monad.Reader (MonadIO, liftIO)
 import Data.Aeson
 import qualified Data.Aeson.Key as K
 import Data.Aeson.Types (Parser, parse)
-import Data.ByteArray.Encoding (Base (..), convertFromBase)
+import Data.Bifunctor (first)
 import qualified Data.ByteString.Char8 as BS
-import Data.Char (isSpace)
 import Data.Proxy
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -23,6 +22,7 @@ import Shared.Constant.Mcp
 import Shared.Database.DAO.Common (computeTotalPage, preparePaginationVariables)
 import Shared.Localization.Locale
 import Shared.Localization.Messages.Mcp.Public
+import Shared.Localization.Messages.Public (_ERROR_UTIL_BASE64__INVALID)
 import Shared.Model.Common.Page
 import Shared.Model.Common.PageMetadata
 import Shared.Model.Common.Pageable
@@ -30,6 +30,7 @@ import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Localization.LocaleRecord
 import Shared.Model.Mcp.McpTool
 import Shared.Service.Workspace.WorkspaceScopeService (localScope)
+import Shared.Util.Base64
 import Shared.Util.JsonSchema
 
 data Arguments a = Arguments
@@ -105,16 +106,12 @@ checkTextContent limit name content
   | otherwise = Right (TE.encodeUtf8 content)
 
 decodeBase64Content :: String -> BS.ByteString -> Either LocaleRecord BS.ByteString
-decodeBase64Content name raw
-  | BS.length encoded > (mcpMaxBase64ContentSize `div` 3 + 1) * 4 = Left $ _ERROR_VALIDATION__MCP_BASE64_SIZE name mcpMaxBase64ContentSize
-  | otherwise = either (const . Left $ _ERROR_VALIDATION__MCP_BASE64 name) Right (convertFromBase Base64 encoded)
-  where
-    encoded = BS.filter (not . isSpace) (stripDataUrlPrefix raw)
+decodeBase64Content name = first (toMcpBase64Error name) . decodeBase64WithLimit mcpMaxBase64ContentSize
 
-stripDataUrlPrefix :: BS.ByteString -> BS.ByteString
-stripDataUrlPrefix content
-  | "data:" `BS.isPrefixOf` content, (_, rest) <- BS.breakSubstring ";base64," content, not (BS.null rest) = BS.drop 8 rest
-  | otherwise = content
+toMcpBase64Error :: String -> LocaleRecord -> LocaleRecord
+toMcpBase64Error name error
+  | error == _ERROR_UTIL_BASE64__INVALID = _ERROR_VALIDATION__MCP_BASE64 name
+  | otherwise = _ERROR_VALIDATION__MCP_BASE64_SIZE name mcpMaxBase64ContentSize
 
 decodeText :: BS.ByteString -> String
 decodeText = T.unpack . TE.decodeUtf8With lenientDecode

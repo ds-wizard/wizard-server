@@ -3,6 +3,9 @@ module Shared.Constant.PersistentCommand where
 analyticsComponent :: String
 analyticsComponent = "analytics"
 
+automationComponent :: String
+automationComponent = "automation"
+
 awsEventBridgeComponent :: String
 awsEventBridgeComponent = "aws_event_bridge"
 

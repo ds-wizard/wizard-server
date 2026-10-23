@@ -8,6 +8,7 @@ import Shared.Model.Component.Component
 data InfoDTO = InfoDTO
   { name :: String
   , version :: String
+  , releaseVersion :: String
   , builtAt :: UTCTime
   , components :: [Component]
   , metamodelVersions :: [InfoMetamodelVersionDTO]

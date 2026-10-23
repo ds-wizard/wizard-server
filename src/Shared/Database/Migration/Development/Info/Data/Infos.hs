@@ -9,6 +9,7 @@ infoDTO =
   InfoDTO
     { name = "Engine"
     , version = "1.0.0"
+    , releaseVersion = "1.0.0"
     , builtAt = dt' 2018 1 21
     , components = [mailComponent]
     , metamodelVersions = [infoMetamodelVersionA]

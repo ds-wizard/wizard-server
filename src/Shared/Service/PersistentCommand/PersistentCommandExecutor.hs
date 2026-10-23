@@ -16,6 +16,7 @@ import qualified Shared.Service.MailTemplateLocale.MailTemplateLocaleCommandExec
 import qualified Shared.Service.Prefab.PrefabCommandExecutor as PrefabCommandExecutor
 import qualified Shared.Service.Project.Cache.ProjectCacheCommandExecutor as ProjectCacheCommandExecutor
 import qualified Shared.Service.Project.File.ProjectFileCommandExecutor as ProjectFileCommandExecutor
+import qualified Shared.Service.UserToken.UserTokenCommandExecutor as UserTokenCommandExecutor
 
 components :: [String]
 components =
@@ -29,6 +30,7 @@ components =
   , PrefabCommandExecutor.cComponent
   , ProjectCacheCommandExecutor.cComponent
   , ProjectFileCommandExecutor.cComponent
+  , UserTokenCommandExecutor.cComponent
   ]
 
 execute :: WizardRequestContextC s m => PersistentCommand U.UUID -> m (PersistentCommandState, Maybe String)
@@ -43,4 +45,5 @@ execute command
   | command.component == PrefabCommandExecutor.cComponent = PrefabCommandExecutor.execute command
   | command.component == ProjectCacheCommandExecutor.cComponent = ProjectCacheCommandExecutor.execute command
   | command.component == ProjectFileCommandExecutor.cComponent = ProjectFileCommandExecutor.execute command
+  | command.component == UserTokenCommandExecutor.cComponent = UserTokenCommandExecutor.execute command
   | otherwise = throwError . GeneralServerError $ "Unknown command component: " <> command.component

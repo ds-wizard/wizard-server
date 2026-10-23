@@ -82,6 +82,13 @@ _ERROR_SERVICE_TENANT__LIMIT_EXCEEDED name maxLimit actualLimit =
 -- --------------------------------------
 -- UTIL
 -- --------------------------------------
+-- Base64
+_ERROR_UTIL_BASE64__INVALID =
+  LocaleRecord "error.util.base64.invalid" "The content is not base64" []
+
+_ERROR_UTIL_BASE64__TOO_LARGE limit =
+  LocaleRecord "error.util.base64.too_large" "The decoded content is larger than %s MB" [show (limit `div` (1024 * 1024))]
+
 -- JSON
 _ERROR_UTIL_JSON__VALUE_IS_NOT_OBJECT =
   LocaleRecord
