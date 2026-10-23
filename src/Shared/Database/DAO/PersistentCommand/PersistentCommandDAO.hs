@@ -10,7 +10,6 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.Notification
 import Database.PostgreSQL.Simple.ToField
-import Database.PostgreSQL.Simple.ToRow
 import GHC.Int
 
 import Shared.Database.DAO.Common
@@ -86,9 +85,24 @@ updatePersistentCommandByUuid command = do
   let sql =
         fromString $
           f'
-            "UPDATE %s SET uuid = ?, state = ?, component = ?, function = ?, body = ?, last_error_message = ?, attempts = ?, max_attempts = ?, tenant_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, last_trace_uuid = ? WHERE uuid = ? AND tenant_uuid = ? AND state != 'DonePersistentCommandState'"
+            "UPDATE %s SET uuid = ?, state = ?, component = ?, function = ?, last_error_message = ?, attempts = ?, max_attempts = ?, tenant_uuid = ?, created_by = ?, created_at = ?, updated_at = ?, last_trace_uuid = ? WHERE uuid = ? AND tenant_uuid = ? AND state != 'DonePersistentCommandState'"
             [entityName]
-  let params = toRow command ++ [toField command.uuid, toField command.tenantUuid]
+  let params =
+        [ toField command.uuid
+        , toField command.state
+        , toField command.component
+        , toField command.function
+        , toField command.lastErrorMessage
+        , toField command.attempts
+        , toField command.maxAttempts
+        , toField command.tenantUuid
+        , toField command.createdBy
+        , toField command.createdAt
+        , toField command.updatedAt
+        , toField command.lastTraceUuid
+        , toField command.uuid
+        , toField command.tenantUuid
+        ]
   logQuery sql params
   let action conn = execute conn sql params
   runDB action

@@ -15,6 +15,7 @@ getInfo metamodelVersions = do
     InfoDTO
       { name = buildInfoConfig.name
       , version = buildInfoConfig.version
+      , releaseVersion = buildInfoConfig.releaseVersion
       , builtAt = buildInfoConfig.builtAt
       , components = components
       , metamodelVersions = metamodelVersions

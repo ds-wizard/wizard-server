@@ -1,7 +1,7 @@
 module Shared.Service.UserToken.UserTokenService where
 
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (ask, asks)
 import qualified Data.Cache as C
 import Data.Foldable (traverse_)
 import Data.Maybe (fromJust)
@@ -72,6 +72,20 @@ deleteTokensByTenantUuid
   -> m ()
 deleteTokensByTenantUuid tenantUuid = do
   userTokens <- findUserTokensByTenantUuid tenantUuid
+  traverse_ (\t -> deleteUserTokenByUuidAndTenantUuid t.uuid tenantUuid) userTokens
+
+deleteTokensByUserUuid
+  :: ( RequestContextC s sc m
+     , HasField "cache'" s serverCache
+     , HasField "userToken" serverCache (C.Cache Int UserToken)
+     , HasField "cache'" sc scCache
+     , HasField "dataEnabled'" scCache Bool
+     )
+  => U.UUID
+  -> m ()
+deleteTokensByUserUuid userUuid = do
+  tenantUuid <- asks (.tenantUuid')
+  userTokens <- findUserTokensByUserUuid userUuid
   traverse_ (\t -> deleteUserTokenByUuidAndTenantUuid t.uuid tenantUuid) userTokens
 
 cleanTokens

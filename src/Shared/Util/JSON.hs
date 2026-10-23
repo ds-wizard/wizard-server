@@ -15,6 +15,9 @@ import Shared.Model.Error.Error
 encodeJsonToString :: ToJSON dto => dto -> String
 encodeJsonToString = T.unpack . TE.decodeUtf8 . BSL.toStrict . encode
 
+eitherDecodeFromString :: FromJSON dto => String -> Either String dto
+eitherDecodeFromString = eitherDecode . BSL.fromStrict . TE.encodeUtf8 . T.pack
+
 convertValueToObject value callback =
   case value of
     (Object obj) -> callback obj

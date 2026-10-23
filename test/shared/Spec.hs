@@ -130,6 +130,7 @@ import Specs.Service.Report.ReportGeneratorSpec
 import Specs.Service.Tenant.TenantValidationSpec
 import Specs.Service.TypeHint.TypeHintServiceSpec
 import Specs.Service.User.UserServiceSpec
+import Specs.Service.UserToken.UserTokenCommandExecutorSpec
 import Specs.Service.UserToken.UserTokenServiceSpec
 import Specs.Service.Workspace.CoordinateResolutionSpec
 import Specs.Service.Workspace.WorkspaceScopeServiceSpec
@@ -362,6 +363,7 @@ main =
                 projectCommentServiceSpec requestContext
                 projectServiceSpec requestContext
               userServiceIntegrationSpec requestContext
+              userTokenCommandExecutorSpec requestContext
               userTokenServiceSpec requestContext
               describe "Workspace" $ do
                 coordinateResolutionSpec requestContext

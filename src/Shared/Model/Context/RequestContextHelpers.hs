@@ -1,16 +1,18 @@
 module Shared.Model.Context.RequestContextHelpers where
 
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (asks, local)
 
 import qualified Data.UUID as U
 import Shared.Api.Resource.User.UserDTO
 import Shared.Database.DAO.User.RoleDAO
+import Shared.Database.Migration.Development.User.Data.SystemUser
 import Shared.Localization.Messages.User.Public
 import Shared.Model.Context.WizardRequestContext
 import Shared.Model.Error.Error
 import qualified Shared.Model.User.Role as Role
 import Shared.Model.User.RoleSimple
+import qualified Shared.Service.User.WizardUserMapper as UM
 
 getCurrentUser :: WizardRequestContextC s m => m UserDTO
 getCurrentUser = do
@@ -32,3 +34,6 @@ isCurrentUserAdmin = do
       role <- findRoleByUuid user.role.uuid
       return role.isAdmin
     Nothing -> return False
+
+asSystemUser :: WizardRequestContextC s m => m a -> m a
+asSystemUser = local (setCurrentUser (Just . UM.toDTO $ userSystem))

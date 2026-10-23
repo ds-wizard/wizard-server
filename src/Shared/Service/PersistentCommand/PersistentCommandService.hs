@@ -120,6 +120,9 @@ retryPersistentCommandForLambda command = do
 -- PRIVATE
 -- --------------------------------
 
+sentryBodyLimit :: Int
+sentryBodyLimit = 1000
+
 sendToSentry :: (Show identity, FromField identity, ToField identity, RequestContextC s sc m) => PersistentCommand identity -> m ()
 sendToSentry command =
   captureAppSentryEvent
@@ -135,7 +138,7 @@ sendToSentry command =
           [ ("uuid", String . T.pack . U.toString $ command.uuid)
           , ("attempts", String . T.pack . show $ command.attempts)
           , ("maxAttempts", String . T.pack . show $ command.maxAttempts)
-          , ("body", String . T.pack $ command.body)
+          , ("body", String . T.pack . take sentryBodyLimit $ command.body)
           , ("lastErrorMessage", String . T.pack . fromMaybe "" $ command.lastErrorMessage)
           ]
       , interfaces = toUserInterface (fmap show command.createdBy) Nothing
