@@ -16,6 +16,7 @@ import Shared.Model.Context.RequestContext
 import Shared.Model.TemporaryFile.TemporaryFile
 import Shared.S3.TemporaryFile.TemporaryFileS3
 import Shared.Service.TemporaryFile.TemporaryFileMapper
+import Shared.Util.Http
 import Shared.Util.Logger
 import Shared.Util.String
 import Shared.Util.Uuid
@@ -29,7 +30,7 @@ createTemporaryFile expirationInSeconds fileName contentType mCreatedBy content 
     let escapedFileName = filter isLetterOrDotOrDashOrUnderscore fileName
     let tf = toTemporaryFile uuid escapedFileName contentType expirationInSeconds tenantUuid mCreatedBy now
     insertTemporaryFile tf
-    let contentDisposition = f' "attachment;filename=\"%s\"" [trim fileName]
+    let contentDisposition = attachmentContentDisposition fileName
     putTemporaryFile tf.uuid escapedFileName tf.contentType contentDisposition (BSL.toStrict content)
     presignGetTemporaryFileUrl tf.uuid escapedFileName expirationInSeconds
 
@@ -42,7 +43,7 @@ createTemporaryFileConduit expirationInSeconds fileName contentType mCreatedBy c
     let escapedFileName = filter isLetterOrDotOrDashOrUnderscore fileName
     let tf = toTemporaryFile uuid escapedFileName contentType expirationInSeconds tenantUuid mCreatedBy now
     insertTemporaryFile tf
-    let contentDisposition = f' "attachment;filename=\"%s\"" [trim fileName]
+    let contentDisposition = attachmentContentDisposition fileName
     putTemporaryFileConduit tf.uuid escapedFileName tf.contentType contentDisposition contentAction
     presignGetTemporaryFileUrl tf.uuid escapedFileName expirationInSeconds
 
