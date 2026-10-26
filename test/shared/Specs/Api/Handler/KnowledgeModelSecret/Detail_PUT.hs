@@ -8,7 +8,9 @@ import Network.Wai (Application)
 import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeDTO
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeJM ()
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretDTO
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretJM ()
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Secret.KnowledgeModelSecrets
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelSecretMigration as KMS_Migration
@@ -27,6 +29,7 @@ detail_PUT :: RequestContext -> SpecWith ((), Application)
 detail_PUT requestContext =
   describe "PUT /api/knowledge-model-secrets/{uuid}" $ do
     test_200 requestContext
+    test_200_without_value requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -58,12 +61,32 @@ test_200 requestContext =
     -- WHEN: Call API
     response <- request reqMethod reqUrl reqHeaders reqBody
     -- THEN: Compare response with expectation
-    let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecret)
+    let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecretDTO)
     assertResStatus status expStatus
     assertResHeaders headers expHeaders
     compareKnowledgeModelSecretDtos resDto expDto
     -- AND: Find result in DB and compare with expectation state
     assertExistenceOfKnowledgeModelSecretInDB requestContext kmSecret1Edited
+
+test_200_without_value requestContext =
+  it "HTTP 200 OK (no value keeps the current one)" $ do
+    -- GIVEN: Prepare request
+    let reqBody = encode (reqDto {value = Nothing} :: KnowledgeModelSecretChangeDTO)
+    -- AND: Prepare expectation
+    let expStatus = 200
+    let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
+    let expDto = kmSecret1Edited {value = kmSecret1.value} :: KnowledgeModelSecret
+    -- AND: Run migrations
+    runInContextIO KMS_Migration.runMigration requestContext
+    -- WHEN: Call API
+    response <- request reqMethod reqUrl reqHeaders reqBody
+    -- THEN: Compare response with expectation
+    let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecretDTO)
+    assertResStatus status expStatus
+    assertResHeaders headers expHeaders
+    compareKnowledgeModelSecretDtos resDto expDto
+    -- AND: Find result in DB and compare with expectation state
+    assertExistenceOfKnowledgeModelSecretInDB requestContext expDto
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------

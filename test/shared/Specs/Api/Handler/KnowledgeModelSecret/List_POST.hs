@@ -4,6 +4,7 @@ module Specs.Api.Handler.KnowledgeModelSecret.List_POST (
 
 import Control.Monad (when)
 import Data.Aeson (encode)
+import qualified Data.Map.Strict as M
 import Network.HTTP.Types
 import Network.Wai (Application)
 import Test.Hspec
@@ -12,8 +13,11 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeDTO
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretDTO
 import Shared.Constant.Workspace
+import Shared.Database.DAO.KnowledgeModel.KnowledgeModelSecretDAO
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Secret.KnowledgeModelSecrets
+import Shared.Localization.Messages.Public
 import Shared.Localization.Messages.Workspace.Public
 import Shared.Model.Error.Error
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
@@ -60,13 +64,13 @@ test_200 requestContext =
       -- WHEN: Call API
       response <- request reqMethod (reqUrl <> "?tenant=true") reqHeaders reqBody
       -- THEN: Compare response with expectation
-      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecret)
+      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecretDTO)
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       compareKnowledgeModelSecretDtos resBody reqDto
       liftIO $ resBody.workspaceUuid `shouldBe` Nothing
       -- AND: Compare state in DB with expectation
-      assertExistenceOfKnowledgeModelSecretInDB requestContext reqDto
+      assertExistenceOfKnowledgeModelSecretInDB requestContext kmSecret1Edited
 
 test_201_no_parameter requestContext =
   it "HTTP 201 CREATED (no parameter in a single-workspace tenant)" $
@@ -77,13 +81,13 @@ test_201_no_parameter requestContext =
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation
-      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecret)
+      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecretDTO)
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       compareKnowledgeModelSecretDtos resBody reqDto
       liftIO $ resBody.workspaceUuid `shouldBe` Nothing
       -- AND: Compare state in DB with expectation
-      assertExistenceOfKnowledgeModelSecretInDB requestContext reqDto
+      assertExistenceOfKnowledgeModelSecretInDB requestContext kmSecret1Edited
 
 test_201_workspace requestContext =
   it "HTTP 201 CREATED (workspace plane)" $
@@ -96,7 +100,7 @@ test_201_workspace requestContext =
       -- WHEN: Call API
       response <- request reqMethod (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") reqHeaders reqBody
       -- THEN: Compare response with expectation
-      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecret)
+      let (status, headers, resBody) = destructResponse response :: (Int, ResponseHeaders, KnowledgeModelSecretDTO)
       assertResStatus status expStatus
       assertResHeaders headers expHeaders
       liftIO $ resBody.workspaceUuid `shouldBe` Just defaultWorkspaceUuid
@@ -106,9 +110,28 @@ test_201_workspace requestContext =
 -- ----------------------------------------------------
 test_400 requestContext = do
   createInvalidJsonTest reqMethod reqUrl "name"
+  test_400_without_value requestContext
   create_test_400 "HTTP 400 BAD REQUEST - no plane in a multi-workspace tenant" requestContext True reqUrl _ERROR_SERVICE_WORKSPACE__SCOPE_REQUIRED
   create_test_400 "HTTP 400 BAD REQUEST - w in a single-workspace tenant" requestContext False (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f") _ERROR_SERVICE_WORKSPACE__WORKSPACE_NOT_ACCEPTED
   create_test_400 "HTTP 400 BAD REQUEST - w with tenant=true" requestContext True (reqUrl <> "?w=7a1c8e2f-3b4d-4c5e-9f60-1a2b3c4d5e6f&tenant=true") _ERROR_SERVICE_WORKSPACE__SCOPE_CONFLICT
+
+test_400_without_value requestContext =
+  it "HTTP 400 BAD REQUEST (no value)" $
+    -- GIVEN: Prepare request
+    do
+      let reqBody = encode (reqDto {value = Nothing} :: KnowledgeModelSecretChangeDTO)
+      -- AND: Prepare expectation
+      let expStatus = 400
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode (ValidationError [] (M.singleton "value" [_ERROR_VALIDATION__FIELDS_ABSENCE]))
+      -- WHEN: Call API
+      response <- request reqMethod (reqUrl <> "?tenant=true") reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+      -- AND: Compare state in DB with expectation
+      assertCountInDB findKnowledgeModelSecrets requestContext 0
 
 create_test_400 title requestContext multiWorkspace reqUrl expError =
   it title $
