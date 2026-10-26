@@ -7,9 +7,9 @@ import Shared.Api.Handler.Common
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeDTO
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeJM ()
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretDTO
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretJM ()
 import Shared.Model.Context.TransactionState
-import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretService
 
 type List_POST =
@@ -19,7 +19,7 @@ type List_POST =
     :> "knowledge-model-secrets"
     :> QueryParam "w" U.UUID
     :> QueryParam "tenant" Bool
-    :> Verb 'POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecret)
+    :> Verb 'POST 201 '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecretDTO)
 
 list_POST
   :: WizardHandlerC s sm r rm
@@ -28,7 +28,7 @@ list_POST
   -> KnowledgeModelSecretChangeDTO
   -> Maybe U.UUID
   -> Maybe Bool
-  -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecret)
+  -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecretDTO)
 list_POST mTokenHeader mServerUrl reqDto mW mTenant =
   getScopedAuthServiceExecutor mTokenHeader mServerUrl mW mTenant $ \runInAuthService ->
     runInAuthService Transactional $

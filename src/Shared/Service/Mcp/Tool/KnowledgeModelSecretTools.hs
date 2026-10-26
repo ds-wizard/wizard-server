@@ -90,7 +90,7 @@ updateSecretFromChanges :: WizardRequestContextC s m => Maybe UTCTime -> Object 
 updateSecretFromChanges mExpectedUpdatedAt changes secret = do
   let current = toChangeDTO secret
   changed <- mergeChangesSince secretEntityName mExpectedUpdatedAt secret.updatedAt changes current
-  let unmasked = changed {value = unmaskSecret current.value changed.value} :: KnowledgeModelSecretChangeDTO
+  let unmasked = changed {value = unmaskSecret secret.value <$> changed.value} :: KnowledgeModelSecretChangeDTO
   modifyIfChanged current unmasked (return secret) (modifyKnowledgeModelSecret secret.uuid)
 
 maskKnowledgeModelSecret :: KnowledgeModelSecret -> KnowledgeModelSecret

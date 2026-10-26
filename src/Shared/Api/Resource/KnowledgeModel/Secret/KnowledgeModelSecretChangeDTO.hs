@@ -4,6 +4,6 @@ import GHC.Generics
 
 data KnowledgeModelSecretChangeDTO = KnowledgeModelSecretChangeDTO
   { name :: String
-  , value :: String
+  , value :: Maybe String
   }
   deriving (Show, Eq, Generic)

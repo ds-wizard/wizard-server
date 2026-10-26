@@ -2,6 +2,7 @@ module Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretJM where
 
 import Data.Aeson
 
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretDTO
 import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Util.Aeson
 import Shared.Util.JsonSchema
@@ -14,3 +15,9 @@ instance ToJSON KnowledgeModelSecret where
 
 instance JsonSchema KnowledgeModelSecret where
   jsonSchema = genericJsonSchema jsonOptions
+
+instance FromJSON KnowledgeModelSecretDTO where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON KnowledgeModelSecretDTO where
+  toJSON = genericToJSON jsonOptions

@@ -7,9 +7,9 @@ import Shared.Api.Handler.Common
 import Shared.Api.Handler.WizardCommon
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeDTO
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretChangeJM ()
+import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretDTO
 import Shared.Api.Resource.KnowledgeModel.Secret.KnowledgeModelSecretJM ()
 import Shared.Model.Context.TransactionState
-import Shared.Model.KnowledgeModel.KnowledgeModelSecret
 import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretService
 
 type Detail_PUT =
@@ -18,7 +18,7 @@ type Detail_PUT =
     :> ReqBody '[SafeJSON] KnowledgeModelSecretChangeDTO
     :> "knowledge-model-secrets"
     :> Capture "uuid" U.UUID
-    :> Put '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecret)
+    :> Put '[SafeJSON] (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecretDTO)
 
 detail_PUT
   :: WizardHandlerC s sm r rm
@@ -26,7 +26,7 @@ detail_PUT
   -> Maybe String
   -> KnowledgeModelSecretChangeDTO
   -> U.UUID
-  -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecret)
+  -> sm (Headers '[Header "x-trace-uuid" String] KnowledgeModelSecretDTO)
 detail_PUT mTokenHeader mServerUrl reqDto uuid =
   getAuthServiceExecutor mTokenHeader mServerUrl $ \runInAuthService ->
-    runInAuthService Transactional $ addTraceUuidHeader =<< modifyKnowledgeModelSecret uuid reqDto
+    runInAuthService Transactional $ addTraceUuidHeader =<< modifyKnowledgeModelSecretDto uuid reqDto

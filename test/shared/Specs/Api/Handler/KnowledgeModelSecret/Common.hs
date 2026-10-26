@@ -14,10 +14,9 @@ import Specs.Api.Handler.Common
 assertExistenceOfKnowledgeModelSecretInDB requestContext kmSecret = do
   kmSecretFromDb <- getFirstFromDB findKnowledgeModelSecrets requestContext
   compareKnowledgeModelSecretDtos kmSecretFromDb kmSecret
+  liftIO $ kmSecretFromDb.value `shouldBe` kmSecret.value
 
 -- --------------------------------
 -- COMPARATORS
 -- --------------------------------
-compareKnowledgeModelSecretDtos resDto expDto = do
-  liftIO $ resDto.name `shouldBe` expDto.name
-  liftIO $ resDto.value `shouldBe` expDto.value
+compareKnowledgeModelSecretDtos resDto expDto = liftIO $ resDto.name `shouldBe` expDto.name

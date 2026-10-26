@@ -19,6 +19,7 @@ import Shared.Database.Migration.Development.User.Data.Roles
 import Shared.Database.Migration.Development.User.Data.WizardUsers
 import Shared.Model.User.Role
 import Shared.Model.User.User
+import Shared.Service.KnowledgeModel.Secret.KnowledgeModelSecretMapper
 import Specs.Api.Handler.Workspace.Common
 import WizardServer.Model.Context.RequestContext
 
@@ -57,7 +58,7 @@ test_200 requestContext =
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = [kmSecret1]
+      let expDto = [toDTO kmSecret1]
       let expBody = encode expDto
       -- AND: Run migrations
       runInContextIO KMS.runMigration requestContext
@@ -74,7 +75,7 @@ test_200_workspace_role requestContext =
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expBody = encode [workspaceKmSecret1]
+      let expBody = encode [toDTO workspaceKmSecret1]
       -- AND: Run migrations
       runInContextIO KMS.runMigration requestContext
       insertSecondWorkspace requestContext
@@ -110,7 +111,7 @@ create_test_200_scope title requestContext prepareWorkspace reqUrl expDto =
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expBody = encode expDto
+      let expBody = encode (fmap toDTO expDto)
       -- AND: Run migrations
       runInContextIO KMS.runMigration requestContext
       prepareWorkspace requestContext

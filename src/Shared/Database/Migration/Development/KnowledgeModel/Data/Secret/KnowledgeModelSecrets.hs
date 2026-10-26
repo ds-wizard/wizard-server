@@ -38,7 +38,7 @@ kmSecret1ChangeDTO :: KnowledgeModelSecretChangeDTO
 kmSecret1ChangeDTO =
   KnowledgeModelSecretChangeDTO
     { name = kmSecret1Edited.name
-    , value = kmSecret1Edited.value
+    , value = Just kmSecret1Edited.value
     }
 
 kmSecretDifferent :: KnowledgeModelSecret
