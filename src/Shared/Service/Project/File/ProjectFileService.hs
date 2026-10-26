@@ -29,7 +29,7 @@ import Shared.Service.Project.File.ProjectFileValidation
 import Shared.Service.Project.ProjectAcl
 import qualified Shared.Service.TemporaryFile.TemporaryFileMapper as TemporaryFileMapper
 import Shared.Service.TemporaryFile.TemporaryFileService
-import Shared.Util.String
+import Shared.Util.Http
 import Shared.Util.Uuid
 
 getProjectFilesPage :: WizardRequestContextC s m => Maybe String -> Maybe U.UUID -> Pageable -> [Sort] -> m (Page ProjectFileList)
@@ -67,7 +67,7 @@ cloneProjectFiles oldProjectUuid newProjectUuid = do
           contentAction <- retrieveFileConduitAction oldProjectUuid oldFile.uuid
           newFileUuid <- liftIO generateUuid
           let newFile = oldFile {uuid = newFileUuid, projectUuid = newProjectUuid}
-          let contentDisposition = f' "attachment;filename=\"%s\"" [trim newFile.fileName]
+          let contentDisposition = attachmentContentDisposition newFile.fileName
           insertProjectFile newFile
           putFileConduit newProjectUuid newFile.uuid newFile.contentType contentDisposition contentAction
           return (oldFile, newFile)

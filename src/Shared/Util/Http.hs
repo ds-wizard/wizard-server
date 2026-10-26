@@ -2,13 +2,23 @@ module Shared.Util.Http where
 
 import qualified Data.ByteString.Char8 as BS
 import Data.CaseInsensitive (mk)
+import Data.Char (isAscii, isPrint)
 import Data.List (find)
 import Network.HTTP.Types (Header, Status, urlEncode)
+import qualified Network.URI.Encode as URI
 import Network.Wai (Request (..), Response)
 import Network.Wai.Internal (Response (..))
 
+import Shared.Util.String (f', trim)
+
 encodeUrl :: String -> String
 encodeUrl url = BS.unpack $ urlEncode True (BS.pack url)
+
+attachmentContentDisposition :: String -> String
+attachmentContentDisposition fileName = f' "attachment; filename=\"%s\"; filename*=UTF-8''%s" [filter isFallbackChar name, URI.encode name]
+  where
+    name = trim fileName
+    isFallbackChar c = isAscii c && isPrint c && c /= '"' && c /= '\\'
 
 findHeader :: String -> [Header] -> Maybe String
 findHeader headerNameToFind headers =
