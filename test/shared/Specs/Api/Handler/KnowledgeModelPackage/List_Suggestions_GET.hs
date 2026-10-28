@@ -11,6 +11,7 @@ import Test.Hspec.Wai.Matcher
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Api.Resource.KnowledgeModel.Package.KnowledgeModelPackageSuggestionJM ()
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import qualified Shared.Database.Migration.Development.DocumentTemplate.DocumentTemplateMigration as TML
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import qualified Shared.Database.Migration.Development.KnowledgeModel.KnowledgeModelPackageMigration as KnowledgeModelPackage
@@ -100,6 +101,17 @@ test_200 requestContext = do
     requestContext
     "/api/knowledge-model-packages/suggestions?q=Non-existing Knowledge Model"
     (Page "knowledgeModelPackages" (PageMetadata 20 0 0 0) ([] :: [KnowledgeModelPackageSuggestion]))
+  create_test_200_workspace
+    "HTTP 200 OK (same coordinate in the tenant and the workspace plane)"
+    requestContext
+    "/api/knowledge-model-packages/suggestions?select=org.nl.core-nl:all&sort=version,asc"
+    ( Page
+        "knowledgeModelPackages"
+        (PageMetadata 20 2 1 0)
+        [ toSuggestion netherlandsKmPackageV2
+        , toSuggestion netherlandsWorkspaceKmPackageV3
+        ]
+    )
 
 create_test_200 title requestContext reqUrl expDto =
   it title $
@@ -113,6 +125,24 @@ create_test_200 title requestContext reqUrl expDto =
       runInContextIO KnowledgeModelPackage.runMigration requestContext
       runInContextIO TML.runMigration requestContext
       runInContextIO PRJ.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+create_test_200_workspace title requestContext reqUrl expDto =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U.runMigration requestContext
+      runInContextIO KnowledgeModelPackage.runMigration requestContext
+      runInContextIO (insertPackage netherlandsWorkspaceKmPackageV3) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

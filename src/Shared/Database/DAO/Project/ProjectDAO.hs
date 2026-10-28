@@ -417,6 +417,7 @@ findProjectDetail uuid = do
             \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
+            \       knowledge_model_package.workspace_uuid AS knowledge_model_package_workspace_uuid, \
             \       project.selected_question_tag_uuids, \
             \       project.is_template, \
             \       ${projectDetailPermSql}, \
@@ -454,6 +455,7 @@ findProjectDetailQuestionnaire uuid = do
             \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
+            \       knowledge_model_package.workspace_uuid AS knowledge_model_package_workspace_uuid, \
             \       project.selected_question_tag_uuids, \
             \       project.language, \
             \       project.is_template, \
@@ -496,6 +498,7 @@ findProjectDetailPreview uuid = do
             \       knowledge_model_package.id AS knowledge_model_package_id, \
             \       knowledge_model_package.version AS knowledge_model_package_version, \
             \       knowledge_model_package.description AS knowledge_model_package_description, \
+            \       knowledge_model_package.workspace_uuid AS knowledge_model_package_workspace_uuid, \
             \       project.is_template, \
             \       project.document_template_uuid, \
             \       ${projectDetailPermSql}, \
@@ -573,6 +576,7 @@ findProjectDetailSettings uuid = do
             \              WHERE dt_locale.tenant_uuid = project.tenant_uuid AND dt_locale.document_template_uuid = dt.uuid \
             \              ORDER BY dt_locale.name) nested \
             \       ) AS document_template_locales, \
+            \       dt.workspace_uuid              as document_template_workspace_uuid, \
             \       dt.metamodel_version           as document_template_metamodel_version, \
             \       CASE \
             \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \

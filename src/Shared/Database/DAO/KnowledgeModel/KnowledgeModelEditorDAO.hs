@@ -73,6 +73,7 @@ findKnowledgeModelEditorsPage mQuery pageable sort =
               \       fork_of_package.id AS fork_of_package_id, \
               \       fork_of_package.version AS fork_of_package_version, \
               \       fork_of_package.description, \
+              \       fork_of_package.workspace_uuid AS fork_of_package_workspace_uuid, \
               \       knowledge_model_editor.created_by, \
               \       knowledge_model_editor.created_at, \
               \       GREATEST(knowledge_model_editor.updated_at, (SELECT MAX(created_at) FROM knowledge_model_editor_event WHERE knowledge_model_editor_event.editor_uuid = knowledge_model_editor.uuid AND knowledge_model_editor_event.tenant_uuid = knowledge_model_editor.tenant_uuid)) AS updated_at, \

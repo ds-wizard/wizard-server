@@ -57,7 +57,7 @@ findPackagesPage mId mQuery mOutdated pageable sort = do
 findPackageSuggestionByUuid :: WizardRequestContextC s m => U.UUID -> m KnowledgeModelPackageSuggestion
 findPackageSuggestionByUuid uuid = do
   tenantUuid <- asks (.tenantUuid')
-  createFindEntityWithFieldsByFn "uuid, name, id, version, description" False entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
+  createFindEntityWithFieldsByFn "uuid, name, id, version, description, workspace_uuid" False entityName [tenantQueryUuid tenantUuid, ("uuid", U.toString uuid)]
 
 findPackageSuggestionsPage :: WizardRequestContextC s m => Maybe String -> Maybe [Coordinate] -> Maybe [Coordinate] -> Maybe KnowledgeModelPackagePhase -> Maybe Bool -> Pageable -> [Sort] -> m (Page KnowledgeModelPackageSuggestion)
 findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase mNonEditable pageable sort =
@@ -98,7 +98,8 @@ findPackageSuggestionsPage mQuery mSelectCoordinates mExcludeCoordinates mPhase 
               \       name, \
               \       id, \
               \       version, \
-              \       description \
+              \       description, \
+              \       workspace_uuid \
               \FROM knowledge_model_package outer_package \
               \WHERE tenant_uuid = ? AND concat(id, ':', version, ':', workspace_uuid) IN ( \
               \    SELECT CONCAT(id, ':', \
