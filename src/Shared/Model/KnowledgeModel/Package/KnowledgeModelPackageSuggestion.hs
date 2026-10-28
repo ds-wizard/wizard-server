@@ -9,5 +9,6 @@ data KnowledgeModelPackageSuggestion = KnowledgeModelPackageSuggestion
   , id :: String
   , version :: String
   , description :: String
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Ord, Generic)

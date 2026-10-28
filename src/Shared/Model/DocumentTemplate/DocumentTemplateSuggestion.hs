@@ -21,5 +21,6 @@ data DocumentTemplateSuggestion = DocumentTemplateSuggestion
   , allowedPackages :: [KnowledgeModelPackagePattern]
   , formats :: [DocumentTemplateFormatSimple]
   , locales :: [DocumentTemplateLocaleList]
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

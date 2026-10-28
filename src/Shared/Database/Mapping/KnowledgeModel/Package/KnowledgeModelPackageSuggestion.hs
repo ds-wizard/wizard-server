@@ -12,6 +12,7 @@ instance FromRow KnowledgeModelPackageSuggestion where
     id <- field
     version <- field
     description <- field
+    workspaceUuid <- field
     return $ KnowledgeModelPackageSuggestion {..}
 
 fieldKnowledgeModelPackageSuggestion :: RowParser KnowledgeModelPackageSuggestion
@@ -21,6 +22,7 @@ fieldKnowledgeModelPackageSuggestion = do
   id <- field
   version <- field
   description <- field
+  workspaceUuid <- field
   return KnowledgeModelPackageSuggestion {..}
 
 fieldKnowledgeModelPackageSuggestion' :: RowParser (Maybe KnowledgeModelPackageSuggestion)
@@ -30,6 +32,7 @@ fieldKnowledgeModelPackageSuggestion' = do
   mId <- field
   mVersion <- field
   mDescription <- field
+  workspaceUuid <- field
   case (mUuid, mName, mId, mVersion, mDescription) of
     (Just uuid, Just name, Just id, Just version, Just description) -> return $ Just KnowledgeModelPackageSuggestion {..}
     _ -> return Nothing

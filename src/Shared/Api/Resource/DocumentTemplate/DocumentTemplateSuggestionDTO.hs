@@ -15,5 +15,6 @@ data DocumentTemplateSuggestionDTO = DocumentTemplateSuggestionDTO
   , language :: String
   , formats :: [DocumentTemplateFormatSimple]
   , locales :: [DocumentTemplateLocaleList]
+  , workspaceUuid :: Maybe U.UUID
   }
   deriving (Show, Eq, Generic)

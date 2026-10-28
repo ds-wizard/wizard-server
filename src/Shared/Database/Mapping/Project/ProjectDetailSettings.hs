@@ -73,6 +73,7 @@ instance FromRow ProjectDetailSettings where
     mDocumentTemplateLanguage <- field
     mDocumentTemplateFormats <- fieldWith (optionalField fromJSONField)
     mDocumentTemplateLocales <- fieldWith (optionalField fromJSONField)
+    mDocumentTemplateWorkspaceUuid <- field
     let documentTemplate =
           case (mDocumentTemplateId, mDocumentTemplateName, mDocumentTemplateTemplateId, mDocumentTemplateVersion, mDocumentTemplateDescription, mDocumentTemplateLanguage, mDocumentTemplateFormats, mDocumentTemplateLocales) of
             (Just documentTemplateUuid, Just documentTemplateName, Just documentTemplateTemplateId, Just documentTemplateVersion, Just documentTemplateDescription, Just documentTemplateLanguage, Just documentTemplateFormats, Just documentTemplateLocales) ->
@@ -86,6 +87,7 @@ instance FromRow ProjectDetailSettings where
                   , language = documentTemplateLanguage
                   , formats = documentTemplateFormats
                   , locales = documentTemplateLocales
+                  , workspaceUuid = mDocumentTemplateWorkspaceUuid
                   }
             _ -> Nothing
     let documentTemplatePhase = mDocumentTemplatePhase

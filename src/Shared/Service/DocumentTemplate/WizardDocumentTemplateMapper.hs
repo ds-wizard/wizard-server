@@ -96,6 +96,7 @@ toSuggestionDTO' dt formats locales =
     , language = dt.language
     , formats = fmap STM.toFormatSimple formats
     , locales = locales
+    , workspaceUuid = dt.workspaceUuid
     }
 
 toWithCoordinate :: DocumentTemplate -> DocumentTemplateWithCoordinate

@@ -25,4 +25,5 @@ instance FromRow DocumentTemplateSuggestion where
     allowedPackages <- fieldWith fromJSONField
     formats <- fieldWith fromJSONField
     locales <- fieldWith fromJSONField
+    workspaceUuid <- field
     return $ DocumentTemplateSuggestion {..}

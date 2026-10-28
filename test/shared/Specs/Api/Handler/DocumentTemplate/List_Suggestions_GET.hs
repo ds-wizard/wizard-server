@@ -86,6 +86,12 @@ test_200 requestContext = do
     "/api/document-templates/suggestions?q=Non-existing Project Report"
     reqAuthHeader
     (Page "documentTemplates" (PageMetadata 20 0 0 0) ([] :: [DocumentTemplateSuggestionDTO]))
+  create_test_200_workspace
+    "HTTP 200 OK (workspace template)"
+    requestContext
+    "/api/document-templates/suggestions?q=Workspace Project Report"
+    reqAuthHeader
+    (Page "documentTemplates" (PageMetadata 20 1 1 0) [toSuggestionDTO' workspaceWizardDocumentTemplate [] []])
 
 create_test_200 title requestContext reqUrl reqAuthHeader expDto =
   it title $
@@ -101,6 +107,26 @@ create_test_200 title requestContext reqUrl reqAuthHeader expDto =
       runInContextIO DT_Migration.runMigration requestContext
       runInContextIO R_Migration.runMigration requestContext
       runInContextIO (updateDocumentTemplateById $ wizardDocumentTemplate {allowedPackages = [kmPackagePatternAllEdited]}) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+create_test_200_workspace title requestContext reqUrl reqAuthHeader expDto =
+  it title $
+    -- GIVEN: Prepare request
+    do
+      let reqHeaders = reqHeadersT reqAuthHeader
+      -- AND: Prepare expectation
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expBody = encode expDto
+      -- AND: Run migrations
+      runInContextIO U_Migration.runMigration requestContext
+      runInContextIO DT_Migration.runMigration requestContext
+      runInContextIO (insertDocumentTemplate workspaceWizardDocumentTemplate) requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

@@ -143,7 +143,8 @@ findDocumentTemplatesSuggestions mQuery mNonEditable = do
             \          WHERE dt_locale.tenant_uuid = document_template.tenant_uuid \
             \            AND dt_locale.document_template_uuid = document_template.uuid \
             \          ORDER BY dt_locale.name) nested \
-            \   ) AS document_template_locales \
+            \   ) AS document_template_locales, \
+            \   document_template.workspace_uuid \
             \FROM document_template \
             \WHERE tenant_uuid = ? AND concat(id, ':', version, ':', workspace_uuid) IN ( \
             \    SELECT CONCAT(id, ':', (max(string_to_array(version, '.')::int[]))[1] || '.' || \

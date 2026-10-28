@@ -101,6 +101,7 @@ toSuggestion pkg =
     , id = pkg.id
     , version = pkg.version
     , description = pkg.description
+    , workspaceUuid = pkg.workspaceUuid
     }
 
 toChangeDTO :: KnowledgeModelPackage -> KnowledgeModelPackageChangeDTO
