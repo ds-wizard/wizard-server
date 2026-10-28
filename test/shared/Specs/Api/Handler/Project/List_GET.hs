@@ -35,6 +35,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Project.Common
 import Specs.Api.Handler.Workspace.Common
 import Specs.Common
 
@@ -75,6 +76,13 @@ test_200 requestContext = do
     "/api/projects?sort=uuid,asc&q=pri"
     reqAuthHeader
     (Page "projects" (PageMetadata 20 2 1 0) [project1Dto, project12Dto])
+  create_test_200'
+    "HTTP 200 OK (Admin - same versions released in the workspace)"
+    requestContext
+    "/api/projects?sort=uuid,asc&q=pri"
+    reqAuthHeader
+    (Page "projects" (PageMetadata 20 2 1 0) [project1Dto, project12Dto])
+    (insertSameVersionsInWorkspace requestContext)
   create_test_200
     "HTTP 200 OK (Admin - userUuids)"
     requestContext
@@ -284,6 +292,9 @@ test_200 requestContext = do
     (Page "projects" (PageMetadata 20 5 1 0) [project3Dto, project14Dto, project15Dto, project2Dto, project12Dto])
 
 create_test_200 title requestContext reqUrl reqAuthHeader expDto =
+  create_test_200' title requestContext reqUrl reqAuthHeader expDto (return ())
+
+create_test_200' title requestContext reqUrl reqAuthHeader expDto extraSetup =
   it title $
     -- GIVEN: Prepare request
     do
@@ -300,6 +311,7 @@ create_test_200 title requestContext reqUrl reqAuthHeader expDto =
       runInContextIO (insertProject project12) requestContext
       runInContextIO (insertProject project14) requestContext
       runInContextIO (insertProject project15) requestContext
+      extraSetup
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- THEN: Compare response with expectation

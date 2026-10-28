@@ -121,3 +121,10 @@ workspaceWizardDocumentTemplate =
     , id = "global.project-report-ws"
     , workspaceUuid = Just defaultWorkspaceUuid
     }
+
+wizardDocumentTemplateInWorkspace :: DocumentTemplate
+wizardDocumentTemplateInWorkspace =
+  wizardDocumentTemplate
+    { uuid = u' "4795570f-df11-478f-a997-a61becf20788"
+    , workspaceUuid = Just defaultWorkspaceUuid
+    }

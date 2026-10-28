@@ -202,11 +202,11 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \        filtered_project.created_at, \
               \        filtered_project.updated_at, \
               \        CASE \
-              \          WHEN filtered_project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], filtered_project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
+              \          WHEN pkg.version != (SELECT newest_pkg.version FROM knowledge_model_package newest_pkg WHERE newest_pkg.uuid = get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], filtered_project.workspace_uuid)) THEN 'OutdatedKnowledgeModelProjectState' \
               \          ELSE 'UpToDateKnowledgeModelProjectState' END, \
               \        CASE \
               \          WHEN dt.uuid IS NULL THEN NULL \
-              \          WHEN dt.uuid != (SELECT newest_dt.uuid \
+              \          WHEN dt.version != (SELECT newest_dt.version \
               \                           FROM document_template newest_dt \
               \                           WHERE newest_dt.tenant_uuid = '${tenantUuid}' \
               \                             AND newest_dt.id = dt.id \
@@ -214,8 +214,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \                             AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = filtered_project.workspace_uuid) \
               \                           ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
               \                                    split_part(newest_dt.version, '.', 2)::int DESC, \
-              \                                    split_part(newest_dt.version, '.', 3)::int DESC, \
-              \                                    newest_dt.workspace_uuid IS NOT NULL DESC \
+              \                                    split_part(newest_dt.version, '.', 3)::int DESC \
               \                           LIMIT 1) THEN 'OutdatedDocumentTemplateProjectState' \
               \          ELSE 'UpToDateDocumentTemplateProjectState' END, \
               \        pkg.uuid, \
@@ -579,11 +578,11 @@ findProjectDetailSettings uuid = do
             \       dt.workspace_uuid              as document_template_workspace_uuid, \
             \       dt.metamodel_version           as document_template_metamodel_version, \
             \       CASE \
-            \         WHEN project.knowledge_model_package_uuid != get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid) THEN 'OutdatedKnowledgeModelProjectState' \
+            \         WHEN pkg.version != (SELECT newest_pkg.version FROM knowledge_model_package newest_pkg WHERE newest_pkg.uuid = get_newest_knowledge_model_package(pkg.id, '${tenantUuid}', ARRAY['ReleasedKnowledgeModelPackagePhase'], project.workspace_uuid)) THEN 'OutdatedKnowledgeModelProjectState' \
             \         ELSE 'UpToDateKnowledgeModelProjectState' END as knowledge_model_state, \
             \       CASE \
             \         WHEN dt.uuid IS NULL THEN NULL \
-            \         WHEN dt.uuid != (SELECT newest_dt.uuid \
+            \         WHEN dt.version != (SELECT newest_dt.version \
             \                          FROM document_template newest_dt \
             \                          WHERE newest_dt.tenant_uuid = '${tenantUuid}' \
             \                            AND newest_dt.id = dt.id \
@@ -591,8 +590,7 @@ findProjectDetailSettings uuid = do
             \                            AND (newest_dt.workspace_uuid IS NULL OR newest_dt.workspace_uuid = project.workspace_uuid) \
             \                          ORDER BY split_part(newest_dt.version, '.', 1)::int DESC, \
             \                                   split_part(newest_dt.version, '.', 2)::int DESC, \
-            \                                   split_part(newest_dt.version, '.', 3)::int DESC, \
-            \                                   newest_dt.workspace_uuid IS NOT NULL DESC \
+            \                                   split_part(newest_dt.version, '.', 3)::int DESC \
             \                          LIMIT 1) THEN 'OutdatedDocumentTemplateProjectState' \
             \         ELSE 'UpToDateDocumentTemplateProjectState' END as document_template_state, \
             \       ( \

@@ -42,6 +42,7 @@ import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Api.Handler.Project.Common
 import Specs.Common
 
 -- ------------------------------------------------------------------------
@@ -125,6 +126,14 @@ test_200 requestContext = do
     [project1AlbertEditProjectPermDto]
     (runInContextIO deleteDocumentTemplateLocales requestContext)
     []
+  create_test_200'
+    "HTTP 200 OK (same versions released in the workspace)"
+    requestContext
+    project1
+    [reqAuthHeader]
+    [project1AlbertEditProjectPermDto]
+    (insertSameVersionsInWorkspace requestContext)
+    [czechWizardDocumentTemplateLocaleList]
 
 create_test_200 title requestContext project authHeader permissions =
   create_test_200' title requestContext project authHeader permissions (return ()) [czechWizardDocumentTemplateLocaleList]
