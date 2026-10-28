@@ -7,9 +7,13 @@ import Test.Hspec.Wai hiding (shouldRespondWith)
 
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.Tenant
+import Shared.Database.DAO.DocumentTemplate.DocumentTemplateDAO
+import Shared.Database.DAO.Package.KnowledgeModelPackageDAO
 import Shared.Database.DAO.Project.ProjectDAO
 import Shared.Database.DAO.Project.ProjectEventDAO
 import Shared.Database.DAO.Settings.SettingsProjectsDAO
+import Shared.Database.Migration.Development.DocumentTemplate.Data.DocumentTemplates
+import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Settings.Data.Settings
 import Shared.Database.Migration.Development.Tenant.Data.WizardTenants
 import Shared.Localization.Messages.Public
@@ -19,6 +23,13 @@ import Shared.Model.Settings.Settings
 import Shared.Model.Tenant.Tenant
 
 import Specs.Common
+
+-- --------------------------------
+-- FIXTURES
+-- --------------------------------
+insertSameVersionsInWorkspace requestContext = do
+  runInContextIO (insertPackage germanyKmPackageInWorkspace) requestContext
+  runInContextIO (insertDocumentTemplate wizardDocumentTemplateInWorkspace) requestContext
 
 -- --------------------------------
 -- ASSERTS

@@ -316,3 +316,10 @@ netherlandsWorkspaceKmPackageV3 =
     , previousPackageUuid = Nothing
     , workspaceUuid = Just defaultWorkspaceUuid
     }
+
+germanyKmPackageInWorkspace :: KnowledgeModelPackage
+germanyKmPackageInWorkspace =
+  germanyKmPackage
+    { uuid = u' "fd58deef-fee9-463f-a4ba-117d6fd27558"
+    , workspaceUuid = Just defaultWorkspaceUuid
+    }

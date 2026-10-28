@@ -103,6 +103,7 @@ createGetNewestPackageFn = do
         "CREATE OR REPLACE FUNCTION get_newest_knowledge_model_package(req_id varchar, req_tenant_uuid uuid, req_phase varchar[], req_workspace_uuid uuid) \
         \    RETURNS uuid \
         \    LANGUAGE plpgsql \
+        \    STABLE \
         \AS \
         \$$ \
         \DECLARE \
