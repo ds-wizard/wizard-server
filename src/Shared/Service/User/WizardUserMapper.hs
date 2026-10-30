@@ -11,6 +11,8 @@ import Shared.Api.Resource.Tenant.TenantCreateDTO
 import Shared.Api.Resource.User.UserChangeDTO
 import Shared.Api.Resource.User.UserCreateDTO
 import Shared.Api.Resource.User.UserDTO
+import Shared.Api.Resource.User.UserDetailDTO
+import Shared.Api.Resource.User.UserOpenIdIdentityDTO
 import Shared.Model.User.OnlineUserInfo
 import Shared.Model.User.User
 import Shared.Model.User.UserGroupMembership
@@ -38,6 +40,27 @@ toDTO user =
     , updatedAt = user.updatedAt
     , emailVerifiedAt = user.emailVerifiedAt
     , emailPending = user.emailPending
+    }
+
+toUserDetailDTO :: User -> [UserOpenIdIdentityDTO] -> UserDetailDTO
+toUserDetailDTO user externalIdentities =
+  UserDetailDTO
+    { uuid = user.uuid
+    , firstName = user.firstName
+    , lastName = user.lastName
+    , email = user.email
+    , affiliation = user.affiliation
+    , role = user.role
+    , active = user.active
+    , imageUrl = user.imageUrl
+    , locale = user.locale
+    , lastSeenNewsId = user.lastSeenNewsId
+    , emailVerifiedAt = user.emailVerifiedAt
+    , emailPending = user.emailPending
+    , externalIdentities = externalIdentities
+    , lastVisitedAt = user.lastVisitedAt
+    , createdAt = user.createdAt
+    , updatedAt = user.updatedAt
     }
 
 toUserProfile :: UserDTO -> [U.UUID] -> M.Map U.UUID A.Value -> M.Map U.UUID RoleSimple -> UserProfile
