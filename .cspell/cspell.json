@@ -1,5 +1,6 @@
 {
-  "ignorePaths": ["**/test/shared/Specs/Util/Data/**"],
+  "ignorePaths": ["**/test/shared/Specs/Util/Data/**", "**/test/shared/Fixtures/**"],
+  "ignoreRegExpList": ["sha256:[0-9a-f]{64}"],
   "dictionaries": ["haskell", "lorem-ipsum", "custom-dictionary"],
     "dictionaryDefinitions": [
         {
