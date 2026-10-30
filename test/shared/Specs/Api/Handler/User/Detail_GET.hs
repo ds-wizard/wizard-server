@@ -9,12 +9,21 @@ import Test.Hspec
 import Test.Hspec.Wai hiding (shouldRespondWith)
 import Test.Hspec.Wai.Matcher
 
+import Shared.Api.Resource.User.UserDetailJM ()
+import Shared.Api.Resource.User.UserOpenIdIdentityDTO
+import Shared.Database.DAO.User.UserOpenIdIdentityDAO
+import qualified Shared.Database.Migration.Development.OpenId.OpenIdClientMigration as OpenIdClient
+import Shared.Database.Migration.Development.User.Data.UserOpenIdIdentities
 import Shared.Database.Migration.Development.User.Data.WizardUsers
+import qualified Shared.Database.Migration.Development.User.UserMigration as U
+import Shared.Model.User.User
+import Shared.Service.User.UserOpenIdIdentityMapper (fromCreate)
 import Shared.Service.User.WizardUserMapper
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
 import Specs.Api.Handler.Common
+import Specs.Common
 
 -- ------------------------------------------------------------------------
 -- GET /api/users/{uuid}
@@ -23,6 +32,7 @@ detail_GET :: RequestContext -> SpecWith ((), Application)
 detail_GET requestContext =
   describe "GET /api/users/{uuid}" $ do
     test_200 requestContext
+    test_200_with_identity requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -47,8 +57,34 @@ test_200 requestContext =
     do
       let expStatus = 200
       let expHeaders = resCtHeader : resCorsHeaders
-      let expDto = toDTO userAlbert
+      let expDto = toUserDetailDTO userAlbert []
       let expBody = encode expDto
+      -- AND: Prepare database
+      runInContextIO U.runMigration requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- AND: Compare response with expectation
+      let responseMatcher =
+            ResponseMatcher {matchHeaders = expHeaders, matchStatus = expStatus, matchBody = bodyEquals expBody}
+      response `shouldRespondWith` responseMatcher
+
+test_200_with_identity requestContext =
+  it "HTTP 200 OK (with external identity)" $
+    -- GIVEN: Prepare expectation
+    do
+      let identityDto = defaultUserOpenIdIdentityDto
+      let expStatus = 200
+      let expHeaders = resCtHeader : resCorsHeaders
+      let expDto = toUserDetailDTO userAlbert [identityDto]
+      let expBody = encode expDto
+      -- AND: Prepare database
+      runInContextIO U.runMigration requestContext
+      runInContextIO OpenIdClient.runMigration requestContext
+      runInContextIO
+        ( insertUserOpenIdIdentity
+            (fromCreate identityDto.uuid identityDto.externalId identityDto.externalLabel userAlbert.uuid identityDto.providerUuid userAlbert.tenantUuid identityDto.createdAt)
+        )
+        requestContext
       -- WHEN: Call API
       response <- request reqMethod reqUrl reqHeaders reqBody
       -- AND: Compare response with expectation

@@ -10,6 +10,7 @@ import Shared.Api.Resource.Auth.AuthConsentDTO
 import Shared.Api.Resource.User.UserChangeDTO
 import Shared.Api.Resource.User.UserCreateDTO
 import Shared.Api.Resource.User.UserDTO
+import Shared.Api.Resource.User.UserDetailDTO
 import Shared.Api.Resource.User.UserPasswordDTO
 import Shared.Api.Resource.UserEmailLink.UserEmailLinkDTO
 import Shared.Api.Resource.UserToken.UserTokenDTO
@@ -193,6 +194,13 @@ getUserDetailById :: WizardRequestContextC s m => U.UUID -> m UserDTO
 getUserDetailById userUuid = do
   checkPermission _USERS_MANAGE_ROLE_PERMISSION
   getUserById userUuid
+
+getUserDetailWithIdentitiesById :: WizardRequestContextC s m => U.UUID -> m UserDetailDTO
+getUserDetailWithIdentitiesById userUuid = do
+  checkPermission _USERS_MANAGE_ROLE_PERMISSION
+  user <- findUserByUuid userUuid
+  identities <- findUserOpenIdIdentityListsByUserUuid userUuid
+  return $ toUserDetailDTO user (fmap UserOpenIdIdentityMapper.toDTO identities)
 
 modifyUser :: WizardRequestContextC s m => U.UUID -> UserChangeDTO -> m UserDTO
 modifyUser userUuid reqDto =
