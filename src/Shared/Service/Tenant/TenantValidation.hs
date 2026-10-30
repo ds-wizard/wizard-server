@@ -26,7 +26,7 @@ validateTenantCreateDTO reqDto isAdmin = do
   validateTenantId reqDto.tenantId
 
 validatePublicRegistrationEnabled :: WizardRequestContextC s m => m ()
-validatePublicRegistrationEnabled = checkIfServerFeatureIsEnabled "Tenant Registration" (\s -> s.cloud.publicRegistrationEnabled)
+validatePublicRegistrationEnabled = checkIfServerFeatureIsEnabled "Tenant Registration" (\s -> s.multiTenancy.publicRegistrationEnabled)
 
 validateTenantId :: WizardRequestContextC s m => String -> m ()
 validateTenantId tenantId = do

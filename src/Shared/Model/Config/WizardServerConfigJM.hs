@@ -32,9 +32,8 @@ instance FromJSON ServerConfig where
     websocket <- o .:? "websocket" .!= defaultWebsocket
     userToken <- o .:? "userToken" .!= defaultUserToken
     userRegistration <- o .:? "userRegistration" .!= defaultUserRegistration
-    analyticalMails <- o .:? "analyticalMails" .!= defaultAnalyticalMails
     logging <- o .:? "logging" .!= defaultLogging
-    cloud <- o .:? "cloud" .!= defaultCloud
+    multiTenancy <- o .:? "multiTenancy" .!= defaultMultiTenancy
     persistentCommand <- o .:? "persistentCommand" .!= defaultPersistentCommand
     admin <- o .:? "admin" .!= defaultAdmin
     registry <- o .:? "registry" .!= defaultRegistry
@@ -139,7 +138,6 @@ instance FromJSON ServerConfigUserToken where
 instance FromJSON ServerConfigAdmin where
   parseJSON (Object o) = do
     enabled <- o .:? "enabled" .!= defaultAdmin.enabled
-    serverUrl <- o .:? "serverUrl" .!= defaultAdmin.serverUrl
     return ServerConfigAdmin {..}
   parseJSON _ = mzero
 

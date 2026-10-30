@@ -65,14 +65,6 @@ instance FromEnv ServerConfigSentry where
       , \c -> applyStringEnvVariable "SENTRY_ENVIRONMENT" c.environment (\x -> c {environment = x} :: ServerConfigSentry)
       ]
 
-instance FromEnv ServerConfigAnalyticalMails where
-  applyEnv serverConfig =
-    applyEnvVariables
-      serverConfig
-      [ \c -> applyEnvVariable "ANALYTICAL_MAILS_ENABLED" c.enabled (\x -> c {enabled = x} :: ServerConfigAnalyticalMails)
-      , \c -> applyStringEnvVariable "ANALYTICAL_MAILS_EMAIL" c.email (\x -> c {email = x})
-      ]
-
 instance FromEnv ServerConfigLogging where
   applyEnv serverConfig =
     applyEnvVariables
@@ -82,13 +74,13 @@ instance FromEnv ServerConfigLogging where
       , \c -> applyEnvVariable "LOGGING_WEBSOCKET_DEBUG" c.websocketDebug (\x -> c {websocketDebug = x})
       ]
 
-instance FromEnv ServerConfigCloud where
+instance FromEnv ServerConfigMultiTenancy where
   applyEnv serverConfig =
     applyEnvVariables
       serverConfig
-      [ \c -> applyEnvVariable "CLOUD_ENABLED" c.enabled (\x -> c {enabled = x} :: ServerConfigCloud)
-      , \c -> applyMaybeStringEnvVariable "CLOUD_DOMAIN" c.domain (\x -> c {domain = x})
-      , \c -> applyEnvVariable "CLOUD_PUBLIC_REGISTRATION_ENABLED" c.publicRegistrationEnabled (\x -> c {publicRegistrationEnabled = x})
+      [ \c -> applyEnvVariable "MULTI_TENANCY_ENABLED" c.enabled (\x -> c {enabled = x} :: ServerConfigMultiTenancy)
+      , \c -> applyMaybeStringEnvVariable "MULTI_TENANCY_DOMAIN" c.domain (\x -> c {domain = x})
+      , \c -> applyEnvVariable "MULTI_TENANCY_PUBLIC_REGISTRATION_ENABLED" c.publicRegistrationEnabled (\x -> c {publicRegistrationEnabled = x})
       ]
 
 instance FromEnv ServerConfigPersistentCommand where

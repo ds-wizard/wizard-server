@@ -16,13 +16,6 @@ import Specs.Common
 
 mailerIntegrationSpec requestContext =
   describe "Mailer Integration" $ do
-    it "Sends the analytics mail as one" $ do
-      -- GIVEN: Prepare expectation
-      let expectation = [("registrationCreatedAnalytics", True)]
-      -- WHEN:
-      runInContextIO (sendRegistrationCreatedAnalyticsMail userAlbert) requestContext
-      -- THEN:
-      sendAsOneFlags requestContext `shouldReturn` expectation
     it "Sends a user mail per recipient" $ do
       -- GIVEN: Prepare expectation
       let expectation = [("registrationConfirmation", False)]

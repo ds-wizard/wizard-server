@@ -18,8 +18,6 @@ import Shared.Database.DAO.Settings.SettingsLookAndFeelDAO
 import Shared.Database.DAO.Tenant.Config.TenantConfigMailDAO
 import Shared.Database.DAO.User.UserDAO
 import Shared.Database.DAO.WizardCommon
-import Shared.Model.Config.ServerConfig
-import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.RequestContextHelpers
 import Shared.Model.Context.WizardRequestContext
 import qualified Shared.Model.PersistentCommand.Mail.MailCommand as MC
@@ -61,37 +59,6 @@ sendRegistrationConfirmationMail user hash clientUrl =
                   , ("userLastName", A.string user.lastName)
                   , ("userEmail", A.string user.email)
                   , ("hash", A.string hash)
-                  , ("clientUrl", A.string clientUrl)
-                  , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
-                  , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)
-                  , ("primaryColor", A.maybeString tcLookAndFeel.primaryColor)
-                  , ("supportEmail", A.maybeString tcSupport.supportEmail)
-                  , ("mailConfigUuid", A.maybeUuid tcMail.configUuid)
-                  , ("mailCustomTemplates", A.bool tcMail.customTemplates)
-                  ]
-            }
-    sendEmailWithTenant body user.uuid user.tenantUuid
-
-sendRegistrationCreatedAnalyticsMail :: WizardRequestContextC s m => User -> m ()
-sendRegistrationCreatedAnalyticsMail user =
-  runInTransaction $ do
-    serverConfig <- asks (.serverConfig')
-    tcSupport <- getEffectiveSettingsSupport Nothing
-    tcLookAndFeel <- getCurrentSettings findSettingsLookAndFeel
-    tcMail <- findTenantConfigMail
-    clientUrl <- getClientUrl
-    let body =
-          MC.MailCommand
-            { mode = "wizard"
-            , template = "registrationCreatedAnalytics"
-            , recipients = [MC.MailRecipient {uuid = Nothing, email = serverConfig.analyticalMails.email}]
-            , sendAsOne = True
-            , parameters =
-                M.fromList
-                  [ ("userUuid", A.uuid user.uuid)
-                  , ("userFirstName", A.string user.firstName)
-                  , ("userLastName", A.string user.lastName)
-                  , ("userEmail", A.string user.email)
                   , ("clientUrl", A.string clientUrl)
                   , ("appTitle", A.maybeString tcLookAndFeel.appTitle)
                   , ("logoUrl", A.maybeString tcLookAndFeel.logoUrl)

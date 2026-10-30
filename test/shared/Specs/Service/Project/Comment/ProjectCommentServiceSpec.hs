@@ -35,7 +35,7 @@ projectCommentServiceSpec requestContext =
     it "sendNotificationToNewAssignees sends the workspace and the tenant client URL to the mailer" $
       -- GIVEN:
       do
-        let context = cloudRequestContext requestContext
+        let context = multiTenantRequestContext requestContext
         runInContextIO U_Migration.runMigration context
         runInContextIO TML_Migration.runMigration context
         runInContextIO PRJ_Migration.runMigration context
@@ -50,11 +50,11 @@ projectCommentServiceSpec requestContext =
         ((firstNotification =<< parameters) >>= KM.lookup "workspaceUuid") `shouldBe` Just (String . T.pack . U.toString $ project1.workspaceUuid)
         (parameters >>= KM.lookup "clientUrl") `shouldBe` Just (String . T.pack $ defaultTenant.clientUrl)
 
-cloudRequestContext :: RequestContext -> RequestContext
-cloudRequestContext requestContext =
+multiTenantRequestContext :: RequestContext -> RequestContext
+multiTenantRequestContext requestContext =
   let config = requestContext.serverConfig
-      cloudConfig = config.cloud {enabled = True} :: ServerConfigCloud
-   in requestContext {serverConfig = (config {cloud = cloudConfig}) :: ServerConfig} :: RequestContext
+      multiTenancyConfig = config.multiTenancy {enabled = True} :: ServerConfigMultiTenancy
+   in requestContext {serverConfig = (config {multiTenancy = multiTenancyConfig}) :: ServerConfig} :: RequestContext
 
 mailParameters :: PersistentCommand U.UUID -> Maybe (KM.KeyMap Value)
 mailParameters command =

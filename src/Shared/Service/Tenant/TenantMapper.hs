@@ -115,7 +115,7 @@ tenantServerUrl :: HasField "serverUrl" entity String => entity -> String
 tenantServerUrl entity = f' "%s%s" [entity.serverUrl, apiPrefix]
 
 createServerDomain :: ServerConfig -> String -> String
-createServerDomain serverConfig tenantId = f' "%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]
+createServerDomain serverConfig tenantId = f' "%s.%s" [tenantId, fromMaybe "" serverConfig.multiTenancy.domain]
 
 createUrl :: ServerConfig -> String -> String
-createUrl serverConfig tenantId = f' "https://%s.%s" [tenantId, fromMaybe "" serverConfig.cloud.domain]
+createUrl serverConfig tenantId = f' "https://%s.%s" [tenantId, fromMaybe "" serverConfig.multiTenancy.domain]

@@ -8,7 +8,6 @@ import Shared.Api.Handler.Token.List_Current_DELETE
 import Shared.Api.Handler.Token.List_DELETE
 import Shared.Api.Handler.Token.List_GET
 import Shared.Api.Handler.Token.List_POST
-import Shared.Api.Handler.Token.List_System_POST
 import Shared.Api.Handler.WizardCommon
 
 type TokenAPI =
@@ -19,14 +18,6 @@ type TokenAPI =
            :<|> List_Current_DELETE
            :<|> Detail_DELETE
        )
-
-type TokenSystemAPI = Tags "Token" :> List_System_POST
-
-tokenSystemApi :: Proxy TokenSystemAPI
-tokenSystemApi = Proxy
-
-tokenSystemServer :: WizardHandlerC s sm r rm => ServerT TokenSystemAPI sm
-tokenSystemServer = list_system_POST
 
 tokenApi :: Proxy TokenAPI
 tokenApi = Proxy
