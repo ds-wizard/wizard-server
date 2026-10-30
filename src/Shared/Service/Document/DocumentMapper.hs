@@ -1,5 +1,7 @@
 module Shared.Service.Document.DocumentMapper where
 
+import Data.Aeson
+import qualified Data.Aeson.KeyMap as KM
 import Data.Time
 import qualified Data.UUID as U
 
@@ -19,6 +21,7 @@ import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Model.Project.Project
 import Shared.Model.Project.ProjectSimple
 import Shared.Model.Submission.SubmissionList
+import Shared.Model.Tenant.Limit.TenantLimitBundleChange
 import Shared.Service.DocumentTemplate.WizardDocumentTemplateMapper
 import Shared.Service.PersistentCommand.PersistentCommandMapper
 import Shared.Util.JSON
@@ -138,14 +141,20 @@ previewSourceName :: PreviewSource -> String
 previewSourceName (ProjectPreviewSource project) = trim project.name
 previewSourceName (KnowledgeModelEditorPreviewSource editor) = trim editor.name
 
-toDocPersistentCommand :: U.UUID -> DocumentContext -> Document -> PersistentCommand U.UUID
-toDocPersistentCommand uuid docContext doc =
+toDocPersistentCommand :: U.UUID -> DocumentContext -> TenantLimitBundleChange -> Document -> PersistentCommand U.UUID
+toDocPersistentCommand uuid docContext limits doc =
   toPersistentCommand
     uuid
     documentWorkerComponent
     "generateDocument"
-    (encodeJsonToString docContext)
+    (encodeJsonToString (toDocCommandBody docContext limits))
     10
     doc.tenantUuid
     doc.createdBy
     doc.createdAt
+
+toDocCommandBody :: DocumentContext -> TenantLimitBundleChange -> Value
+toDocCommandBody docContext limits =
+  case toJSON docContext of
+    Object o -> Object (KM.insert "limits" (object ["storage" .= limits.storage]) o)
+    value -> value

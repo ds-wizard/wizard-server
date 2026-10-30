@@ -19,11 +19,13 @@ import qualified Shared.Database.Migration.Development.DocumentTemplate.Document
 import Shared.Database.Migration.Development.KnowledgeModel.Data.Package.KnowledgeModelPackages
 import Shared.Database.Migration.Development.Project.Data.Projects
 import qualified Shared.Database.Migration.Development.Project.ProjectMigration as PRJ
+import Shared.Database.Migration.Development.Tenant.Data.WizardTenantLimitBundles
 import qualified Shared.Database.Migration.Development.User.UserMigration as USR
 import Shared.Model.Common.Lens
 import Shared.Model.Document.DocumentContext
 import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Model.Project.Event.ProjectEventLenses ()
+import Shared.Model.Tenant.Limit.TenantLimitBundle
 import Shared.Service.Document.Context.DocumentContextService
 import Shared.Service.Document.DocumentService
 import WizardServer.Model.Context.RequestContext
@@ -34,7 +36,7 @@ import Specs.Common
 documentServiceSpec requestContext =
   describe "DocumentService" $
     describe "createDocument" $
-      it "queues the worker command with the document context" $ do
+      it "queues the worker command with the document context and the tenant limits" $ do
         runInContextIO USR.runMigration requestContext
         runInContextIO TML.runMigration requestContext
         runInContextIO PRJ.runMigration requestContext
@@ -56,3 +58,4 @@ documentServiceSpec requestContext =
         jsonKeys (jsonField "documentTemplate" document) `shouldBe` L.sort ["uuid", "id", "version", "workspaceUuid"]
         jsonKeys (jsonField "format" document) `shouldBe` L.sort ["uuid", "name"]
         jsonField "createdBy" document `shouldNotBe` Null
+        jsonField "storage" (jsonField "limits" body) `shouldBe` toJSON defaultTenantLimitBundle.storage
