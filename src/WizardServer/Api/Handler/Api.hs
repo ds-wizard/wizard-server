@@ -80,7 +80,6 @@ type ApplicationAPI =
     :<|> SubmissionAPI
     :<|> TenantAPI
     :<|> TokenAPI
-    :<|> TokenSystemAPI
     :<|> TypeHintAPI
     :<|> UserAPI
     :<|> UserEmailLinkAPI
@@ -127,7 +126,6 @@ applicationServer =
     :<|> submissionServer
     :<|> tenantServer
     :<|> tokenServer
-    :<|> tokenSystemServer
     :<|> typeHintServer
     :<|> userServer
     :<|> userEmailLinkServer

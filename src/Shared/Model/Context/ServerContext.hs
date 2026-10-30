@@ -18,7 +18,7 @@ class
   ( HasField "dbPool'" context (Pool Connection)
   , HasField "s3Client'" context MinioConn
   , HasField "serverConfig'" context sc
-  , HasField "cloud'" sc ServerConfigCloud
+  , HasField "multiTenancy'" sc ServerConfigMultiTenancy
   , HasField "s3'" sc ServerConfigS3
   , HasField "sentry'" sc ServerConfigSentry
   , HasField "serverPort'" sc Int

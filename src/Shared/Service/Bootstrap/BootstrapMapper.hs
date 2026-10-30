@@ -19,7 +19,7 @@ import Shared.Service.Tenant.TenantMapper (tenantServerUrl)
 toPrivacyDTO :: Maybe String -> Maybe String -> BootstrapPrivacyDTO
 toPrivacyDTO privacyUrl termsOfServiceUrl = BootstrapPrivacyDTO {privacyUrl = privacyUrl, termsOfServiceUrl = termsOfServiceUrl}
 
-toCloudDTO :: ServerConfigCloud -> Tenant -> BootstrapCloudDTO
+toCloudDTO :: ServerConfigMultiTenancy -> Tenant -> BootstrapCloudDTO
 toCloudDTO serverConfig tenant = BootstrapCloudDTO {enabled = serverConfig.enabled, serverUrl = tenantServerUrl tenant}
 
 toBootstrapPlugins :: Bool -> [PluginList] -> M.Map U.UUID A.Value -> BootstrapPlugins

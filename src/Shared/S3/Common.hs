@@ -233,7 +233,7 @@ makeBucketPublicReadOnly = do
   bucketName <- getBucketName
   context <- ask
   let resource =
-        if context.serverConfig'.cloud'.enabled
+        if context.serverConfig'.multiTenancy'.enabled
           then f' "arn:aws:s3:::%s/%s/public/*" [bucketName, U.toString context.tenantUuid']
           else f' "arn:aws:s3:::%s/public/*" [bucketName]
   logInfoI _CMP_S3 (f' "Make bucket public for read-only access: '%s'" [resource])
@@ -320,14 +320,14 @@ getBucketName = do
 sanitizeObject :: RequestContextC s sc m => String -> m String
 sanitizeObject object = do
   context <- ask
-  if context.serverConfig'.cloud'.enabled && not (U.toString context.tenantUuid' `L.isPrefixOf` object)
+  if context.serverConfig'.multiTenancy'.enabled && not (U.toString context.tenantUuid' `L.isPrefixOf` object)
     then return $ U.toString context.tenantUuid' ++ "/" ++ object
     else return object
 
 sanitizeObjectWithTenant :: RequestContextC s sc m => U.UUID -> String -> m String
 sanitizeObjectWithTenant tenantUuid object = do
   context <- ask
-  if context.serverConfig'.cloud'.enabled && not (U.toString tenantUuid `L.isPrefixOf` object)
+  if context.serverConfig'.multiTenancy'.enabled && not (U.toString tenantUuid `L.isPrefixOf` object)
     then return $ U.toString tenantUuid ++ "/" ++ object
     else return object
 

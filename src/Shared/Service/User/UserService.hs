@@ -26,7 +26,6 @@ import Shared.Localization.Messages.WizardInternal
 import Shared.Model.Common.Page
 import Shared.Model.Common.Pageable
 import Shared.Model.Common.Sort
-import Shared.Model.Config.ServerConfig
 import Shared.Model.Config.WizardServerConfig
 import Shared.Model.Context.AclContext
 import Shared.Model.Context.RequestContextHelpers
@@ -135,7 +134,6 @@ createUser reqDto uUuid uPasswordHash role uPermissions uRoleName mLocale tenant
           (sendRegistrationConfirmationMail user userEmailLink.hash clientUrl)
           (\errMessage -> throwError $ GeneralServerError _ERROR_SERVICE_USER__ACTIVATION_EMAIL_NOT_SENT)
       )
-    sendAnalyticsEmailIfEnabled user
     return $ toDTO user
 
 createUserFromOpenIdLogin
@@ -184,7 +182,6 @@ createUserFromOpenIdLogin openIdClient externalId firstName lastName email mImag
     identityUuid <- liftIO generateUuid
     let identity = UserOpenIdIdentityMapper.fromCreate identityUuid externalId Nothing user.uuid openIdClient.uuid openIdClient.tenantUuid now
     _ <- insertUserOpenIdIdentity identity
-    sendAnalyticsEmailIfEnabled user
     return user
 
 getUserById :: WizardRequestContextC s m => U.UUID -> m UserDTO
@@ -345,11 +342,6 @@ updateUserTimestamp :: WizardRequestContextC s m => User -> m User
 updateUserTimestamp user = do
   now <- liftIO getCurrentTimeInMicroseconds
   return $ user {updatedAt = now}
-
-sendAnalyticsEmailIfEnabled :: WizardRequestContextC s m => User -> m ()
-sendAnalyticsEmailIfEnabled user = do
-  serverConfig <- asks (.serverConfig')
-  when serverConfig.analyticalMails.enabled (sendRegistrationCreatedAnalyticsMail user)
 
 checkIfRegistrationIsEnabled :: WizardRequestContextC s m => m ()
 checkIfRegistrationIsEnabled = checkIfTenantFeatureIsEnabled "Registration" (getCurrentSettings findSettingsAuthentication) (.registrationEnabled)

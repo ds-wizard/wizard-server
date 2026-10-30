@@ -70,15 +70,11 @@ registry:
   url: https://api.registry-test.ds-wizard.org
   clientUrl: https://registry-test.ds-wizard.org
 
-analyticalMails:
-  enabled: false
-  email:
-
 logging:
   level: ERROR
   httpClientDebug: false
 
-cloud:
+multiTenancy:
   publicRegistrationEnabled: true
 
 mcp:

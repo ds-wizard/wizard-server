@@ -72,7 +72,7 @@ runWithSystemUser function = do
 getCurrentTenant :: Maybe String -> ServerContextM Tenant
 getCurrentTenant mServerUrl = do
   serverContext <- ask
-  if serverContext.serverConfig'.cloud.enabled
+  if serverContext.serverConfig'.multiTenancy.enabled
     then case mServerUrl of
       Nothing -> runWithSystemUser . throwError $ NotExistsError (_ERROR_VALIDATION__TENANT_OR_ACTIVE_PLAN_ABSENCE "not-provided")
       Just serverUrl -> runWithSystemUser $ catchError (findTenantByServerDomain serverUrl) (handleError serverUrl)

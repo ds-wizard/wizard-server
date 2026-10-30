@@ -45,9 +45,6 @@ defaultAws =
 defaultSentry :: ServerConfigSentry
 defaultSentry = ServerConfigSentry {enabled = False, dsn = "", environment = "development"}
 
-defaultAnalyticalMails :: ServerConfigAnalyticalMails
-defaultAnalyticalMails = ServerConfigAnalyticalMails {enabled = False, email = ""}
-
 defaultLogging :: ServerConfigLogging
 defaultLogging =
   ServerConfigLogging
@@ -57,9 +54,9 @@ defaultLogging =
     , databaseDebug = False
     }
 
-defaultCloud :: ServerConfigCloud
-defaultCloud =
-  ServerConfigCloud
+defaultMultiTenancy :: ServerConfigMultiTenancy
+defaultMultiTenancy =
+  ServerConfigMultiTenancy
     { enabled = False
     , domain = Nothing
     , publicRegistrationEnabled = False

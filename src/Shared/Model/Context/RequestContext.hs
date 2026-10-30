@@ -28,7 +28,7 @@ class
   , HasField "tenantUuid'" context U.UUID
   , HasField "serverConfig'" context sc
   , HasField "database'" sc ServerConfigDatabase
-  , HasField "cloud'" sc ServerConfigCloud
+  , HasField "multiTenancy'" sc ServerConfigMultiTenancy
   , HasField "s3'" sc ServerConfigS3
   , HasField "persistentCommand'" sc ServerConfigPersistentCommand
   , HasField "sentry'" sc ServerConfigSentry

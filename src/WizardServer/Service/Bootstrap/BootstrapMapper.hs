@@ -23,7 +23,7 @@ toBootstrapDTO serverConfig tenant settings openIdClients mUserProfile tours boo
     , lookAndFeel = settings.lookAndFeel
     , users = settings.users
     , registry = BootstrapRegistryDTO {enabled = settings.registry.enabled, url = serverConfig.registry.clientUrl}
-    , cloud = toCloudDTO serverConfig.cloud tenant
+    , cloud = toCloudDTO serverConfig.multiTenancy tenant
     , admin = BootstrapAdminDTO {enabled = serverConfig.admin.enabled}
     , plugins = bootstrapPlugins.plugins
     , pluginSettings = bootstrapPlugins.pluginSettings

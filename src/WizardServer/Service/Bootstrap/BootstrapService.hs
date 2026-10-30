@@ -33,7 +33,7 @@ getBootstrap :: WizardRequestContextC s m => Maybe String -> Maybe String -> m B
 getBootstrap mServerUrl mClientUrl = do
   serverConfig <- asks (.serverConfig')
   tenant <-
-    if serverConfig.cloud.enabled
+    if serverConfig.multiTenancy.enabled
       then maybe getCurrentTenant findTenantByClientUrl mClientUrl
       else getCurrentTenant
   mHousekeeping <- checkBootstrapTenantState mServerUrl tenant

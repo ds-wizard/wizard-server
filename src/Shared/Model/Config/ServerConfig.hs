@@ -44,12 +44,6 @@ data ServerConfigSentry = ServerConfigSentry
   }
   deriving (Generic, Show)
 
-data ServerConfigAnalyticalMails = ServerConfigAnalyticalMails
-  { enabled :: Bool
-  , email :: String
-  }
-  deriving (Generic, Show)
-
 data ServerConfigLogging = ServerConfigLogging
   { level :: LogLevel
   , httpClientDebug :: Bool
@@ -58,7 +52,7 @@ data ServerConfigLogging = ServerConfigLogging
   }
   deriving (Generic, Show)
 
-data ServerConfigCloud = ServerConfigCloud
+data ServerConfigMultiTenancy = ServerConfigMultiTenancy
   { enabled :: Bool
   , domain :: Maybe String
   , publicRegistrationEnabled :: Bool

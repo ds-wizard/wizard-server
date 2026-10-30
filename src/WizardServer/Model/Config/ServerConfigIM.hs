@@ -23,9 +23,8 @@ instance FromEnv ServerConfig where
     websocket <- applyEnv serverConfig.websocket
     userToken <- applyEnv serverConfig.userToken
     userRegistration <- applyEnv serverConfig.userRegistration
-    analyticalMails <- applyEnv serverConfig.analyticalMails
     logging <- applyEnv serverConfig.logging
-    cloud <- applyEnv serverConfig.cloud
+    multiTenancy <- applyEnv serverConfig.multiTenancy
     persistentCommand <- applyEnv serverConfig.persistentCommand
     admin <- applyEnv serverConfig.admin
     registry <- applyEnv serverConfig.registry
@@ -146,7 +145,6 @@ instance FromEnv ServerConfigAdmin where
     applyEnvVariables
       serverConfig
       [ \c -> applyEnvVariable "ADMIN_ENABLED" c.enabled (\x -> c {enabled = x} :: ServerConfigAdmin)
-      , \c -> applyStringEnvVariable "ADMIN_SERVER_URL" c.serverUrl (\x -> c {serverUrl = x} :: ServerConfigAdmin)
       ]
 
 instance FromEnv ServerConfigRegistry where

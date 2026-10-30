@@ -24,9 +24,8 @@ data ServerConfig = ServerConfig
   , websocket :: ServerConfigWebsocket
   , userToken :: ServerConfigUserToken
   , userRegistration :: ServerConfigUserRegistration
-  , analyticalMails :: ServerConfigAnalyticalMails
   , logging :: ServerConfigLogging
-  , cloud :: ServerConfigCloud
+  , multiTenancy :: ServerConfigMultiTenancy
   , persistentCommand :: ServerConfigPersistentCommand
   , admin :: ServerConfigAdmin
   , registry :: ServerConfigRegistry
@@ -111,7 +110,6 @@ data ServerConfigUserRegistration = ServerConfigUserRegistration
 
 data ServerConfigAdmin = ServerConfigAdmin
   { enabled :: Bool
-  , serverUrl :: String
   }
   deriving (Generic, Show)
 
@@ -140,8 +138,8 @@ instance HasField "sentry'" ServerConfig ServerConfigSentry where
 instance HasField "logging'" ServerConfig ServerConfigLogging where
   getField = (.logging)
 
-instance HasField "cloud'" ServerConfig ServerConfigCloud where
-  getField = (.cloud)
+instance HasField "multiTenancy'" ServerConfig ServerConfigMultiTenancy where
+  getField = (.multiTenancy)
 
 instance HasField "persistentCommand'" ServerConfig ServerConfigPersistentCommand where
   getField = (.persistentCommand)

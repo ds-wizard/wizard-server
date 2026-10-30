@@ -53,13 +53,6 @@ instance FromJSON ServerConfigSentry where
     return ServerConfigSentry {..}
   parseJSON _ = mzero
 
-instance FromJSON ServerConfigAnalyticalMails where
-  parseJSON (Object o) = do
-    enabled <- o .:? "enabled" .!= defaultAnalyticalMails.enabled
-    email <- o .:? "email" .!= defaultAnalyticalMails.email
-    return ServerConfigAnalyticalMails {..}
-  parseJSON _ = mzero
-
 instance FromJSON ServerConfigLogging where
   parseJSON (Object o) = do
     level <- o .:? "level" .!= defaultLogging.level
@@ -78,12 +71,12 @@ instance FromJSON LogLevel where
       parse "ERROR" = return LevelError
       parse _ = fail "Log Level has unsupported log level"
 
-instance FromJSON ServerConfigCloud where
+instance FromJSON ServerConfigMultiTenancy where
   parseJSON (Object o) = do
-    enabled <- o .:? "enabled" .!= defaultCloud.enabled
-    domain <- o .:? "domain" .!= defaultCloud.domain
-    publicRegistrationEnabled <- o .:? "publicRegistrationEnabled" .!= defaultCloud.publicRegistrationEnabled
-    return ServerConfigCloud {..}
+    enabled <- o .:? "enabled" .!= defaultMultiTenancy.enabled
+    domain <- o .:? "domain" .!= defaultMultiTenancy.domain
+    publicRegistrationEnabled <- o .:? "publicRegistrationEnabled" .!= defaultMultiTenancy.publicRegistrationEnabled
+    return ServerConfigMultiTenancy {..}
   parseJSON _ = mzero
 
 instance FromJSON ServerConfigPersistentCommand where

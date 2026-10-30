@@ -24,9 +24,8 @@ defaultConfig =
     , websocket = defaultWebsocket
     , userToken = defaultUserToken
     , userRegistration = defaultUserRegistration
-    , analyticalMails = defaultAnalyticalMails
     , logging = defaultLogging
-    , cloud = defaultCloud
+    , multiTenancy = defaultMultiTenancy
     , persistentCommand = defaultPersistentCommand
     , admin = defaultAdmin
     , registry = defaultRegistry
@@ -146,7 +145,6 @@ defaultAdmin :: ServerConfigAdmin
 defaultAdmin =
   ServerConfigAdmin
     { enabled = False
-    , serverUrl = ""
     }
 
 defaultRegistry :: ServerConfigRegistry

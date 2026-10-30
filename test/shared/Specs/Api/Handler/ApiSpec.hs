@@ -17,7 +17,7 @@ apiSpec =
     it "serves the feature endpoints flat" $
       shouldServe ["/projects", "/knowledge-model-packages", "/document-templates", "/type-hints", "/workspaces", "/workspaces/{uuid}/members/{userUuid}"]
     it "serves the management endpoints flat" $
-      shouldServe ["/users", "/users/current/submission-props", "/user-groups/suggestions", "/tokens/system"]
+      shouldServe ["/users", "/users/current/submission-props", "/user-groups/suggestions"]
     it "serves one bootstrap and the settings flat" $
       shouldServe ["/bootstrap", "/bootstrap/workspace", "/settings/support", "/settings/registry"]
     it "serves the registry locale pull" $

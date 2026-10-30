@@ -17,7 +17,7 @@ getCurrentTenant = do
 getClientUrl :: WizardRequestContextC s m => m String
 getClientUrl = do
   serverConfig <- asks (.serverConfig')
-  if serverConfig.cloud.enabled
+  if serverConfig.multiTenancy.enabled
     then do
       tenant <- getCurrentTenant
       return tenant.clientUrl
