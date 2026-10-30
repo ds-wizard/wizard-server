@@ -194,9 +194,10 @@ publishToPersistentCommandQueue :: WizardRequestContextC s m => Document -> Docu
 publishToPersistentCommandQueue doc dt format ctx = do
   mCreatedBy <- traverse findUserByUuid doc.createdBy
   mLocale <- maybe (return Nothing) (findDocumentTemplateLocaleByDocumentTemplateUuidAndCode' doc.documentTemplateUuid) doc.language
+  limits <- findTenantLimits doc.tenantUuid
   pUuid <- liftIO generateUuid
   let docContext = withDocument doc dt format mCreatedBy mLocale ctx
-  insertPersistentCommand (toDocPersistentCommand pUuid docContext doc)
+  insertPersistentCommand (toDocPersistentCommand pUuid docContext limits doc)
   return ()
 
 -- --------------------------------
