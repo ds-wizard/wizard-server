@@ -22,9 +22,11 @@ import Shared.Model.Error.Error
 import Shared.Model.PersistentCommand.PersistentCommand
 import Shared.Model.User.RolePermission
 import qualified Shared.Service.Project.Cache.ProjectCacheCommandExecutor as ProjectCacheCommandExecutor
+import Shared.Util.Uuid
 import WizardServer.Model.Context.RequestContext
 
 import SharedTest.Specs.Api.Common
+import SharedTest.Specs.PersistentCommand
 import Specs.Api.Handler.Common
 import Specs.Common
 
@@ -35,6 +37,7 @@ detail_attempts_POST :: RequestContext -> SpecWith ((), Application)
 detail_attempts_POST requestContext =
   describe "POST /api/persistent-commands/{uuid}/attempts" $ do
     test_201 requestContext
+    test_201_lambda requestContext
     test_401 requestContext
     test_403 requestContext
     test_404 requestContext
@@ -71,6 +74,29 @@ test_201 requestContext =
       -- AND: Compare state in DB with expectation
       eCommandFromDb <- findCommandInDB requestContext
       liftIO $ fmap (\c -> (c.state, c.attempts)) eCommandFromDb `shouldBe` Right (ErrorPersistentCommandState, command.attempts + 1)
+
+test_201_lambda requestContext =
+  it "HTTP 201 CREATED - command of a Lambda" $
+    -- GIVEN: Prepare request
+    do
+      let reqUrl = BS.pack $ "/api/persistent-commands/" ++ U.toString lambdaCommand.uuid ++ "/attempts"
+      -- AND: Prepare expectation
+      let expStatus = 201
+      let expHeaders = resCtHeaderPlain : resCorsHeadersPlain
+      -- AND: Run migrations
+      runInContextIO (insertPersistentCommand lambdaCommand >> updatePersistentCommandLambdaInvokedByUuid lambdaCommand.uuid True) requestContext
+      -- WHEN: Call API
+      response <- request reqMethod reqUrl reqHeaders reqBody
+      -- THEN: Compare response with expectation
+      let (status, headers, resDto) = destructResponse response :: (Int, ResponseHeaders, PersistentCommandDetailDTO)
+      assertResStatus status expStatus
+      assertResHeaders headers expHeaders
+      liftIO $ (resDto.state, resDto.attempts) `shouldBe` (lambdaCommand.state, lambdaCommand.attempts)
+      -- AND: Compare state in DB with expectation
+      eCommandFromDb <- runInContextIO (findPersistentCommandByUuid lambdaCommand.uuid :: RequestContextM (PersistentCommand U.UUID)) requestContext
+      liftIO $ eCommandFromDb `shouldBe` Right lambdaCommand
+      eLambdaInvoked <- runInContextIO (findLambdaInvoked lambdaCommand.uuid) requestContext
+      liftIO $ eLambdaInvoked `shouldBe` Right [False]
 
 -- ----------------------------------------------------
 -- ----------------------------------------------------
@@ -140,5 +166,8 @@ test_404 requestContext =
 -- ----------------------------------------------------
 command :: PersistentCommand U.UUID
 command = command1 {state = IgnorePersistentCommandState, component = ProjectCacheCommandExecutor.cComponent, function = ProjectCacheCommandExecutor.cRefreshName}
+
+lambdaCommand :: PersistentCommand U.UUID
+lambdaCommand = command1 {uuid = u' "6b3e7d9f-1a8c-4e2d-8f6b-7c0d3e5a8fb6", state = ErrorPersistentCommandState, component = "mailer"}
 
 findCommandInDB = runInContextIO (findPersistentCommandByUuid command.uuid :: RequestContextM (PersistentCommand U.UUID))

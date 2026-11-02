@@ -106,7 +106,7 @@ retryPersistentCommandsForLambda :: RequestContextC s sc m => [String] -> m ()
 retryPersistentCommandsForLambda ownComponents = do
   context <- ask
   let components = filter (`notElem` ownComponents) . fmap (\lf -> lf.component) $ context.serverConfig'.persistentCommand'.lambdaFunctions
-  persistentCommands <- findPersistentCommandsForRetryByStates components
+  persistentCommands <- markPersistentCommandsForLambdaRetry components
   traverse_ retryPersistentCommandForLambda (persistentCommands :: [PersistentCommandSimple U.UUID])
 
 retryPersistentCommandForLambda :: (Show identity, FromField identity, ToField identity, RequestContextC s sc m) => PersistentCommandSimple identity -> m ()

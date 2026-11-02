@@ -28,12 +28,9 @@ entityName = "persistent_command"
 
 channelName = "persistent_command_channel"
 
-componentCondition :: [String] -> String
-componentCondition components = f' "component IN (%s)" [generateQuestionMarks components]
-
 findPersistentCommands :: (RequestContextC s sc m, FromField identity) => m [PersistentCommand identity]
 findPersistentCommands = do
-  createFindEntitiesFn entityName
+  createFindEntitiesWithFieldsFn persistentCommandFields entityName
 
 findPersistentCommandsForRetryByStates :: (RequestContextC s sc m, FromField identity) => [String] -> m [PersistentCommandSimple identity]
 findPersistentCommandsForRetryByStates [] = return []
@@ -43,31 +40,53 @@ findPersistentCommandsForRetryByStates components = do
           f'
             "SELECT uuid, component, tenant_uuid, created_by \
             \FROM %s \
-            \WHERE (state = 'NewPersistentCommandState' \
-            \  OR (state = 'ErrorPersistentCommandState' AND attempts < max_attempts AND updated_at < (now() - (2 ^ attempts - 1) * INTERVAL '1 min'))) \
+            \WHERE %s \
             \  AND %s \
             \ORDER BY created_at \
             \LIMIT 5 \
             \FOR UPDATE SKIP LOCKED"
-            [entityName, componentCondition components]
+            [entityName, retryCondition, componentCondition components]
+  let params = components
+  logQuery sql params
+  let action conn = query conn sql params
+  runDB action
+
+markPersistentCommandsForLambdaRetry :: (RequestContextC s sc m, FromField identity) => [String] -> m [PersistentCommandSimple identity]
+markPersistentCommandsForLambdaRetry [] = return []
+markPersistentCommandsForLambdaRetry components = do
+  let sql =
+        fromString $
+          f'
+            "UPDATE %s \
+            \SET lambda_invoked = true \
+            \WHERE uuid IN (SELECT uuid \
+            \               FROM %s \
+            \               WHERE %s \
+            \                 AND NOT lambda_invoked \
+            \                 AND %s \
+            \               ORDER BY created_at \
+            \               LIMIT 5 \
+            \               FOR UPDATE SKIP LOCKED) \
+            \RETURNING uuid, component, tenant_uuid, created_by"
+            [entityName, entityName, retryCondition, componentCondition components]
   let params = components
   logQuery sql params
   let action conn = query conn sql params
   runDB action
 
 findPersistentCommandByUuid :: (RequestContextC s sc m, FromField identity) => U.UUID -> m (PersistentCommand identity)
-findPersistentCommandByUuid uuid = createFindEntityWithFieldsByFn "*" True entityName [("uuid", U.toString uuid)]
+findPersistentCommandByUuid uuid = createFindEntityWithFieldsByFn persistentCommandFields True entityName [("uuid", U.toString uuid)]
 
 lockPersistentCommandByUuid :: (RequestContextC s sc m, FromField identity) => U.UUID -> m (Maybe (PersistentCommand identity))
 lockPersistentCommandByUuid uuid = do
-  let sql = fromString $ f' "SELECT * FROM %s WHERE uuid = ? FOR UPDATE SKIP LOCKED" [entityName]
+  let sql = fromString $ f' "SELECT %s FROM %s WHERE uuid = ? FOR UPDATE SKIP LOCKED" [persistentCommandFields, entityName]
   let params = [U.toString uuid]
   logQuery sql params
   let action conn = query conn sql params
   listToMaybe <$> runDB action
 
 findPersistentCommandByUuid' :: (RequestContextC s sc m, FromField identity) => U.UUID -> m (Maybe (PersistentCommand identity))
-findPersistentCommandByUuid' uuid = createFindEntityWithFieldsByFn' "*" entityName [("uuid", U.toString uuid)]
+findPersistentCommandByUuid' uuid = createFindEntityWithFieldsByFn' persistentCommandFields entityName [("uuid", U.toString uuid)]
 
 findPersistentCommandSimpleByUuid :: (RequestContextC s sc m, FromField identity) => U.UUID -> m (PersistentCommandSimple identity)
 findPersistentCommandSimpleByUuid uuid = createFindEntityWithFieldsByFn "uuid, component, tenant_uuid, created_by" False entityName [("uuid", U.toString uuid)]
@@ -103,6 +122,14 @@ updatePersistentCommandByUuid command = do
         , toField command.uuid
         , toField command.tenantUuid
         ]
+  logQuery sql params
+  let action conn = execute conn sql params
+  runDB action
+
+updatePersistentCommandLambdaInvokedByUuid :: RequestContextC s sc m => U.UUID -> Bool -> m Int64
+updatePersistentCommandLambdaInvokedByUuid uuid lambdaInvoked = do
+  let sql = fromString $ f' "UPDATE %s SET lambda_invoked = ? WHERE uuid = ?" [entityName]
+  let params = [toField lambdaInvoked, toField uuid]
   logQuery sql params
   let action conn = execute conn sql params
   runDB action
@@ -159,3 +186,16 @@ invokeLambdaFunction :: RequestContextC s sc m => ServerConfigPersistentCommandL
 invokeLambdaFunction lf = do
   invokeLambda lf.functionArn "{}"
   return 1
+
+-- --------------------------------
+-- PRIVATE
+-- --------------------------------
+persistentCommandFields = "uuid, state, component, function, body, last_error_message, attempts, max_attempts, tenant_uuid, created_by, created_at, updated_at, last_trace_uuid"
+
+componentCondition :: [String] -> String
+componentCondition components = f' "component IN (%s)" [generateQuestionMarks components]
+
+retryCondition :: String
+retryCondition =
+  "(state = 'NewPersistentCommandState' \
+  \  OR (state = 'ErrorPersistentCommandState' AND attempts < max_attempts AND updated_at < (now() - (2 ^ attempts - 1) * INTERVAL '1 min')))"

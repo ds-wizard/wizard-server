@@ -61,7 +61,9 @@ runPersistentCommandById uuid = do
   command <- findPersistentCommandByUuid uuid
   if command.component `elem` components
     then runPersistentCommand' True (toSimple command)
-    else void $ notifyPersistentCommandQueues command
+    else do
+      updatePersistentCommandLambdaInvokedByUuid command.uuid False
+      void $ notifyPersistentCommandQueues command
   getPersistentCommandById uuid
 
 runPersistentCommands' :: forall s m. WizardRequestContextC s m => m ()

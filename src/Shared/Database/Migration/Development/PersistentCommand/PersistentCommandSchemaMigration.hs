@@ -33,6 +33,7 @@ createTables = do
         \    created_at         timestamptz not null, \
         \    updated_at         timestamptz not null, \
         \    last_trace_uuid    uuid, \
+        \    lambda_invoked     boolean     not null default false, \
         \    CONSTRAINT persistent_command_pk PRIMARY KEY (uuid), \
         \    CONSTRAINT persistent_command_created_by_fk FOREIGN KEY (created_by) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT persistent_command_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \

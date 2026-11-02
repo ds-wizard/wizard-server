@@ -80,6 +80,7 @@ import Specs.Api.Handler.Websocket.MultiNodeSpec
 import Specs.Api.Handler.Workspace.ApiSpec
 import Specs.Api.Resource.Coordinate.CoordinateJMSpec
 import Specs.Database.DAO.CommonSpec
+import Specs.Database.DAO.PersistentCommand.PersistentCommandDAOSpec
 import Specs.Database.DAO.Websocket.WebsocketConnectionDAOSpec
 import Specs.Database.DAO.Websocket.WebsocketOutboxDAOSpec
 import Specs.Database.Migration.Production.Migration_4_35_2.MigrationSpec
@@ -333,6 +334,7 @@ main =
                 describe "Production" $ do
                   migration_4_35_2Spec requestContext
                   migration_5_0_0Spec requestContext
+              persistentCommandDAOSpec requestContext
               websocketConnectionDAOSpec requestContext
               websocketOutboxDAOSpec requestContext
             describe "SERVICE" $ do
