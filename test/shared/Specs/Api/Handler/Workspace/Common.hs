@@ -105,5 +105,5 @@ compareWorkspaceDtos resDto expDto = do
   liftIO $ resDto.tenantUuid `shouldBe` expDto.tenantUuid
   liftIO $ resDto.name `shouldBe` expDto.name
   liftIO $ resDto.description `shouldBe` expDto.description
-  liftIO $ resDto.logo `shouldBe` expDto.logo
+  liftIO $ resDto.logoUrl `shouldBe` expDto.logoUrl
   liftIO $ resDto.primaryColor `shouldBe` expDto.primaryColor

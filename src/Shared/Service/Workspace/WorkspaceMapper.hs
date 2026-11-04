@@ -23,7 +23,7 @@ fromChangeDTO reqDto uuid tenantUuid now =
     , createdAt = now
     , updatedAt = now
     , defaultRoleUuid = Nothing
-    , logo = Nothing
+    , logoUrl = Nothing
     , primaryColor = reqDto.primaryColor
     }
 

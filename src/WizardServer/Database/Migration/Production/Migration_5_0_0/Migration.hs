@@ -401,7 +401,7 @@ addWorkspaceBranding :: Pool Connection -> LoggingT IO ()
 addWorkspaceBranding dbPool =
   runSql
     dbPool
-    "ALTER TABLE workspace ADD COLUMN logo character varying; \
+    "ALTER TABLE workspace ADD COLUMN logo_url character varying; \
     \ALTER TABLE workspace ADD COLUMN primary_color character varying;"
 
 renamePermissions :: Pool Connection -> LoggingT IO ()

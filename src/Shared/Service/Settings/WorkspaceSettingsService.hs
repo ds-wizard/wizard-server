@@ -43,11 +43,7 @@ getEffectiveSettingsSubmission = getEffectiveSettings submissionSection
 getEffectiveLookAndFeel :: WizardRequestContextC s m => Workspace -> m SettingsLookAndFeel
 getEffectiveLookAndFeel workspace = do
   lookAndFeel <- getCurrentSettings findSettingsLookAndFeel
-  return
-    lookAndFeel
-      { logoUrl = workspace.logo <|> lookAndFeel.logoUrl
-      , primaryColor = workspace.primaryColor <|> lookAndFeel.primaryColor
-      }
+  return (lookAndFeel {logoUrl = workspace.logoUrl <|> lookAndFeel.logoUrl, primaryColor = workspace.primaryColor <|> lookAndFeel.primaryColor} :: SettingsLookAndFeel)
 
 getSettingsDashboardAndMenu :: WizardRequestContextC s m => m (SettingsDTO SettingsDashboardAndMenu)
 getSettingsDashboardAndMenu = getOverridableSettings dashboardAndMenuSection

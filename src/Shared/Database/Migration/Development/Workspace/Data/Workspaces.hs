@@ -23,7 +23,7 @@ defaultWorkspace =
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , defaultRoleUuid = Just defaultWorkspaceUserRole.uuid
-    , logo = Nothing
+    , logoUrl = Nothing
     , primaryColor = Nothing
     }
 
@@ -45,7 +45,7 @@ secondWorkspace =
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 26) 0
     , defaultRoleUuid = Just secondWorkspaceUserRole.uuid
-    , logo = Nothing
+    , logoUrl = Nothing
     , primaryColor = Just "#1565C0"
     }
 
@@ -59,7 +59,7 @@ differentWorkspace =
     , createdAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , updatedAt = UTCTime (fromJust $ fromGregorianValid 2018 1 25) 0
     , defaultRoleUuid = Just differentWorkspaceUserRole.uuid
-    , logo = Nothing
+    , logoUrl = Nothing
     , primaryColor = Nothing
     }
 

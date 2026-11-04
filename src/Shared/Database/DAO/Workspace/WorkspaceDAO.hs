@@ -90,7 +90,7 @@ updateWorkspaceByUuid :: RequestContextC s sc m => Workspace -> m Int64
 updateWorkspaceByUuid workspace = do
   let sql =
         fromString
-          "UPDATE workspace SET uuid = ?, tenant_uuid = ?, name = ?, description = ?, created_at = ?, updated_at = ?, default_role_uuid = ?, logo = ?, primary_color = ? WHERE uuid = ? AND tenant_uuid = ?"
+          "UPDATE workspace SET uuid = ?, tenant_uuid = ?, name = ?, description = ?, created_at = ?, updated_at = ?, default_role_uuid = ?, logo_url = ?, primary_color = ? WHERE uuid = ? AND tenant_uuid = ?"
   let params = toRow workspace ++ [toField workspace.uuid, toField workspace.tenantUuid]
   logQuery sql params
   let action conn = execute conn sql params

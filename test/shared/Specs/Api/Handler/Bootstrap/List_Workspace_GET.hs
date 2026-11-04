@@ -119,8 +119,8 @@ test_200_workspace_branding requestContext =
   it "HTTP 200 OK (workspace logo and color win over the organization look and feel)" $ do
     -- GIVEN: Prepare expectation
     let expHeaders = resCtHeader : resCorsHeaders
-    let brandedWorkspace = defaultWorkspace {logo = Just "https://example.com/logo.png", primaryColor = Just "#D81B60"} :: Workspace
-    let expBody = encode (expDto {logoUrl = brandedWorkspace.logo, primaryColor = brandedWorkspace.primaryColor} :: WorkspaceBootstrapDTO)
+    let brandedWorkspace = defaultWorkspace {logoUrl = Just "https://example.com/logo.png", primaryColor = Just "#D81B60"} :: Workspace
+    let expBody = encode (expDto {logoUrl = brandedWorkspace.logoUrl, primaryColor = brandedWorkspace.primaryColor} :: WorkspaceBootstrapDTO)
     -- AND: Run migrations
     runInContextIO U.runMigration requestContext
     runInContextIO (updateWorkspaceByUuid brandedWorkspace) requestContext

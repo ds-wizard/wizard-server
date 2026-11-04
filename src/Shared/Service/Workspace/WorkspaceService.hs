@@ -116,7 +116,7 @@ deleteWorkspace uuid =
     editorUuids <- findKnowledgeModelEditorUuidsByWorkspaceUuid uuid
     whenAuditLogEnabled $ al_deleteWorkspace workspace =<< countWorkspaceDeletion uuid projectUuids editorUuids
     void $ deleteWorkspaceByUuid uuid
-    traverse_ (removeWorkspaceLogo uuid) workspace.logo
+    traverse_ (removeWorkspaceLogo uuid) workspace.logoUrl
     traverse_ logOutOnlineUsersWhenProjectDramaticallyChanged projectUuids
     traverse_ logOutOnlineUsersWhenKnowledgeModelEditorDramaticallyChanged editorUuids
 
