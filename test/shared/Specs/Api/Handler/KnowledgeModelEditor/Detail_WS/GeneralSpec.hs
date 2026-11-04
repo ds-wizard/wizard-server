@@ -1,5 +1,6 @@
 module Specs.Api.Handler.KnowledgeModelEditor.Detail_WS.GeneralSpec where
 
+import Data.Aeson.QQ
 import qualified Data.UUID as U
 import Test.Hspec hiding (shouldBe)
 
@@ -23,6 +24,7 @@ import WizardServer.Model.Context.RequestContext
 generalSpec requestContext =
   describe "general" $ do
     test200 requestContext
+    test400 requestContext
     test403 requestContext
     test404 requestContext
 
@@ -39,6 +41,42 @@ test200 requestContext =
       ((c1, s1), (c2, s2)) <- connectTestWebsocketUsers requestContext editor.uuid
       -- THEN:
       assertCountOfWebsocketConnection requestContext 2
+      -- AND: Close sockets
+      closeSockets [s1, s2]
+
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+test400 requestContext =
+  it "WS 400 BAD REQUEST if the message cannot be deserialized, naming the reason" $
+    -- GIVEN: Prepare database
+    do
+      let editor = amsterdamKnowledgeModelEditor
+      insertKnowledgeModelEditorAndUsers requestContext editor
+      -- AND: Connect to websocket
+      ((c1, s1), (c2, s2)) <- connectTestWebsocketUsers requestContext editor.uuid
+      -- AND: Prepare expectation
+      let expError = UserError (_ERROR_API_WEBSOCKET__DESERIALIZATION_FAILED "Error in $.data.event.parentUuid: invalid UUID")
+      -- WHEN:
+      sendMessage
+        c1
+        [aesonQQ|
+          { "type": "SetContent_ClientKnowledgeModelEditorMessage"
+          , "data":
+              { "type": "AddKnowledgeModelEditorWebSocketEvent"
+              , "uuid": "7d0cdfab-e49a-41f9-9f76-6f01a41646fe"
+              , "event":
+                  { "uuid": "b6be9983-9eb1-4c4f-a371-ca94187c5ab6"
+                  , "parentUuid": ""
+                  , "entityUuid": "6f6241d9-136c-4770-9d58-8a3f39607052"
+                  , "content": {"eventType": "EditKnowledgeModelEvent", "chapterUuids": {"changed": false}}
+                  , "createdAt": "2026-11-04T09:18:51.194Z"
+                  }
+              }
+          }
+        |]
+      -- THEN:
+      read_Error c1 expError
       -- AND: Close sockets
       closeSockets [s1, s2]
 

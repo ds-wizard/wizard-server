@@ -20,6 +20,7 @@ import Network.WebSockets.Connection (PendingConnection (..))
 import Servant (ServerError (..))
 import System.Timeout (timeout)
 
+import Shared.Api.Handler.Common.ContentType (dropParsedTypeName)
 import Shared.Api.Resource.Error.ErrorJM ()
 import Shared.Constant.Websocket
 import Shared.Localization.Messages.Public
@@ -157,7 +158,7 @@ handleRawData connectionUuid outbound handleAction rawData =
       | "ping" `isInfixOf` error -> return ()
       | otherwise -> do
           logWS connectionUuid ("Deserialization failed: " ++ error)
-          sendError outbound connectionUuid (UserError _ERROR_API_WEBSOCKET__DESERIALIZATION_FAILED)
+          sendError outbound connectionUuid (UserError . _ERROR_API_WEBSOCKET__DESERIALIZATION_FAILED $ dropParsedTypeName error)
 
 sendError :: WizardRequestContextC s m => WebsocketOutbound -> U.UUID -> AppError -> m ()
 sendError outbound connectionUuid error = enqueueOutbound outbound connectionUuid (encodeError error)

@@ -17,8 +17,8 @@ _ERROR_VALIDATION__TENANT_OR_ACTIVE_PLAN_ABSENCE host = LocaleRecord "error.vali
 _ERROR_VALIDATION__NOT_SEEDED_TENANT host = LocaleRecord "error.validation.not_seeded_tenant" "Tenant ('%s') is not seeded" [host]
 
 -- Websocket
-_ERROR_API_WEBSOCKET__DESERIALIZATION_FAILED =
-  LocaleRecord "error.api.websocket.cant_deserialize_obj" "Deserialization failed" []
+_ERROR_API_WEBSOCKET__DESERIALIZATION_FAILED error =
+  LocaleRecord "error.api.websocket.cant_deserialize_obj" "Deserialization failed (%s)" [error]
 
 _ERROR_API__WEBSOCKET_RECORD_NOT_FOUND connectionUUid =
   LocaleRecord
