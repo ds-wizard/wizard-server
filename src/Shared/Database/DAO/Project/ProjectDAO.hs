@@ -186,7 +186,9 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \             FROM project \
               \             ${knowledgeModelPackageJoin} \
               \             ${aclJoins} \
-              \             WHERE project.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition}), \
+              \             WHERE project.tenant_uuid = '${tenantUuid}' ${workspaceCondition} ${aclCondition} ${nameCondition} ${isTemplateCondition} ${projectTagsCondition} ${userUuidsCondition} ${userGroupUuidsCondition} ${knowledgeModelPackageCondition} \
+              \             ${projectSort} \
+              \             OFFSET ${offset} LIMIT ${limit}), \
               \     pkg AS (SELECT knowledge_model_package.uuid, \
               \                    knowledge_model_package.name, \
               \                    knowledge_model_package.version, \
@@ -234,8 +236,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               \FROM filtered_project \
               \JOIN pkg ON filtered_project.knowledge_model_package_uuid = pkg.uuid \
               \LEFT JOIN document_template dt ON filtered_project.document_template_uuid = dt.uuid AND dt.tenant_uuid = '${tenantUuid}' \
-              \${sort} \
-              \OFFSET ${offset} LIMIT ${limit}"
+              \${sort}"
               [ ("knowledgeModelPackageJoin", knowledgeModelPackageJoin)
               , ("aclJoins", aclJoins)
               , ("tenantUuid", U.toString tenantUuid)
@@ -247,6 +248,7 @@ findProjectsForCurrentUserPage mQuery mIsTemplate mProjectTags mProjectTagsOp mU
               , ("userUuidsCondition", userUuidsCondition)
               , ("userGroupUuidsCondition", userGroupUuidsCondition)
               , ("knowledgeModelPackageCondition", knowledgeModelPackageCondition)
+              , ("projectSort", mapSortWithPrefix "project" sort)
               , ("sort", mapSortWithPrefix "filtered_project" sort)
               , ("offset", show skip)
               , ("limit", show sizeI)

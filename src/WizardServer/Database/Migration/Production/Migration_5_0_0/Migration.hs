@@ -21,7 +21,7 @@ import Shared.Util.String (f', f'')
 
 definition = (meta, migrate)
 
-meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent, skip the persistent commands of the delete triggers when the tenant itself is being deleted, rename the doc_worker and awsEventBridge persistent command components to document_worker and aws_event_bridge, mark get_newest_knowledge_model_package stable, add lambda_invoked to persistent commands"}
+meta = MigrationMeta {mmNumber = 5000000, mmName = "Workspaces", mmDescription = "Add workspaces, workspace memberships, workspace roles, the workspace column of the workspace-scoped tables, keep projects when their document template is deleted, rename the internal audit to telemetry_event, create the audit log with its MCP source, replace organization id by a single id, rework locales into PO-based UI translations, replace registry organizations by accounts, store the names and descriptions of the registry catalog, rework tenant config into settings, add workspace branding and workspace plugin settings, drop the project import commands and the tenant modules, create the websocket connection and outbox tables, create the MCP OAuth tables and the table of used MCP confirmation tokens, add mcp.read, mcp.write and mcp.sensitive to the admin roles, set the knowledge model as the parent of the knowledge model editor events stored with a nil parent, skip the persistent commands of the delete triggers when the tenant itself is being deleted, rename the doc_worker and awsEventBridge persistent command components to document_worker and aws_event_bridge, mark get_newest_knowledge_model_package stable, add lambda_invoked to persistent commands, index the project permissions by project"}
 
 migrate :: Pool Connection -> LoggingT IO (Maybe Error)
 migrate dbPool = do
@@ -86,6 +86,7 @@ migrateShared dbPool = do
   renamePersistentCommandComponents dbPool
   markNewestKnowledgeModelPackageFnStable dbPool
   addPersistentCommandLambdaInvoked dbPool
+  createProjectPermProjectUuidIndexes dbPool
 
 assertNoDuplicateIds :: Pool Connection -> String -> String -> LoggingT IO ()
 assertNoDuplicateIds dbPool table entityIdColumn =
@@ -1023,6 +1024,13 @@ markNewestKnowledgeModelPackageFnStable dbPool =
 addPersistentCommandLambdaInvoked :: Pool Connection -> LoggingT IO ()
 addPersistentCommandLambdaInvoked dbPool =
   runSql dbPool "ALTER TABLE persistent_command ADD COLUMN lambda_invoked boolean NOT NULL DEFAULT false;"
+
+createProjectPermProjectUuidIndexes :: Pool Connection -> LoggingT IO ()
+createProjectPermProjectUuidIndexes dbPool =
+  runSql
+    dbPool
+    "CREATE INDEX project_perm_user_project_uuid_index ON project_perm_user (project_uuid); \
+    \CREATE INDEX project_perm_group_project_uuid_index ON project_perm_group (project_uuid);"
 
 runSql :: Pool Connection -> Query -> LoggingT IO ()
 runSql dbPool sql = do

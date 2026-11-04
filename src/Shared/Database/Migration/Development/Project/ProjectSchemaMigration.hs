@@ -137,7 +137,8 @@ createProjectPermUserTable = do
         \    CONSTRAINT project_perm_user_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT project_perm_user_user_uuid_fk FOREIGN KEY (user_uuid) REFERENCES user_entity (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT project_perm_user_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \); \
+        \CREATE INDEX project_perm_user_project_uuid_index ON project_perm_user (project_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
@@ -155,7 +156,8 @@ createProjectPermGroupTable = do
         \    CONSTRAINT project_perm_group_project_uuid_fk FOREIGN KEY (project_uuid) REFERENCES project (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT project_perm_group_user_group_uuid_fk FOREIGN KEY (user_group_uuid) REFERENCES user_group (uuid) ON DELETE CASCADE, \
         \    CONSTRAINT project_perm_group_tenant_uuid_fk FOREIGN KEY (tenant_uuid) REFERENCES tenant (uuid) ON DELETE CASCADE \
-        \);"
+        \); \
+        \CREATE INDEX project_perm_group_project_uuid_index ON project_perm_group (project_uuid);"
   let action conn = execute_ conn sql
   runDB action
 
