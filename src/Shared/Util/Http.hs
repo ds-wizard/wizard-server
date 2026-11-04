@@ -15,7 +15,7 @@ encodeUrl :: String -> String
 encodeUrl url = BS.unpack $ urlEncode True (BS.pack url)
 
 attachmentContentDisposition :: String -> String
-attachmentContentDisposition fileName = f' "attachment; filename=\"%s\"; filename*=UTF-8''%s" [filter isFallbackChar name, URI.encode name]
+attachmentContentDisposition fileName = f' "attachment; filename=\"%s\"; filename*=UTF-8''%s" [trim (filter isFallbackChar name), URI.encode name]
   where
     name = trim fileName
     isFallbackChar c = isAscii c && isPrint c && c /= '"' && c /= '\\'

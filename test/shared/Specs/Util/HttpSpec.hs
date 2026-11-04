@@ -14,6 +14,8 @@ httpSpec =
         attachmentContentDisposition "Zoë.html" `shouldBe` "attachment; filename=\"Zo.html\"; filename*=UTF-8''Zo%C3%AB.html"
       it "drops quotes from the fallback name" $
         attachmentContentDisposition " my \"final\" report.pdf " `shouldBe` "attachment; filename=\"my final report.pdf\"; filename*=UTF-8''my%20%22final%22%20report.pdf"
+      it "collapses the spaces around a dropped character in the fallback name" $
+        attachmentContentDisposition "Survey — PDF.pdf" `shouldBe` "attachment; filename=\"Survey PDF.pdf\"; filename*=UTF-8''Survey%20%E2%80%94%20PDF.pdf"
     describe "maskQueryString" $ do
       it "masks the Authorization parameter" $
         maskQueryString "?Authorization=Bearer%20eyJhbGciOi.x.y" `shouldBe` "?Authorization=***"
