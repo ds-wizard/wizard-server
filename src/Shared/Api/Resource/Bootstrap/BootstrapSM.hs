@@ -23,7 +23,7 @@ instance ToSchema WorkspaceBootstrapDTO where
   declareNamedSchema =
     toSwagger
       ( WorkspaceBootstrapDTO
-          { logo = Nothing
+          { logoUrl = Nothing
           , primaryColor = Nothing
           , dashboardAndMenu = defaultSettingsDashboardAndMenu
           , projects = defaultSettingsProjects

@@ -9,7 +9,7 @@ import Shared.Model.Config.SimpleFeature
 import Shared.Model.Settings.Settings
 
 data WorkspaceBootstrapDTO = WorkspaceBootstrapDTO
-  { logo :: Maybe String
+  { logoUrl :: Maybe String
   , primaryColor :: Maybe String
   , dashboardAndMenu :: SettingsDashboardAndMenu
   , projects :: SettingsProjects

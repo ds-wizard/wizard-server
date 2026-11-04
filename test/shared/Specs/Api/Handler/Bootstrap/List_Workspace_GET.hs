@@ -73,7 +73,7 @@ reqBody = ""
 
 expDto =
   WorkspaceBootstrapDTO
-    { logo = settingsLookAndFeel.logoUrl
+    { logoUrl = settingsLookAndFeel.logoUrl
     , primaryColor = settingsLookAndFeel.primaryColor
     , dashboardAndMenu = settingsDashboardAndMenu
     , projects = settingsProjects
@@ -120,7 +120,7 @@ test_200_workspace_branding requestContext =
     -- GIVEN: Prepare expectation
     let expHeaders = resCtHeader : resCorsHeaders
     let brandedWorkspace = defaultWorkspace {logo = Just "https://example.com/logo.png", primaryColor = Just "#D81B60"} :: Workspace
-    let expBody = encode (expDto {logo = brandedWorkspace.logo, primaryColor = brandedWorkspace.primaryColor} :: WorkspaceBootstrapDTO)
+    let expBody = encode (expDto {logoUrl = brandedWorkspace.logo, primaryColor = brandedWorkspace.primaryColor} :: WorkspaceBootstrapDTO)
     -- AND: Run migrations
     runInContextIO U.runMigration requestContext
     runInContextIO (updateWorkspaceByUuid brandedWorkspace) requestContext

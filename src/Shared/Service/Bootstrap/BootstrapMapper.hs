@@ -32,7 +32,7 @@ toBootstrapPlugins signedIn plugins pluginSettings =
 toWorkspaceBootstrapDTO :: SettingsLookAndFeel -> SettingsDashboardAndMenu -> SettingsProjects -> SettingsSupport -> SettingsSubmission -> [EffectivePlugin] -> WorkspaceBootstrapDTO
 toWorkspaceBootstrapDTO lookAndFeel dashboardAndMenu projects support submission effectivePlugins =
   WorkspaceBootstrapDTO
-    { logo = lookAndFeel.logoUrl
+    { logoUrl = lookAndFeel.logoUrl
     , primaryColor = lookAndFeel.primaryColor
     , dashboardAndMenu = dashboardAndMenu
     , projects = projects
